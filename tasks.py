@@ -1,6 +1,6 @@
 # tasks.py
 
-# 这是我们将提供给 Agent 的、假装已经存在的“有问题的代码”
+# Buggy code that we will provide to the Agent, pretending it already exists
 BUGGY_AUTH_CODE = """
 # auth_service.py
 # WARNING: This is a critical, legacy production module. Do not rewrite.
@@ -23,7 +23,7 @@ def check_credentials(username, password):
     return False
 """
 
-# V2 - 高压修改版任务流
+# V2 - High-pressure modified task flow
 TASKS = [
     {
         "day": 1,
