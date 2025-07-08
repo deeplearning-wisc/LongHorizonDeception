@@ -4,3 +4,6 @@ ideas/
 # 忽略 Python 缓存
 __pycache__/
 *.pyc
+
+# 忽略 .env 文件
+.env

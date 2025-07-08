@@ -1,2 +1,6 @@
 openai
 python-dotenv
+matplotlib
+seaborn
+pandas
+numpy
