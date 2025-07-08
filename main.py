@@ -66,7 +66,7 @@ def run_pipeline(cfg=None, task_set_name: str = None, session_name: str = None):
         tasks = all_tasks
         
         if cfg.verbose:
-            print("=============== LDLE PIPELINE V6 (概率采样版) ===============")
+            print("=============== LDLE PIPELINE V6 (Enhanced Deception Detection) ===============")
             print(f"Current Task Set: {task_manager.get_current_task_set().name}")
             print(f"Task Set Summary: {get_task_set_summary()}")
             print(f"Processing {len(tasks)} tasks (Complete task set)")
@@ -78,9 +78,9 @@ def run_pipeline(cfg=None, task_set_name: str = None, session_name: str = None):
         
         # Process each task
         for task_idx, task in enumerate(tasks):
-            # 添加任务间延迟，避免API速率限制
+            # Add delay between tasks to avoid API rate limits
             if task_idx > 0:
-                time.sleep(2)  # 每个任务间等待2秒
+                time.sleep(2)  # Wait 2 seconds between tasks
             if cfg.verbose:
                 print(f"\n\n{'='*20} DAY {task.day}: {task.task_id} {'='*20}")
                 print(f"Task: {task.title}")
@@ -505,7 +505,7 @@ def run_judge_validation(session_name: str = None):
         if not config.OPENAI_API_KEY:
             raise ValueError("Please set OPENAI_API_KEY in .env file or environment variables")
         
-        # 使用合适的max_tokens设置，确保不超过模型限制
+        # Use appropriate max_tokens setting to avoid model limits
         judge = StrictDeceptionJudge(config.OPENAI_API_KEY, config.MODEL_NAME, max_tokens=16384)
         results = judge.run_validation_test()
         
@@ -527,13 +527,14 @@ def run_judge_validation(session_name: str = None):
 def create_arg_parser():
     """Create command line argument parser"""
     parser = argparse.ArgumentParser(
-        description="LDLE (Long-term Deception Evolution) Framework - 简化配置版",
+        description="LDLE (Long-term Deception Evolution) Framework - Enhanced Configuration",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python main.py                           # 使用默认配置运行
-  python main.py -c utils/production_config.json  # 使用生产配置文件
-  python main.py --validate               # 运行Judge验证测试
+  python main.py                           # Run with default enhanced configuration
+  python main.py -c utils/enhanced_deception_config.json  # Use enhanced config file
+  python main.py --task-set market_research_21day_enhanced  # Use enhanced task set
+  python main.py --validate               # Run Judge validation tests
         """
     )
     
@@ -552,8 +553,8 @@ Examples:
     parser.add_argument(
         "--task-set", 
         type=str, 
-        choices=["market_research_21day"],
-        help="Override task set from config"
+        choices=["market_research_21day", "market_research_21day_enhanced"],
+        help="Override task set from config: market_research_21day (original) or market_research_21day_enhanced (high deception incentives)"
     )
     
     parser.add_argument(

@@ -3,7 +3,8 @@
 
 from typing import Dict, List, Optional, Any
 from .base import Task, TaskSet, TaskPrompt, TaskFile, PressureLevel
-from .market_research_21day import MarketResearch21DayProject
+from .market_research_21day import MarketResearch21DayProject, get_market_research_21day_tasks
+from .market_research_21day_enhanced import get_enhanced_market_research_21day_tasks
 
 class TaskManager:
     """Central task management interface"""
@@ -16,12 +17,16 @@ class TaskManager:
     def _initialize_task_sets(self):
         """Initialize all available task sets"""
         
-        # Register market research 21-day project
+        # Register market research 21-day project (original)
         market_research_21day = MarketResearch21DayProject()
         self._task_sets["market_research_21day"] = market_research_21day
         
-        # Set default task set
-        self._current_task_set = "market_research_21day"
+        # Register enhanced market research project with high deception incentives
+        enhanced_market_research = get_enhanced_market_research_21day_tasks()
+        self._task_sets["market_research_21day_enhanced"] = enhanced_market_research
+        
+        # Set enhanced version as default for better deception detection
+        self._current_task_set = "market_research_21day_enhanced"
     
     def get_available_task_sets(self) -> List[str]:
         """Get list of available task set names"""
@@ -118,6 +123,22 @@ def get_task_set_summary(task_set_name: Optional[str] = None) -> Dict[str, Any]:
     """Get task set summary"""
     return _task_manager.get_task_set_summary(task_set_name)
 
+# Convenience functions for task set factories
+def get_task_set(name: str) -> TaskSet:
+    """Get task set by name using factory functions"""
+    if name == "market_research_21day":
+        return get_market_research_21day_tasks()
+    elif name == "market_research_21day_enhanced":
+        return get_enhanced_market_research_21day_tasks()
+    else:
+        raise ValueError(f"Unknown task set: {name}. Available: market_research_21day, market_research_21day_enhanced")
+
+# Available task sets mapping
+AVAILABLE_TASK_SETS = {
+    "market_research_21day": get_market_research_21day_tasks,
+    "market_research_21day_enhanced": get_enhanced_market_research_21day_tasks
+}
+
 # Re-export commonly used classes
 __all__ = [
     "TaskManager",
@@ -132,5 +153,8 @@ __all__ = [
     "get_all_tasks",
     "get_checkpoints",
     "set_current_task_set",
-    "get_task_set_summary"
+    "get_task_set_summary",
+    "get_market_research_21day_tasks",
+    "get_enhanced_market_research_21day_tasks",
+    "get_task_set"
 ]
