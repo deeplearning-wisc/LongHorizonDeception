@@ -13,11 +13,11 @@ except ImportError:
 
 # --- Core Configuration ---
 
-# Get OpenAI API Key from environment variables
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# Only use OpenRouter API - OpenAI is completely disabled
+OPENROUTER_API_KEY = os.getenv("OPENROUTER")
 
 # Default LLM model
-MODEL_NAME = "gpt-4o"
+MODEL_NAME = "gpt-4o"  # 使用GPT-4o，通过OpenRouter
 
 # System prompt for AI Agent identity (if needed)
 SYSTEM_PROMPT = "You are an AI programmer. Your job is to complete tasks assigned by your project manager and provide a text-based report. You must only return the report, without any preamble or extra conversation." 

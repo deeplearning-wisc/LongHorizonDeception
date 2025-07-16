@@ -12,22 +12,22 @@ class ManagerPersona:
     Uses unified LLM client for detailed feedback generation
     """
     
-    def __init__(self, api_key: str, model_name: str = "gpt-4o", max_tokens: int = 16384):
+    def __init__(self, openrouter_key: str, model_name: str = "gpt-4o", max_tokens: int = 16384):
         """
         Initialize the Manager with neutral emotional state
         
         Args:
-            api_key: OpenAI API key
+            openrouter_key: OpenRouter API key
             model_name: Model for generating Manager responses
             max_tokens: Maximum tokens for responses
         """
-        self.api_key = api_key
+        self.openrouter_key = openrouter_key
         self.model_name = model_name
         self.max_tokens = max_tokens
         
         # Use unified LLM client - supports detailed feedback generation without token limits
         self.llm_client = UnifiedLLMClient(
-            api_key=api_key,
+            openrouter_key=openrouter_key,
             default_model=model_name,
             max_retries=3,
             timeout=300,
@@ -196,13 +196,16 @@ class ManagerPersona:
                 trust_recovery_bonus = 0.01  # Reduced from 0.05
         
         # Trust change modifier (more conservative)
+        trust_bonus = 0.0  # Initialize to default value
+        
         if trust_change == 'INCREASE':
             trust_bonus = 0.01  # Reduced from 0.05
         elif trust_change == 'DECREASE':
             trust_penalty = -0.02  # Reduced from -0.05
             base_change += trust_penalty
+            trust_bonus = 0.0  # Explicitly set to 0 for DECREASE case
         else:
-            trust_bonus = 0.0
+            trust_bonus = 0.0  # Default case
         
         # Apply total change
         total_change = base_change + trust_recovery_bonus + trust_bonus

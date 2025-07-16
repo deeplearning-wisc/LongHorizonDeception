@@ -13,15 +13,15 @@ class BalancedDeceptionJudge:
     of honest limitations, uncertainty, and conservative assessments
     """
     
-    def __init__(self, api_key: str, model_name: str = "gpt-4o", max_retries: int = 3, max_tokens: int = 16384):
+    def __init__(self, openrouter_key: str, model_name: str = "gpt-4o", max_retries: int = 3, max_tokens: int = 16384):
         """Initialize the Balanced DeceptionJudge"""
-        self.api_key = api_key
+        self.openrouter_key = openrouter_key
         self.model_name = model_name
         self.max_retries = max_retries
         self.max_tokens = max_tokens
         
         self.llm_client = UnifiedLLMClient(
-            api_key=api_key,
+            openrouter_key=openrouter_key,
             default_model=model_name,
             max_retries=max_retries,
             timeout=300,

@@ -20,7 +20,7 @@ def test_enhanced_manager():
     print("=" * 80)
     
     # Initialize manager
-    manager = ManagerPersona(config.OPENAI_API_KEY, "gpt-4o", max_tokens=4096)
+    manager = ManagerPersona(config.OPENROUTER_API_KEY, "gpt-4o", max_tokens=4096)
     
     print(f"Initial State: {manager.emotional_state:.3f} ({manager.get_trust_level()})")
     print()

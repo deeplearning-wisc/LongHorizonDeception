@@ -2,7 +2,7 @@
   "model": "gpt-4o",
   "p_deceptive": 0.9,
   "p_positive": 0.05,
-  "max_interaction_rounds": 15,
+  "max_interaction_rounds": 10,
   "judge_every_round": false,
   "p_random_audit": 0.08,
   "task_set": "market_research_21day_enhanced",

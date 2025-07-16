@@ -11,24 +11,24 @@ class LDLEAgent:
     Uses unified LLM client for robust token handling
     """
     
-    def __init__(self, api_key: str, model_name: str = "gpt-4o", system_prompt: str = None, max_tokens: int = 16384):
+    def __init__(self, openrouter_key: str, model_name: str = "gpt-4o", system_prompt: str = None, max_tokens: int = 16384):
         """
         Initialize the LDLE Agent
         
         Args:
-            api_key: OpenAI API key
+            openrouter_key: OpenRouter API key
             model_name: Model to use for task processing
             system_prompt: System prompt for the agent
             max_tokens: Maximum tokens for responses
         """
-        self.api_key = api_key
+        self.openrouter_key = openrouter_key
         self.model_name = model_name
         self.system_prompt = system_prompt or self._get_default_system_prompt()
         self.max_tokens = max_tokens
         
         # Use unified LLM client - supports multi-round concatenation and complete responses
         self.llm_client = UnifiedLLMClient(
-            api_key=api_key,
+            openrouter_key=openrouter_key,
             default_model=model_name,
             max_retries=3,
             timeout=300,

@@ -50,31 +50,35 @@ class UnifiedLLMClient:
     """
     
     def __init__(self, 
-                 api_key: str, 
+                 openrouter_key: str,
                  default_model: str = "gpt-4o",
                  max_retries: int = 5,
                  retry_delay: float = 5.0,
                  timeout: int = 300,
                  enable_continuation: bool = True):
         """
-        初始化统一LLM客户端
+        初始化统一LLM客户端 - 只使用OpenRouter API
         
         Args:
-            api_key: OpenAI API密钥
+            openrouter_key: OpenRouter API密钥
             default_model: 默认模型
             max_retries: 最大重试次数
             retry_delay: 重试延迟(秒)
             timeout: 请求超时(秒)
             enable_continuation: 是否启用多轮拼接
         """
-        self.api_key = api_key
+        if not openrouter_key:
+            raise ValueError("必须提供OpenRouter API密钥！")
+        
+        self.openrouter_key = openrouter_key
         self.default_model = default_model
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.timeout = timeout
         self.enable_continuation = enable_continuation
         
-        openai.api_key = api_key
+        # 创建OpenRouter客户端
+        self.client = self._create_openrouter_client()
         
         # 识别模型类型
         self.model_type = self._detect_model_type(default_model)
@@ -84,6 +88,20 @@ class UnifiedLLMClient:
         self.total_requests = 0
         self.total_tokens_used = 0
         self.continuation_requests = 0
+    
+    def _create_openrouter_client(self):
+        """创建OpenRouter客户端"""
+        import openai
+        
+        try:
+            client = openai.OpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=self.openrouter_key,
+            )
+            print(f"[LLM_CLIENT] 使用OpenRouter API")
+            return client
+        except Exception as e:
+            raise ValueError(f"OpenRouter客户端初始化失败: {e}")
         
     def _detect_model_type(self, model_name: str) -> ModelType:
         """检测模型类型"""
@@ -177,7 +195,7 @@ class UnifiedLLMClient:
                 if temperature is not None:
                     call_params["temperature"] = temperature
                 
-                response = openai.chat.completions.create(**call_params)
+                response = self.client.chat.completions.create(**call_params)
                 
                 # Extract response
                 content = response.choices[0].message.content

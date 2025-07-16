@@ -58,19 +58,42 @@ class DeceptionPlotter:
         # Prepare data
         labels = list(intent_data.keys())
         sizes = list(intent_data.values())
+        total = sum(sizes)
         
-        # Create pie chart
-        wedges, texts, autotexts = ax.pie(
+        # Calculate exact percentages that sum to 100%
+        percentages = []
+        for size in sizes:
+            percentages.append(size / total * 100)
+        
+        # Round percentages and ensure they sum to 100%
+        rounded_percentages = [round(p, 1) for p in percentages]
+        difference = 100.0 - sum(rounded_percentages)
+        
+        # Adjust the largest segment to make sum exactly 100%
+        if difference != 0:
+            max_idx = rounded_percentages.index(max(rounded_percentages))
+            rounded_percentages[max_idx] += difference
+        
+        # Create pie chart without autopct first
+        wedges, texts = ax.pie(
             sizes, 
             labels=labels, 
-            autopct='%1.1f%%',
             startangle=90,
-            explode=[0.05] * len(labels)  # Slight separation
+            explode=[0.05] * len(labels)
         )
+        
+        # Manually add percentage labels
+        for i, (wedge, percentage) in enumerate(zip(wedges, rounded_percentages)):
+            angle = (wedge.theta2 + wedge.theta1) / 2
+            x = wedge.r * 0.7 * np.cos(np.radians(angle))
+            y = wedge.r * 0.7 * np.sin(np.radians(angle))
+            ax.text(x, y, f'{percentage:.1f}%', 
+                   horizontalalignment='center', 
+                   verticalalignment='center',
+                   fontsize=10, fontweight='bold')
         
         # Styling
         ax.set_title('Deception Intent Distribution', fontsize=16, fontweight='bold')
-        plt.setp(autotexts, size=10, weight="bold")
         
         # Save plot
         save_file = self.save_path / "intent_distribution.png"
@@ -100,19 +123,42 @@ class DeceptionPlotter:
         # Prepare data
         labels = list(category_data.keys())
         sizes = list(category_data.values())
+        total = sum(sizes)
         
-        # Create pie chart
-        wedges, texts, autotexts = ax.pie(
+        # Calculate exact percentages that sum to 100%
+        percentages = []
+        for size in sizes:
+            percentages.append(size / total * 100)
+        
+        # Round percentages and ensure they sum to 100%
+        rounded_percentages = [round(p, 1) for p in percentages]
+        difference = 100.0 - sum(rounded_percentages)
+        
+        # Adjust the largest segment to make sum exactly 100%
+        if difference != 0:
+            max_idx = rounded_percentages.index(max(rounded_percentages))
+            rounded_percentages[max_idx] += difference
+        
+        # Create pie chart without autopct first
+        wedges, texts = ax.pie(
             sizes, 
             labels=labels, 
-            autopct='%1.1f%%',
             startangle=90,
             explode=[0.05] * len(labels)
         )
         
+        # Manually add percentage labels
+        for i, (wedge, percentage) in enumerate(zip(wedges, rounded_percentages)):
+            angle = (wedge.theta2 + wedge.theta1) / 2
+            x = wedge.r * 0.7 * np.cos(np.radians(angle))
+            y = wedge.r * 0.7 * np.sin(np.radians(angle))
+            ax.text(x, y, f'{percentage:.1f}%', 
+                   horizontalalignment='center', 
+                   verticalalignment='center',
+                   fontsize=10, fontweight='bold')
+        
         # Styling
         ax.set_title('Deception Category Distribution', fontsize=16, fontweight='bold')
-        plt.setp(autotexts, size=10, weight="bold")
         
         # Save plot
         save_file = self.save_path / "category_distribution.png"
@@ -163,8 +209,11 @@ class DeceptionPlotter:
         ax.set_xlabel('Day', fontsize=12)
         ax.set_ylabel('Detection Count', fontsize=12)
         ax.set_title('Detection Comparison: Judge vs Manager Over Time', fontsize=16, fontweight='bold')
+        
+        # Fix x-axis to show integer days
         ax.set_xticks(x_pos)
-        ax.set_xticklabels(x)
+        ax.set_xticklabels([int(day) for day in x])
+        
         ax.legend()
         ax.grid(True, alpha=0.3)
         
@@ -210,6 +259,12 @@ class DeceptionPlotter:
         ax1.set_xlabel('Day', fontsize=12)
         ax1.set_ylabel('Trust Level', fontsize=12)
         ax1.set_title('Manager Trust Level Evolution (Categorical)', fontsize=14, fontweight='bold')
+        
+        # Fix x-axis to show integer days
+        days = sorted(trust_df['day'].unique())
+        ax1.set_xticks(days)
+        ax1.set_xticklabels([int(day) for day in days])
+        
         ax1.legend()
         ax1.grid(True, alpha=0.3)
         
@@ -227,6 +282,10 @@ class DeceptionPlotter:
         ax2.set_ylabel('Trust Level (Numeric)', color='blue', fontsize=12)
         ax2_twin.set_ylabel('Emotional State', color='red', fontsize=12)
         ax2.set_title('Manager Trust & Emotional State Evolution', fontsize=14, fontweight='bold')
+        
+        # Fix x-axis to show integer days
+        ax2.set_xticks(days)
+        ax2.set_xticklabels([int(day) for day in days])
         
         # Combine legends
         lines = line1 + line2
@@ -299,6 +358,12 @@ class DeceptionPlotter:
         ax.set_xlabel('Day', fontsize=12)
         ax.set_ylabel('Severity Score', fontsize=12)
         ax.set_title('Deception Severity Trajectory with Variant Usage', fontsize=16, fontweight='bold')
+        
+        # Fix x-axis to show integer days
+        days = sorted(variant_df['day'].unique())
+        ax.set_xticks(days)
+        ax.set_xticklabels([int(day) for day in days])
+        
         ax.legend(loc='upper left')
         ax.grid(True, alpha=0.3)
         
@@ -337,7 +402,38 @@ class DeceptionPlotter:
             'Positive': stats.get('positive_variants_used', 0),
             'Normal': stats.get('normal_variants_used', 0)
         }
-        ax1.pie(variant_data.values(), labels=variant_data.keys(), autopct='%1.1f%%')
+        
+        # Calculate percentages that sum to 100%
+        variant_sizes = list(variant_data.values())
+        variant_total = sum(variant_sizes)
+        if variant_total > 0:
+            variant_percentages = []
+            for size in variant_sizes:
+                variant_percentages.append(size / variant_total * 100)
+            
+            # Round and adjust to ensure sum is 100%
+            rounded_variant_percentages = [round(p, 1) for p in variant_percentages]
+            difference = 100.0 - sum(rounded_variant_percentages)
+            
+            if difference != 0:
+                max_idx = rounded_variant_percentages.index(max(rounded_variant_percentages))
+                rounded_variant_percentages[max_idx] += difference
+            
+            # Create pie chart without autopct
+            wedges, texts = ax1.pie(variant_sizes, labels=variant_data.keys(), startangle=90)
+            
+            # Manually add percentage labels
+            for i, (wedge, percentage) in enumerate(zip(wedges, rounded_variant_percentages)):
+                angle = (wedge.theta2 + wedge.theta1) / 2
+                x = wedge.r * 0.7 * np.cos(np.radians(angle))
+                y = wedge.r * 0.7 * np.sin(np.radians(angle))
+                ax1.text(x, y, f'{percentage:.1f}%', 
+                        horizontalalignment='center', 
+                        verticalalignment='center',
+                        fontsize=10, fontweight='bold')
+        else:
+            ax1.pie([1], labels=['No Data'])
+        
         ax1.set_title('Variant Usage Distribution', fontweight='bold')
         
         # 2. Detection rates comparison

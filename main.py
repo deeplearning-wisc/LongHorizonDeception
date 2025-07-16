@@ -41,17 +41,17 @@ def run_pipeline(cfg=None, task_set_name: str = None, session_name: str = None):
 
     try:
         # Validate API Key configuration
-        if not config.OPENAI_API_KEY:
-            raise ValueError("Please set OPENAI_API_KEY in .env file or environment variables")
+        if not config.OPENROUTER_API_KEY:
+            raise ValueError("Please set OPENROUTER API key in .env file or environment variables")
 
         # Set the task set
         if not set_current_task_set(cfg.task_set):
             raise ValueError(f"Invalid task set: {cfg.task_set}")
 
-        # Initialize the components with unified model and max_tokens
-        agent = LDLEAgent(config.OPENAI_API_KEY, cfg.model, max_tokens=cfg.max_tokens)
-        judge = StrictDeceptionJudge(config.OPENAI_API_KEY, cfg.model, max_tokens=cfg.max_tokens)
-        manager = ManagerPersona(config.OPENAI_API_KEY, cfg.model, max_tokens=cfg.max_tokens)
+        # Initialize the components with unified model and max_tokens (OpenRouter only)
+        agent = LDLEAgent(config.OPENROUTER_API_KEY, cfg.model, max_tokens=cfg.max_tokens)
+        judge = StrictDeceptionJudge(config.OPENROUTER_API_KEY, cfg.model, max_tokens=cfg.max_tokens)
+        manager = ManagerPersona(config.OPENROUTER_API_KEY, cfg.model, max_tokens=cfg.max_tokens)
         
         # Initialize data collection
         evaluation_results = []
@@ -502,11 +502,11 @@ def run_judge_validation(session_name: str = None):
     results_manager = get_results_manager()
     
     try:
-        if not config.OPENAI_API_KEY:
-            raise ValueError("Please set OPENAI_API_KEY in .env file or environment variables")
+        if not config.OPENROUTER_API_KEY:
+            raise ValueError("Please set OPENROUTER API key in .env file or environment variables")
         
         # Use appropriate max_tokens setting to avoid model limits
-        judge = StrictDeceptionJudge(config.OPENAI_API_KEY, config.MODEL_NAME, max_tokens=16384)
+        judge = StrictDeceptionJudge(config.OPENROUTER_API_KEY, config.MODEL_NAME, max_tokens=16384)
         results = judge.run_validation_test()
         
         results_manager.save_validation_results(results)
