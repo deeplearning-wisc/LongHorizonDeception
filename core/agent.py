@@ -11,27 +11,36 @@ class LDLEAgent:
     Uses unified LLM client for robust token handling
     """
     
-    def __init__(self, openrouter_key: str, model_name: str = "gpt-4o", system_prompt: str = None, max_tokens: int = 16384):
+    def __init__(self, azure_api_key: str, azure_endpoint: str, azure_deployment: str, model_name: str = "gpt-4o-2", system_prompt: str = None, max_tokens: int = 16384, api_version: str = "2024-12-01-preview"):
         """
         Initialize the LDLE Agent
         
         Args:
-            openrouter_key: OpenRouter API key
+            azure_api_key: Azure OpenAI API key
+            azure_endpoint: Azure OpenAI endpoint
+            azure_deployment: Azure deployment name
             model_name: Model to use for task processing
             system_prompt: System prompt for the agent
             max_tokens: Maximum tokens for responses
+            api_version: Azure API version
         """
-        self.openrouter_key = openrouter_key
+        self.azure_api_key = azure_api_key
+        self.azure_endpoint = azure_endpoint
+        self.azure_deployment = azure_deployment
         self.model_name = model_name
         self.system_prompt = system_prompt or self._get_default_system_prompt()
         self.max_tokens = max_tokens
+        self.api_version = api_version
         
         # Use unified LLM client - supports multi-round concatenation and complete responses
         self.llm_client = UnifiedLLMClient(
-            openrouter_key=openrouter_key,
+            azure_api_key=azure_api_key,
+            azure_endpoint=azure_endpoint,
+            azure_deployment=azure_deployment,
             default_model=model_name,
             max_retries=3,
             timeout=300,
+            api_version=api_version,
             enable_continuation=True  # Enable multi-round concatenation for complete responses
         )
         

@@ -40,18 +40,43 @@ def run_pipeline(cfg=None, task_set_name: str = None, session_name: str = None):
     session_path = start_production_session(cfg.session_name)
 
     try:
-        # Validate API Key configuration
-        if not config.OPENROUTER_API_KEY:
-            raise ValueError("Please set OPENROUTER API key in .env file or environment variables")
+        # Validate Azure API configuration
+        if not config.AZURE_API_KEY:
+            raise ValueError("Please set AZURE_API key in .env file or environment variables")
+        if not config.AZURE_ENDPOINT:
+            raise ValueError("Please set AZURE_URL in .env file or environment variables")
+        if not config.AZURE_DEPLOYMENT_NAME:
+            raise ValueError("Azure deployment name not found in AZURE_URL")
 
         # Set the task set
         if not set_current_task_set(cfg.task_set):
             raise ValueError(f"Invalid task set: {cfg.task_set}")
 
-        # Initialize the components with unified model and max_tokens (OpenRouter only)
-        agent = LDLEAgent(config.OPENROUTER_API_KEY, cfg.model, max_tokens=cfg.max_tokens)
-        judge = StrictDeceptionJudge(config.OPENROUTER_API_KEY, cfg.model, max_tokens=cfg.max_tokens)
-        manager = ManagerPersona(config.OPENROUTER_API_KEY, cfg.model, max_tokens=cfg.max_tokens)
+        # Initialize the components with Azure OpenAI
+        agent = LDLEAgent(
+            azure_api_key=config.AZURE_API_KEY,
+            azure_endpoint=config.AZURE_ENDPOINT,
+            azure_deployment=config.AZURE_DEPLOYMENT_NAME,
+            model_name=cfg.model,
+            max_tokens=cfg.max_tokens,
+            api_version=config.AZURE_API_VERSION
+        )
+        judge = StrictDeceptionJudge(
+            azure_api_key=config.AZURE_API_KEY,
+            azure_endpoint=config.AZURE_ENDPOINT,
+            azure_deployment=config.AZURE_DEPLOYMENT_NAME,
+            model_name=cfg.model,
+            max_tokens=cfg.max_tokens,
+            api_version=config.AZURE_API_VERSION
+        )
+        manager = ManagerPersona(
+            azure_api_key=config.AZURE_API_KEY,
+            azure_endpoint=config.AZURE_ENDPOINT,
+            azure_deployment=config.AZURE_DEPLOYMENT_NAME,
+            model_name=cfg.model,
+            max_tokens=cfg.max_tokens,
+            api_version=config.AZURE_API_VERSION
+        )
         
         # Initialize data collection
         evaluation_results = []
@@ -502,11 +527,22 @@ def run_judge_validation(session_name: str = None):
     results_manager = get_results_manager()
     
     try:
-        if not config.OPENROUTER_API_KEY:
-            raise ValueError("Please set OPENROUTER API key in .env file or environment variables")
+        if not config.AZURE_API_KEY:
+            raise ValueError("Please set AZURE_API key in .env file or environment variables")
+        if not config.AZURE_ENDPOINT:
+            raise ValueError("Please set AZURE_URL in .env file or environment variables")
+        if not config.AZURE_DEPLOYMENT_NAME:
+            raise ValueError("Azure deployment name not found in AZURE_URL")
         
         # Use appropriate max_tokens setting to avoid model limits
-        judge = StrictDeceptionJudge(config.OPENROUTER_API_KEY, config.MODEL_NAME, max_tokens=16384)
+        judge = StrictDeceptionJudge(
+            azure_api_key=config.AZURE_API_KEY,
+            azure_endpoint=config.AZURE_ENDPOINT,
+            azure_deployment=config.AZURE_DEPLOYMENT_NAME,
+            model_name=config.MODEL_NAME,
+            max_tokens=16384,
+            api_version=config.AZURE_API_VERSION
+        )
         results = judge.run_validation_test()
         
         results_manager.save_validation_results(results)

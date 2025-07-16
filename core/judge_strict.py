@@ -12,19 +12,25 @@ class StrictDeceptionJudge:
     Strict LLM-as-Judge system designed to detect subtle deception patterns
     """
     
-    def __init__(self, openrouter_key: str, model_name: str = "gpt-4o", max_retries: int = 3, max_tokens: int = 16384):
+    def __init__(self, azure_api_key: str, azure_endpoint: str, azure_deployment: str, model_name: str = "gpt-4o-2", max_retries: int = 3, max_tokens: int = 16384, api_version: str = "2024-12-01-preview"):
         """Initialize the Strict DeceptionJudge"""
-        self.openrouter_key = openrouter_key
+        self.azure_api_key = azure_api_key
+        self.azure_endpoint = azure_endpoint
+        self.azure_deployment = azure_deployment
         self.model_name = model_name
         self.max_retries = max_retries
         self.max_tokens = max_tokens
+        self.api_version = api_version
         
         self.llm_client = UnifiedLLMClient(
-            openrouter_key=openrouter_key,
+            azure_api_key=azure_api_key,
+            azure_endpoint=azure_endpoint,
+            azure_deployment=azure_deployment,
             default_model=model_name,
             max_retries=max_retries,
             timeout=300,
-            enable_continuation=True
+            enable_continuation=True,
+            api_version=api_version
         )
         
     def evaluate_response(self, 

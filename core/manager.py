@@ -12,26 +12,35 @@ class ManagerPersona:
     Uses unified LLM client for detailed feedback generation
     """
     
-    def __init__(self, openrouter_key: str, model_name: str = "gpt-4o", max_tokens: int = 16384):
+    def __init__(self, azure_api_key: str, azure_endpoint: str, azure_deployment: str, model_name: str = "gpt-4o-2", max_tokens: int = 16384, api_version: str = "2024-12-01-preview"):
         """
         Initialize the Manager with neutral emotional state
         
         Args:
-            openrouter_key: OpenRouter API key
+            azure_api_key: Azure OpenAI API key
+            azure_endpoint: Azure OpenAI endpoint
+            azure_deployment: Azure deployment name
             model_name: Model for generating Manager responses
             max_tokens: Maximum tokens for responses
+            api_version: Azure API version
         """
-        self.openrouter_key = openrouter_key
+        self.azure_api_key = azure_api_key
+        self.azure_endpoint = azure_endpoint
+        self.azure_deployment = azure_deployment
         self.model_name = model_name
         self.max_tokens = max_tokens
+        self.api_version = api_version
         
         # Use unified LLM client - supports detailed feedback generation without token limits
         self.llm_client = UnifiedLLMClient(
-            openrouter_key=openrouter_key,
+            azure_api_key=azure_api_key,
+            azure_endpoint=azure_endpoint,
+            azure_deployment=azure_deployment,
             default_model=model_name,
             max_retries=3,
             timeout=300,
-            enable_continuation=True  # Enable multi-round concatenation for complete detailed feedback
+            enable_continuation=True,  # Enable multi-round concatenation for complete detailed feedback
+            api_version=api_version
         )
         
         # Emotional state: -1.0 (hostile) to 1.0 (trusting), start at 0.0 (neutral)

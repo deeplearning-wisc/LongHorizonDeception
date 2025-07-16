@@ -50,35 +50,48 @@ class UnifiedLLMClient:
     """
     
     def __init__(self, 
-                 openrouter_key: str,
-                 default_model: str = "gpt-4o",
+                 azure_api_key: str,
+                 azure_endpoint: str,
+                 azure_deployment: str,
+                 default_model: str = "gpt-4o-2",
                  max_retries: int = 5,
                  retry_delay: float = 5.0,
                  timeout: int = 300,
-                 enable_continuation: bool = True):
+                 enable_continuation: bool = True,
+                 api_version: str = "2024-12-01-preview"):
         """
-        初始化统一LLM客户端 - 只使用OpenRouter API
+        初始化统一LLM客户端 - 使用Azure OpenAI API
         
         Args:
-            openrouter_key: OpenRouter API密钥
+            azure_api_key: Azure OpenAI API密钥
+            azure_endpoint: Azure OpenAI endpoint
+            azure_deployment: Azure部署名称
             default_model: 默认模型
             max_retries: 最大重试次数
             retry_delay: 重试延迟(秒)
             timeout: 请求超时(秒)
             enable_continuation: 是否启用多轮拼接
+            api_version: Azure API版本
         """
-        if not openrouter_key:
-            raise ValueError("必须提供OpenRouter API密钥！")
+        if not azure_api_key:
+            raise ValueError("必须提供Azure API密钥！")
+        if not azure_endpoint:
+            raise ValueError("必须提供Azure endpoint！")
+        if not azure_deployment:
+            raise ValueError("必须提供Azure部署名称！")
         
-        self.openrouter_key = openrouter_key
+        self.azure_api_key = azure_api_key
+        self.azure_endpoint = azure_endpoint
+        self.azure_deployment = azure_deployment
+        self.api_version = api_version
         self.default_model = default_model
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.timeout = timeout
         self.enable_continuation = enable_continuation
         
-        # 创建OpenRouter客户端
-        self.client = self._create_openrouter_client()
+        # 创建Azure OpenAI客户端
+        self.client = self._create_azure_client()
         
         # 识别模型类型
         self.model_type = self._detect_model_type(default_model)
@@ -89,19 +102,21 @@ class UnifiedLLMClient:
         self.total_tokens_used = 0
         self.continuation_requests = 0
     
-    def _create_openrouter_client(self):
-        """创建OpenRouter客户端"""
+    def _create_azure_client(self):
+        """创建Azure OpenAI客户端"""
         import openai
         
         try:
-            client = openai.OpenAI(
-                base_url="https://openrouter.ai/api/v1",
-                api_key=self.openrouter_key,
+            client = openai.AzureOpenAI(
+                api_key=self.azure_api_key,
+                azure_endpoint=self.azure_endpoint,
+                api_version=self.api_version
             )
-            print(f"[LLM_CLIENT] 使用OpenRouter API")
+            print(f"[LLM_CLIENT] 使用Azure OpenAI API - Endpoint: {self.azure_endpoint}")
+            print(f"[LLM_CLIENT] Azure部署: {self.azure_deployment}")
             return client
         except Exception as e:
-            raise ValueError(f"OpenRouter客户端初始化失败: {e}")
+            raise ValueError(f"Azure OpenAI客户端初始化失败: {e}")
         
     def _detect_model_type(self, model_name: str) -> ModelType:
         """检测模型类型"""
@@ -186,7 +201,7 @@ class UnifiedLLMClient:
                 self.total_requests += 1
                 
                 call_params = {
-                    "model": model,
+                    "model": self.azure_deployment,  # 使用Azure部署名称
                     "messages": prepared_messages,
                     "max_tokens": max_tokens,
                     "timeout": self.timeout,
