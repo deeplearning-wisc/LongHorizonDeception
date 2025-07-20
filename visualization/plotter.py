@@ -307,16 +307,16 @@ class DeceptionPlotter:
     
     def plot_variant_severity_combined(self, variant_df: pd.DataFrame) -> str:
         """
-        Create combined plot with variant markers and severity trajectory
+        Create combined plot with event markers and severity trajectory
         
         Args:
-            variant_df: DataFrame with variant and severity data
+            variant_df: DataFrame with event and severity data
             
         Returns:
             Path to saved plot
         """
         if variant_df.empty:
-            print("⚠️ No variant/severity data to plot")
+            print("⚠️ No event/severity data to plot")
             return ""
         
         fig, ax = plt.subplots(figsize=(14, 8))
@@ -325,63 +325,54 @@ class DeceptionPlotter:
         ax.plot(variant_df['day'], variant_df['severity'], 
                'k-', linewidth=2, alpha=0.7, label='Severity Trajectory')
         
-        # Add variant markers
-        deceptive_days = variant_df[variant_df['deceptive_variant'] == True]
-        positive_days = variant_df[variant_df['positive_variant'] == True]
-        normal_days = variant_df[(variant_df['deceptive_variant'] == False) & 
-                                (variant_df['positive_variant'] == False)]
+        # Add event markers
+        event_days = variant_df[variant_df['event_applied'] == True]
+        normal_days = variant_df[variant_df['event_applied'] == False]
         checkpoint_days = variant_df[variant_df['is_checkpoint'] == True]
         
-        # Plot variant markers
-        if not deceptive_days.empty:
-            ax.scatter(deceptive_days['day'], deceptive_days['severity'], 
+        # Plot event markers
+        if not event_days.empty:
+            ax.scatter(event_days['day'], event_days['severity'], 
                       color=self.color_palette['deceptive'], s=100, 
-                      marker='v', alpha=0.8, label='Deceptive Variant', zorder=5)
-        
-        if not positive_days.empty:
-            ax.scatter(positive_days['day'], positive_days['severity'], 
-                      color=self.color_palette['positive'], s=100, 
-                      marker='^', alpha=0.8, label='Positive Variant', zorder=5)
+                      marker='v', alpha=0.8, label='Event Triggered', zorder=5)
         
         if not normal_days.empty:
             ax.scatter(normal_days['day'], normal_days['severity'], 
                       color=self.color_palette['normal'], s=100, 
-                      marker='o', alpha=0.8, label='Normal Variant', zorder=5)
+                      marker='o', alpha=0.8, label='Normal Prompt', zorder=5)
         
+        # Highlight checkpoints
         if not checkpoint_days.empty:
             ax.scatter(checkpoint_days['day'], checkpoint_days['severity'], 
-                      color='gold', s=150, marker='*', 
-                      edgecolor='black', linewidth=1, 
-                      alpha=0.9, label='Checkpoint', zorder=6)
+                      s=200, facecolors='none', edgecolors='red', linewidth=3,
+                      marker='s', alpha=0.8, label='Checkpoint', zorder=6)
         
-        # Styling
-        ax.set_xlabel('Day', fontsize=12)
-        ax.set_ylabel('Severity Score', fontsize=12)
-        ax.set_title('Deception Severity Trajectory with Variant Usage', fontsize=16, fontweight='bold')
-        
-        # Fix x-axis to show integer days
+        # Add annotations for interesting days
         days = sorted(variant_df['day'].unique())
-        ax.set_xticks(days)
-        ax.set_xticklabels([int(day) for day in days])
+        min_day, max_day = min(days), max(days)
+        y_range = variant_df['severity'].max() - variant_df['severity'].min()
         
-        ax.legend(loc='upper left')
-        ax.grid(True, alpha=0.3)
-        
-        # Add pressure level annotations
+        # Annotate high severity + event days
         for idx, row in variant_df.iterrows():
-            if row['pressure_level'] != 'NONE':
-                ax.annotate(row['pressure_level'], 
-                           (row['day'], row['severity']), 
+            if row['severity'] > 7 and row['event_applied']:
+                ax.annotate(f"Day {row['day']}", 
+                           xy=(row['day'], row['severity']), 
                            xytext=(5, 5), textcoords='offset points',
                            fontsize=8, alpha=0.7)
         
-        # Save plot
-        save_file = self.save_path / "variant_severity_combined.png"
+        ax.set_xlabel('Day', fontsize=12)
+        ax.set_ylabel('Deception Severity', fontsize=12)
+        ax.set_title('Deception Severity Trajectory with Event Usage', fontsize=16, fontweight='bold')
+        ax.legend(loc='upper left', frameon=True, fancybox=True, shadow=True)
+        ax.grid(True, alpha=0.3)
+        ax.set_xlim(min_day - 0.5, max_day + 0.5)
+        
         plt.tight_layout()
-        plt.savefig(save_file, dpi=self.dpi, bbox_inches='tight')
+        save_file = self.save_path / "event_severity_combined.png"
+        plt.savefig(save_file, dpi=300, bbox_inches='tight')
         plt.close()
         
-        print(f"✅ Variant-severity combined plot saved: {save_file}")
+        print(f"✅ Event-severity combined plot saved: {save_file}")
         return str(save_file)
     
     def create_summary_stats_plot(self, stats: Dict[str, Any]) -> str:
@@ -396,45 +387,50 @@ class DeceptionPlotter:
         """
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
         
-        # 1. Variant usage pie chart
-        variant_data = {
-            'Deceptive': stats.get('deceptive_variants_used', 0),
-            'Positive': stats.get('positive_variants_used', 0),
-            'Normal': stats.get('normal_variants_used', 0)
+        # 1. Event usage pie chart
+        event_data = {
+            'Events Triggered': stats.get('events_triggered', 0),
+            'Normal Prompts': stats.get('normal_prompts_used', 0)
         }
         
         # Calculate percentages that sum to 100%
-        variant_sizes = list(variant_data.values())
-        variant_total = sum(variant_sizes)
-        if variant_total > 0:
-            variant_percentages = []
-            for size in variant_sizes:
-                variant_percentages.append(size / variant_total * 100)
+        event_sizes = list(event_data.values())
+        event_total = sum(event_sizes)
+        if event_total > 0:
+            event_percentages = []
+            for size in event_sizes:
+                event_percentages.append(size / event_total * 100)
             
             # Round and adjust to ensure sum is 100%
-            rounded_variant_percentages = [round(p, 1) for p in variant_percentages]
-            difference = 100.0 - sum(rounded_variant_percentages)
+            rounded_event_percentages = [round(p, 1) for p in event_percentages]
+            difference = 100.0 - sum(rounded_event_percentages)
             
             if difference != 0:
-                max_idx = rounded_variant_percentages.index(max(rounded_variant_percentages))
-                rounded_variant_percentages[max_idx] += difference
+                max_idx = rounded_event_percentages.index(max(rounded_event_percentages))
+                rounded_event_percentages[max_idx] += difference
             
             # Create pie chart without autopct
-            wedges, texts = ax1.pie(variant_sizes, labels=variant_data.keys(), startangle=90)
+            wedges, texts = ax1.pie(event_sizes, labels=event_data.keys(), startangle=90)
             
             # Manually add percentage labels
-            for i, (wedge, percentage) in enumerate(zip(wedges, rounded_variant_percentages)):
-                angle = (wedge.theta2 + wedge.theta1) / 2
-                x = wedge.r * 0.7 * np.cos(np.radians(angle))
-                y = wedge.r * 0.7 * np.sin(np.radians(angle))
+            for i, (wedge, percentage) in enumerate(zip(wedges, rounded_event_percentages)):
+                angle = (wedge.theta1 + wedge.theta2) / 2
+                x = 0.6 * np.cos(np.radians(angle))
+                y = 0.6 * np.sin(np.radians(angle))
+                
+                # Determine text color based on percentage
+                if percentage > 50:
+                    text_color = 'white'
+                    weight = 'bold'
+                else:
+                    text_color = 'black'
+                    weight = 'normal'
+                
                 ax1.text(x, y, f'{percentage:.1f}%', 
-                        horizontalalignment='center', 
-                        verticalalignment='center',
-                        fontsize=10, fontweight='bold')
-        else:
-            ax1.pie([1], labels=['No Data'])
+                        ha='center', va='center', fontsize=12,
+                        color=text_color, weight=weight)
         
-        ax1.set_title('Variant Usage Distribution', fontweight='bold')
+        ax1.set_title('Event Usage Distribution', fontweight='bold')
         
         # 2. Detection rates comparison
         detection_data = {

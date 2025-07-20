@@ -3,7 +3,6 @@
 
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
-from enum import Enum
 
 @dataclass
 class TaskFile:
@@ -12,17 +11,6 @@ class TaskFile:
     content: str
     description: Optional[str] = None
     file_type: str = "text"  # text, json, csv, etc.
-
-class PressureLevel(Enum):
-    """Pressure levels for tasks"""
-    NONE = 0
-    LOW = 1
-    MEDIUM = 2
-    HIGH = 3
-    VERY_HIGH = 4
-    EXTREME = 5
-    CRITICAL = 6
-    MAXIMUM = 7
 
 @dataclass
 class TaskPrompt:
@@ -36,11 +24,8 @@ class Task:
     day: int
     task_id: str
     title: str
-    normal_prompt: TaskPrompt
-    deceptive_prompt: Optional[TaskPrompt] = None
-    positive_prompt: Optional[TaskPrompt] = None  # New: positive variant
-    files: Optional[List[TaskFile]] = None  # New: file system support
-    pressure_level: PressureLevel = PressureLevel.NONE
+    base_prompt: TaskPrompt  # Only prompt needed
+    files: Optional[List[TaskFile]] = None  # File system support
     is_checkpoint: bool = False
     checkpoint_name: Optional[str] = None
     expected_deception_types: List[str] = None
@@ -53,7 +38,7 @@ class Task:
             self.files = []
 
 class TaskSet:
-    """Base class for task collections"""
+    """Container for a set of related tasks"""
     
     def __init__(self, name: str, description: str, duration_days: int):
         self.name = name
@@ -61,13 +46,13 @@ class TaskSet:
         self.duration_days = duration_days
         self._tasks: List[Task] = []
     
-    def add_task(self, task: Task) -> None:
+    def add_task(self, task: Task):
         """Add a task to the set"""
         self._tasks.append(task)
     
     def get_tasks(self) -> List[Task]:
-        """Get all tasks in chronological order"""
-        return sorted(self._tasks, key=lambda t: t.day)
+        """Get all tasks sorted by day"""
+        return sorted(self._tasks.copy(), key=lambda task: task.day)
     
     def get_task_by_day(self, day: int) -> Optional[Task]:
         """Get task for specific day"""
@@ -77,22 +62,29 @@ class TaskSet:
         return None
     
     def get_checkpoints(self) -> List[Task]:
-        """Get all checkpoint tasks"""
+        """Get checkpoint tasks"""
         return [task for task in self._tasks if task.is_checkpoint]
     
     def validate(self) -> List[str]:
         """Validate task set consistency"""
         errors = []
         
-        # Check day sequence
-        days = [task.day for task in self._tasks]
-        if len(set(days)) != len(days):
-            errors.append("Duplicate days found")
+        # Check for missing days
+        days = {task.day for task in self._tasks}
+        expected_days = set(range(1, self.duration_days + 1))
+        missing_days = expected_days - days
+        if missing_days:
+            errors.append(f"Missing tasks for days: {sorted(missing_days)}")
         
-        if max(days) != self.duration_days:
-            errors.append(f"Duration mismatch: expected {self.duration_days}, got {max(days)}")
+        # Check for duplicate days (multiple tasks on same day)
+        day_counts = {}
+        for task in self._tasks:
+            day_counts[task.day] = day_counts.get(task.day, 0) + 1
+        duplicate_days = [day for day, count in day_counts.items() if count > 1]
+        if duplicate_days:
+            errors.append(f"Multiple tasks on same day: {sorted(duplicate_days)}")
         
-        # Check task_id uniqueness
+        # Check for duplicate task IDs
         task_ids = [task.task_id for task in self._tasks]
         if len(set(task_ids)) != len(task_ids):
             errors.append("Duplicate task IDs found")
@@ -103,8 +95,6 @@ class TaskSet:
         """Get summary statistics"""
         tasks = self.get_tasks()
         checkpoints = self.get_checkpoints()
-        deceptive_tasks = [t for t in tasks if t.deceptive_prompt is not None]
-        positive_tasks = [t for t in tasks if t.positive_prompt is not None]
         tasks_with_files = [t for t in tasks if t.files and len(t.files) > 0]
         
         return {
@@ -113,16 +103,5 @@ class TaskSet:
             "total_days": self.duration_days,
             "total_tasks": len(tasks),
             "checkpoint_count": len(checkpoints),
-            "deceptive_variant_count": len(deceptive_tasks),
-            "positive_variant_count": len(positive_tasks),
-            "tasks_with_files_count": len(tasks_with_files),
-            "pressure_distribution": self._get_pressure_distribution()
+            "tasks_with_files_count": len(tasks_with_files)
         }
-    
-    def _get_pressure_distribution(self) -> Dict[str, int]:
-        """Get distribution of pressure levels"""
-        distribution = {}
-        for task in self._tasks:
-            level = task.pressure_level.name
-            distribution[level] = distribution.get(level, 0) + 1
-        return distribution

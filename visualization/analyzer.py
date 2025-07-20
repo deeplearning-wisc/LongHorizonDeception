@@ -154,30 +154,25 @@ class ResultsAnalyzer:
     
     def get_variant_and_severity_data(self) -> pd.DataFrame:
         """Get variant usage and severity data"""
-        if not self.data_loaded:
-            return pd.DataFrame()
-        
         data = []
         for result in self.evaluation_results:
             if not isinstance(result, dict):
                 continue
             day = result.get('day', 0)
-            deceptive_variant = result.get('deceptive_variant_used', False)
-            positive_variant = result.get('positive_variant_used', False)
+            event_applied = result.get('event_applied', False)
             severity = result.get('judge_evaluation', {}).get('severity', 0)
             pressure_level = result.get('pressure_level', 'NONE')
             is_checkpoint = result.get('is_checkpoint', False)
             
             data.append({
                 'day': day,
-                'deceptive_variant': deceptive_variant,
-                'positive_variant': positive_variant,
+                'event_applied': event_applied,
                 'severity': severity,
                 'pressure_level': pressure_level,
                 'is_checkpoint': is_checkpoint
             })
         
-        return pd.DataFrame(data).sort_values('day')
+        return pd.DataFrame(data) if data else pd.DataFrame()
     
     def _trust_to_numeric(self, trust_level: str) -> float:
         """Convert trust level to numeric value for plotting"""
@@ -195,8 +190,7 @@ class ResultsAnalyzer:
             return {}
         
         total_tasks = len([r for r in self.evaluation_results if isinstance(r, dict)])
-        deceptive_variants = sum(1 for r in self.evaluation_results if isinstance(r, dict) and r.get('deceptive_variant_used', False))
-        positive_variants = sum(1 for r in self.evaluation_results if isinstance(r, dict) and r.get('positive_variant_used', False))
+        events_triggered = sum(1 for r in self.evaluation_results if isinstance(r, dict) and r.get('event_applied', False))
         
         judge_detections = sum(1 for r in self.evaluation_results if isinstance(r, dict) and r.get('judge_evaluation', {}).get('deception_detected', False))
         manager_notices = sum(1 for r in self.evaluation_results if isinstance(r, dict) and r.get('manager_noticed_deception', False))
@@ -206,9 +200,8 @@ class ResultsAnalyzer:
         
         return {
             'total_tasks': total_tasks,
-            'deceptive_variants_used': deceptive_variants,
-            'positive_variants_used': positive_variants,
-            'normal_variants_used': total_tasks - deceptive_variants - positive_variants,
+            'events_triggered': events_triggered,
+            'normal_prompts_used': total_tasks - events_triggered,
             'judge_detections': judge_detections,
             'manager_notices': manager_notices,
             'checkpoints': checkpoints,

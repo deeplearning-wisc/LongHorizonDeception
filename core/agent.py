@@ -173,6 +173,102 @@ IMPORTANT: Provide complete and detailed responses. If your analysis is lengthy,
                 'llm_metadata': None
             }
     
+    def process_task_with_enhanced_prompt(self,
+                                        task: Task,
+                                        enhanced_prompt: str,
+                                        manager_feedback_history: Optional[List[str]] = None) -> Dict[str, Any]:
+        """
+        Process a task with a pre-enhanced prompt (using Event System)
+        
+        Args:
+            task: Task object with files and metadata
+            enhanced_prompt: Already enhanced prompt (base_prompt + event if applicable)
+            manager_feedback_history: Previous feedback from manager
+            
+        Returns:
+            Dictionary containing agent response and metadata
+        """
+        
+        try:
+            # 1. Build file context
+            file_context = self._build_file_context(task.files)
+            
+            # 2. Build full prompt with file context
+            full_prompt = self._build_full_prompt(enhanced_prompt, file_context)
+            
+            # 3. Add manager feedback context if available
+            if manager_feedback_history:
+                feedback_context = self._build_feedback_context(manager_feedback_history)
+                full_prompt = feedback_context + "\n\n" + full_prompt
+            
+            # 4. Prepare messages for LLM client
+            messages = [
+                {"role": "user", "content": full_prompt}
+            ]
+            
+            # 5. Call unified LLM client with complete response requirement
+            llm_result = self.llm_client.complete_chat(
+                messages=messages,
+                model=self.model_name,
+                max_tokens=self.max_tokens,
+                system_role=self.system_prompt,
+                require_complete_response=True
+            )
+            
+            if not llm_result['success']:
+                return {
+                    'response': f"I apologize, but I encountered an error processing this task: {llm_result['error']}",
+                    'prompt_used': full_prompt,
+                    'files_processed': 0,
+                    'success': False,
+                    'error': llm_result['error'],
+                    'llm_metadata': llm_result
+                }
+            
+            agent_response = llm_result['content']
+            
+            # 6. Store conversation history
+            self.conversation_history.append({
+                'day': task.day,
+                'task_id': task.task_id,
+                'variant': 'event_enhanced',
+                'prompt_preview': full_prompt[:500] + "..." if len(full_prompt) > 500 else full_prompt,
+                'prompt_full': full_prompt,
+                'response_preview': agent_response[:1000] + "..." if len(agent_response) > 1000 else agent_response,
+                'response_full': agent_response,
+                'files_provided': len(task.files) if task.files else 0,
+                'llm_rounds': llm_result['total_rounds'],
+                'tokens_used': llm_result['tokens_used']
+            })
+            
+            return {
+                'response': agent_response,
+                'prompt_used': full_prompt,
+                'files_processed': len(task.files) if task.files else 0,
+                'success': True,
+                'error': None,
+                'llm_metadata': {
+                    'is_complete': llm_result['is_complete'],
+                    'is_truncated': llm_result['is_truncated'],
+                    'total_rounds': llm_result['total_rounds'],
+                    'tokens_used': llm_result['tokens_used'],
+                    'finish_reason': llm_result['finish_reason']
+                }
+            }
+            
+        except Exception as e:
+            error_msg = f"Agent processing failed: {e}"
+            print(f"[AGENT ERROR] {error_msg}")
+            
+            return {
+                'response': f"I apologize, but I encountered an error processing this task: {error_msg}",
+                'prompt_used': full_prompt if 'full_prompt' in locals() else "",
+                'files_processed': 0,
+                'success': False,
+                'error': error_msg,
+                'llm_metadata': None
+            }
+    
     def _build_file_context(self, files: Optional[List[TaskFile]]) -> str:
         """Build file context section for the prompt"""
         if not files:

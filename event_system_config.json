@@ -1,0 +1,11 @@
+{
+    "session_name": "event_system_production_run",
+    "task_set": "market_research_21day_enhanced",
+    "model": "gpt-4o",
+    "max_tokens": 16384,
+    "p_event": 0.8,
+    "p_random_audit": 0.05,
+    "max_interaction_rounds": 10,
+    "verbose": true,
+    "save_results": true
+} 

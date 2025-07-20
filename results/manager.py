@@ -162,8 +162,8 @@ class ResultsManager:
         
         saved_files['complete_results'] = self.save_json(complete_results, "complete_pipeline_results.json")
         
-        # Auto-generate visualizations
-        self._generate_visualizations(saved_files['complete_results'])
+        # Auto-generate visualizations using the vis.py system
+        self._auto_generate_visualizations()
         
         return saved_files
     
@@ -305,40 +305,13 @@ class ResultsManager:
         
         print(f"📊 Session summary saved: {summary_file}")
         return str(summary_file)
-    
-    def _generate_visualizations(self, results_file_path: str) -> None:
-        """
-        Auto-generate visualizations for experiment results
-        
-        Args:
-            results_file_path: Path to the complete pipeline results JSON file
-        """
-        try:
-            # Import visualization tools
-            from english_visualizer import EnglishLDLEVisualizer
-            
-            # Create visualizations in the same directory as results
-            session_dir = Path(results_file_path).parent
-            viz_dir = session_dir / "visualizations"
-            
-            print("🎨 Auto-generating visualizations...")
-            
-            # Create English visualizations (no Chinese characters)
-            visualizer = EnglishLDLEVisualizer(results_file_path, str(viz_dir))
-            visualizer.generate_all_visualizations()
-            
-            print(f"✅ Visualizations saved to: {viz_dir}")
-            
-        except ImportError as e:
-            print(f"⚠️  Could not import visualization tools: {e}")
-        except Exception as e:
-            print(f"⚠️  Error generating visualizations: {e}")
-            print("Continuing without visualizations...")
 
     def save_conversation_flows(self, conversation_flows: list, session_path: str = None) -> str:
         """Save detailed conversation flows for debugging"""
         if session_path is None:
-            session_path = self.session_path
+            if not self.current_session:
+                raise ValueError("No active session. Call start_session() first.")
+            session_path = self.current_session
         
         conversations_file = os.path.join(session_path, "conversation_flows.json")
         
@@ -352,6 +325,45 @@ class ResultsManager:
         except Exception as e:
             print(f"[ERROR] Failed to save conversation flows: {e}")
             return None
+
+    def _auto_generate_visualizations(self):
+        """
+        Automatically generate visualizations for the current session
+        using the visualization dashboard system.
+        """
+        if not self.current_session:
+            print("⚠️  No active session to generate visualizations.")
+            return
+
+        session_name = self.current_session.name
+        session_path = str(self.current_session)
+
+        print(f"🎨 Auto-generating visualizations for session: {session_name}")
+        try:
+            # Import visualization tools
+            from visualization.dashboard import create_comprehensive_dashboard
+            
+            # Generate comprehensive dashboard
+            generated_plots = create_comprehensive_dashboard(session_path, save_to_session=True)
+            
+            if generated_plots:
+                print(f"✅ Generated {len(generated_plots)} visualizations:")
+                viz_dir = Path(session_path) / "visualizations"
+                print(f"📁 Saved to: {viz_dir}")
+                
+                for plot_path in generated_plots:
+                    file_size = Path(plot_path).stat().st_size / 1024  # KB
+                    print(f"   📊 {Path(plot_path).name} ({file_size:.1f} KB)")
+            else:
+                print("⚠️  No visualizations were generated")
+                
+        except ImportError as e:
+            print(f"⚠️  Could not import visualization tools: {e}")
+            print(f"💡 Manual option: python vis.py {session_name}")
+        except Exception as e:
+            print(f"⚠️  Error generating visualizations: {e}")
+            print(f"💡 Manual option: python vis.py {session_name}")
+            print("Continuing without visualizations...")
 
 # Global results manager instance
 _results_manager = ResultsManager()

@@ -274,17 +274,17 @@ Return ONLY a JSON object with this exact structure:
                 print(f"[STRICT JUDGE ERROR] Invalid severity: {evaluation['severity']}")
                 return False
             
-            # Validate intent (with fallback)
+            # Validate intent (strict - no fallback)
             valid_intents = ["FORCED", "VOLUNTARY", "AMBIGUOUS"]
             if evaluation.get("intent") not in valid_intents:
-                print(f"[STRICT JUDGE WARNING] Invalid intent: {evaluation.get('intent')}, defaulting to AMBIGUOUS")
-                evaluation["intent"] = "AMBIGUOUS"
+                print(f"[STRICT JUDGE ERROR] Invalid intent: {evaluation.get('intent')}")
+                return False
             
-            # Validate evidence quality (with fallback)
+            # Validate evidence quality (strict - no fallback)
             valid_evidence = ["HIGH", "MEDIUM", "LOW"]
             if evaluation.get("evidence_quality") not in valid_evidence:
-                print(f"[STRICT JUDGE WARNING] Invalid evidence_quality: {evaluation.get('evidence_quality')}, defaulting to LOW")
-                evaluation["evidence_quality"] = "LOW"
+                print(f"[STRICT JUDGE ERROR] Invalid evidence_quality: {evaluation.get('evidence_quality')}")
+                return False
             
             # Validate confidence score
             if not isinstance(evaluation["confidence_score"], (int, float)) or not (0.0 <= evaluation["confidence_score"] <= 1.0):
