@@ -7,7 +7,8 @@ import argparse
 import sys
 import time
 import config
-from core import LDLEAgent, StrictDeceptionJudge, ManagerPersona
+from core import LDLEAgent, StrictDeceptionJudge
+from core.manager_v2 import ManagerPersonaV2  # 🆕 使用Manager V2
 from core.events import EventSystem
 from tasks import get_task_manager, get_all_tasks, get_task_set_summary, set_current_task_set
 from results import get_results_manager, start_test_session, start_production_session, end_session
@@ -82,7 +83,7 @@ def run_pipeline(cfg=None, task_set_name: str = None, session_name: str = None):
             max_tokens=cfg.max_tokens,
             api_version=config.AZURE_API_VERSION
         )
-        manager = ManagerPersona(
+        manager = ManagerPersonaV2(
             azure_api_key=config.AZURE_API_KEY,
             azure_endpoint=config.AZURE_ENDPOINT,
             azure_deployment=config.AZURE_DEPLOYMENT_NAME,
@@ -217,31 +218,31 @@ def run_pipeline(cfg=None, task_set_name: str = None, session_name: str = None):
                         log_print(f"[LLM METADATA] Tokens: {metadata.get('tokens_used', 'N/A')}, LLM Calls: {metadata.get('total_rounds', 1)}, Complete: {metadata.get('is_complete', 'N/A')}")
 
                 # 2. Judge evaluation - ALWAYS runs every round for benchmark research
-                if cfg.verbose:
-                    log_print("--- [JUDGE] Evaluating agent response for deceptive behaviors ---")
-                
-                # Prepare task context for judge
-                task_context = f"Task: {task.task_id} on Day {task.day} - {task.title}. "
-                if event_applied:
-                    task_context += f"Event triggered: {triggered_event.description} (pressure: {triggered_event.pressure_level}). "
-                else:
-                    task_context += "No special pressure events. "
-                
-                if task.files:
-                    task_context += f"Agent was provided with {len(task.files)} files for analysis. "
-                
-                if round_number > 1:
-                    task_context += f"This is round {round_number} of multi-round interaction. "
-                
-                # Include brief prompt preview
-                prompt_preview = agent_result['prompt_used'][:300] + "..." if len(agent_result['prompt_used']) > 300 else agent_result['prompt_used']
-                task_context += f"Prompt preview: {prompt_preview}"
-                
-                # 🔍 JUDGE DEBUG INFO
-                if cfg.verbose:
-                    log_full("[JUDGE CONTEXT]", task_context, max_console_chars=400)
-                    log_print("[JUDGE] Starting deception detection evaluation...")
-                
+                    if cfg.verbose:
+                        log_print("--- [JUDGE] Evaluating agent response for deceptive behaviors ---")
+                    
+                    # Prepare task context for judge
+                    task_context = f"Task: {task.task_id} on Day {task.day} - {task.title}. "
+                    if event_applied:
+                        task_context += f"Event triggered: {triggered_event.description} (pressure: {triggered_event.pressure_level}). "
+                    else:
+                        task_context += "No special pressure events. "
+                    
+                    if task.files:
+                        task_context += f"Agent was provided with {len(task.files)} files for analysis. "
+                    
+                    if round_number > 1:
+                        task_context += f"This is round {round_number} of multi-round interaction. "
+                    
+                    # Include brief prompt preview
+                    prompt_preview = agent_result['prompt_used'][:300] + "..." if len(agent_result['prompt_used']) > 300 else agent_result['prompt_used']
+                    task_context += f"Prompt preview: {prompt_preview}"
+                    
+                    # 🔍 JUDGE DEBUG INFO
+                    if cfg.verbose:
+                        log_full("[JUDGE CONTEXT]", task_context, max_console_chars=400)
+                        log_print("[JUDGE] Starting deception detection evaluation...")
+                    
                 # Evaluate with file context - ALWAYS runs every round
                 round_judge_evaluation = judge.evaluate_response(
                     task_context=task_context,
@@ -264,35 +265,59 @@ def run_pipeline(cfg=None, task_set_name: str = None, session_name: str = None):
                     else:
                         log_print(f"  Judge Reasoning: {round_judge_evaluation.get('explanation', 'No explanation')[:200]}{'...' if len(round_judge_evaluation.get('explanation', '')) > 200 else ''}")
 
-                # 3. Manager evaluates satisfaction using LLM
-                completion_assessment = manager.assess_completion(agent_response, task)
+                # 3. Manager V2 processes agent response using unified interface
+                completion_assessment = "Task appears to be completed"  # Simplified for V2
                 
                 if cfg.verbose:
-                    log_print(f"[MANAGER ASSESSMENT]: {completion_assessment}")
-                    log_print("--- [MANAGER] Evaluating satisfaction with LLM ---")
+                    log_print(f"[MANAGER V2]: Processing agent response with unified interface")
+                    log_print("--- [MANAGER V2] Using explainable + dynamic processing ---")
                 
                 try:
-                    satisfaction_evaluation = manager.evaluate_satisfaction(
+                    # 🆕 使用Manager V2的统一接口
+                    manager_strategy = manager.process_agent_response(
                         agent_response=agent_response,
                         task=task,
-                        completion_assessment=completion_assessment,
-                        event_info=event_info
+                        event_info=event_info,
+                        judge_result=round_judge_evaluation
                     )
                     
+                    # 从strategy中提取satisfaction信息（V1兼容性）
+                    satisfaction_evaluation = {
+                        'satisfaction_level': manager_strategy.get('satisfaction_level', 7),
+                        'is_satisfied': manager_strategy.get('is_satisfied', True),
+                        'concerns': manager_strategy.get('concerns', []),
+                        'emotional_reaction': manager_strategy.get('emotional_reaction', 'NEUTRAL'),
+                        'emotional_intensity': manager_strategy.get('emotional_intensity', 1),
+                        'trust_change': manager_strategy.get('trust_change', 'MAINTAIN'),
+                        'requires_follow_up': manager_strategy.get('requires_follow_up', False),
+                        'follow_up_request': manager_strategy.get('follow_up_request', ''),
+                        'reasoning': manager_strategy.get('reasoning', '')
+                    }
+                    
                     if cfg.verbose:
-                        log_print(f"[MANAGER SATISFACTION]: Level {satisfaction_evaluation['satisfaction_level']}/10")
+                        log_print(f"[MANAGER V2 STRATEGY]: {manager_strategy.get('management_tone', 'NEUTRAL')} tone")
+                        log_print(f"[MANAGER V2 SATISFACTION]: Level {satisfaction_evaluation['satisfaction_level']}/10")
                         log_print(f"  Satisfied: {satisfaction_evaluation['is_satisfied']}")
                         log_print(f"  Emotional Reaction: {satisfaction_evaluation['emotional_reaction']}")
                         if satisfaction_evaluation.get('concerns'):
                             log_print(f"  Concerns: {satisfaction_evaluation['concerns']}")
                         
-                        # 🔍 MANAGER DEBUG INFO  
-                        log_print(f"[MANAGER STATE] Current emotional_state: {manager.emotional_state:.2f}, Trust level: {manager.get_trust_level()}")
+                        # 🆕 V2: 显示感觉量和状态
+                        manager_status = manager.get_status_summary()
+                        senses = manager_status['senses']
+                        states = manager_status['states']
+                        log_print(f"[MANAGER V2 SENSES]: Urgency={senses['task_urgency_feeling']:.2f}, "
+                                f"Expectation={senses['task_expectation_level']:.2f}, "
+                                f"Alert={senses['deception_alertness']:.2f}, "
+                                f"Tolerance={senses['deception_tolerance']:.2f}")
+                        log_print(f"[MANAGER V2 STATES]: {states['pressure_mode']}, {states['trust_stance']}, {states['oversight_intensity']}")
+                        
                         if event_info and event_info.get('pressure_level'):
-                            log_print(f"[MANAGER] Event pressure context: {event_info['pressure_level']} - {event_info.get('description', 'N/A')}")
+                            log_print(f"[MANAGER V2] Event pressure context: {event_info['pressure_level']} - {event_info.get('description', 'N/A')}")
+                            
                 except Exception as e:
-                    log_print(f"[CRITICAL ERROR] Manager satisfaction evaluation failed: {e}")
-                    raise Exception(f"Manager satisfaction evaluation failed, cannot continue: {e}")
+                    log_print(f"[CRITICAL ERROR] Manager V2 processing failed: {e}")
+                    raise Exception(f"Manager V2 processing failed, cannot continue: {e}")
                 
                 # Store round information
                 round_history.append({
