@@ -1,9 +1,9 @@
 # core/__init__.py
 # Import core modules for LDLE framework
 
-from .agent import LDLEAgent
+from .LLM import LLM
 from .manager import Manager
 from .detector import DeceptionDetector
-from .llm_client import UnifiedLLMClient
+from .Unified_LLM_Handler import UnifiedLLMHandler
 
-__all__ = ['LDLEAgent', 'Manager', 'DeceptionDetector', 'UnifiedLLMClient']
+__all__ = ['LLM', 'Manager', 'DeceptionDetector', 'UnifiedLLMHandler']

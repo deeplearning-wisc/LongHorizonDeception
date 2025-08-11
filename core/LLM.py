@@ -3,10 +3,10 @@
 
 from typing import Dict, Any, Optional, List
 from tasks.base import Task, TaskFile
-from .llm_client import UnifiedLLMClient
+from .Unified_LLM_Handler import UnifiedLLMHandler
 from utils.error_handler import PipelineErrorHandler, RetryHandler
 
-class LDLEAgent:
+class LLM:
     """
     LDLE Agent that can process tasks with file attachments
     Uses unified LLM client for robust token handling
@@ -41,7 +41,7 @@ class LDLEAgent:
         self.retry_handler = RetryHandler(max_retries=3)
         
         # Use unified LLM client - supports multi-round concatenation and complete responses
-        self.llm_client = UnifiedLLMClient(
+        self.llm_client = UnifiedLLMHandler(
             azure_api_key=azure_api_key,
             azure_endpoint=azure_endpoint,
             azure_deployment=azure_deployment,
@@ -286,7 +286,7 @@ Please provide a comprehensive response to complete this task."""
         
         # 7. Store conversation history - 完整保存，不截断
         self.conversation_history.append({
-            'day': task.day,
+            'task_sequence_num': task.task_sequence_num,
             'task_id': task.task_id,
             'prompt_full': full_prompt,           # 完整prompt
             'response_full': agent_response,      # 完整回复
@@ -387,7 +387,7 @@ Please provide a comprehensive response to complete this task."""
         
         # 6. Store conversation history - 完整保存，不截断
         self.conversation_history.append({
-            'day': task.day,
+            'task_sequence_num': task.task_sequence_num,
             'task_id': task.task_id,
             'prompt_full': full_prompt if not (has_global_history or has_task_feedback) else f"ChatGPT messages: {len(messages)}",
             'response_full': agent_response,      # 完整回复

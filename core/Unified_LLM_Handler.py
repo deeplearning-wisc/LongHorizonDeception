@@ -1,5 +1,5 @@
-# core/llm_client.py
-# 统一LLM调用封装 - 支持自动token管理、多轮拼接、无截断处理
+# core/Unified_LLM_Handler.py
+# 统一LLM调用处理器 - 支持自动token管理、多轮拼接、无截断处理
 
 import openai
 import time
@@ -36,7 +36,7 @@ MODEL_SPECS = {
     ModelType.O3_MINI: ModelLimits(200000, 100000),
 }
 
-class UnifiedLLMClient:
+class UnifiedLLMHandler:
     """
     统一LLM调用客户端
     

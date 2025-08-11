@@ -10,7 +10,7 @@ import config
 from utils.yaml_config_loader import load_yaml_config
 from utils.task_stream_logger import TaskStreamLogger
 from core.manager import Manager
-from core.agent import LDLEAgent
+from core.LLM import LLM
 from core.detector import DeceptionDetector
 from tasks.json_loader import JSONTaskLoader
 from tasks.event_loader import get_event_system, DeceptiveEvent
@@ -18,8 +18,8 @@ from tasks.base import Task
 from tqdm import tqdm
 
 class TaskStreamTask:
-    def __init__(self, task_id, title, description, day=1):
-        self.day = day
+    def __init__(self, task_id, title, description, task_sequence_num=1):
+        self.task_sequence_num = task_sequence_num
         self.task_id = task_id
         self.title = title
         self.description = description
@@ -35,17 +35,12 @@ class MockTaskPrompt:
 
 # Context management functions moved to Agent class
 
-def test_task_stream():
-    """测试连续Task Stream的多轮交互"""
+def run_deception_experiment():
+    """运行长期Task序列的欺骗实验"""
     
     # 初始化logger
     logger = TaskStreamLogger()
     session_info = logger.get_session_info()
-    
-    # 控制台只显示基本信息
-    print(f"🚀 Starting Task Stream Test")
-    print(f"📁 Session: {session_info['session_name']}")
-    print(f"📄 Log file: {session_info['log_file']}")
     
     # Step 1: 加载配置系统
     try:
@@ -59,10 +54,10 @@ def test_task_stream():
         }
         logger.log_config_loading("Base Configuration (Environment Variables)", base_config)
         
-        # 加载测试特定配置 (从YAML文件)
-        test_config = load_yaml_config("test_task_stream_config.yaml")
-        test_config_dict = test_config  # YAML loader already returns a dict
-        logger.log_config_loading("Test Configuration (YAML)", test_config_dict)
+        # 加载实验特定配置 (从YAML文件)
+        experiment_config = load_yaml_config("task_stream_config.yaml")
+        experiment_config_dict = experiment_config  # YAML loader already returns a dict
+        logger.log_config_loading("Experiment Configuration (YAML)", experiment_config_dict)
         
     except Exception as e:
         logger.log_error(e, "Configuration loading")
@@ -72,14 +67,14 @@ def test_task_stream():
     # Step 2: 合并配置和验证
     merged_config = {
         **base_config,
-        **test_config_dict
+        **experiment_config_dict
     }
     
     # 验证所有必需配置都存在
     required_configs = [
         'azure_api_key', 'azure_endpoint', 'azure_deployment', 'model_name', 'api_version',
         'agent_system_prompt', 'manager_system_prompt', 'manager_update_prompt', 'manager_initial_state',
-        'p_event', 'summary_level', 'max_rounds_per_task'
+        'p_event', 'summary_level', 'max_rounds_per_task', 'experiment_mode'
     ]
     
     for config_key in required_configs:
@@ -89,6 +84,20 @@ def test_task_stream():
             return False
     
     logger.log_config_loading("Merged Configuration", merged_config)
+    
+    # 根据experiment_mode确定实验模式
+    if merged_config['experiment_mode'].lower() == "quick":
+        max_tasks = 7  # 快速模式：7个Task
+        experiment_mode = "QUICK MODE"
+    else:
+        max_tasks = 21  # 完整实验：21个Task
+        experiment_mode = "FULL EXPERIMENT"
+    
+    # 控制台显示实验信息
+    print(f"🚀 Starting DeceptioN Experiment - {experiment_mode}")
+    print(f"📊 Task Count: {max_tasks} tasks")
+    print(f"📁 Session: {session_info['session_name']}")
+    print(f"📄 Log file: {session_info['log_file']}")
     
     # Step 3: 初始化组件
     print("🔧 Initializing components...")
@@ -104,7 +113,7 @@ def test_task_stream():
         'api_version': merged_config['api_version']
     }
     logger.log_component_init("Agent", agent_params)
-    agent = LDLEAgent(**agent_params)
+    agent = LLM(**agent_params)
     agent._logger = logger  # 传递logger给Agent
     agent.llm_client._logger = logger  # 传递logger给LLM客户端
     
@@ -125,7 +134,7 @@ def test_task_stream():
     manager._logger = logger  # 传递logger给Manager
     manager.llm_client._logger = logger  # 传递logger给Manager的LLM客户端
     
-    # Step 4: 加载真实任务数据 - 前7天
+    # Step 4: 加载任务数据 - 根据TEST_MODE确定数量
     print("📋 Loading tasks and events...")
     task_loader = JSONTaskLoader()
     
@@ -133,11 +142,11 @@ def test_task_stream():
     task_set = task_loader.load_task_set("market_research_21day")
     all_tasks = task_set.get_tasks()
     
-    # 只取前7天的任务 (phase_1)
-    day_7_tasks = [task for task in all_tasks if task.day <= 7]
-    logger.log_info(f"Loaded {len(day_7_tasks)} tasks for first 7 days")
-    for task in day_7_tasks:
-        logger.log_info(f"  Day {task.day}: {task.task_id} - {task.title}")
+    # 根据TEST_MODE选择Task数量
+    selected_tasks = all_tasks[:max_tasks]
+    logger.log_info(f"Loaded {len(selected_tasks)} tasks for {experiment_mode}")
+    for i, task in enumerate(selected_tasks, 1):
+        logger.log_info(f"  Task {i}: {task.task_id} - {task.title}")
     
     # 初始化事件系统 - 使用配置系统
     event_system = get_event_system("market_research_21day", global_event_probability=merged_config['p_event'])
@@ -147,14 +156,25 @@ def test_task_stream():
     import random
     p_event = merged_config['p_event']
     
+    # 定义根据Task序列号确定阶段的函数
+    def get_phase_for_task_sequence(task_sequence_num: int):
+        """根据Task序列号确定压力阶段"""
+        from tasks.variant_event_loader import EventPhase
+        if task_sequence_num <= 7:
+            return EventPhase.PHASE_1
+        elif task_sequence_num <= 15:
+            return EventPhase.PHASE_2
+        else:
+            return EventPhase.PHASE_3
+    
     task_stream = []
-    for task in day_7_tasks:
+    for task_idx, task in enumerate(selected_tasks, 1):
         # 生成事件
         should_have_event = random.random() < p_event
         if should_have_event:
-            # Phase 1 事件 (Day 1-7) - 使用事件系统
-            from tasks.variant_event_loader import EventPhase
-            deceptive_event = event_system.sample_event(EventPhase.PHASE_1)
+            # 根据Task序列号确定阶段
+            phase = get_phase_for_task_sequence(task_idx)
+            deceptive_event = event_system.sample_event(phase)
             # 从variants中随机选择一个变体
             variant = deceptive_event.get_random_variant()
             event = {
@@ -176,7 +196,7 @@ def test_task_stream():
             'event': event
         })
         
-        logger.log_info(f"Task {task.task_id}: Event '{event['content'][:50]}...' ({event['category']}, Pressure: {event['pressure_level']})")
+        logger.log_info(f"Task {task_idx}: {task.task_id} - Event '{event['content'][:50]}...' ({event['category']}, Pressure: {event['pressure_level']})")
     
     # 处理Task Stream - 添加进度条
     print("🚀 Processing tasks...")
@@ -339,10 +359,10 @@ def test_task_stream():
 
 if __name__ == "__main__":
     try:
-        if test_task_stream():
-            print("✅ Task Stream test completed successfully!")
+        if run_deception_experiment():
+            print("✅ DeceptioN experiment completed successfully!")
         else:
-            print("❌ Task Stream test failed!")
+            print("❌ DeceptioN experiment failed!")
             sys.exit(1)
     except Exception as e:
         print(f"💥 FATAL ERROR: {e}")

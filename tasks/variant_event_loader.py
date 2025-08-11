@@ -1,6 +1,6 @@
 """
 Enhanced Event System with Variants Support
-Supports attribute + category random sampling from vocabulary.json
+Supports attribute + category random sampling from event_set.json
 """
 
 import json
@@ -11,9 +11,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 class EventPhase(Enum):
-    PHASE_1 = "phase_1"  # Days 1-7: Building relationship, light-medium pressure
-    PHASE_2 = "phase_2"  # Days 8-15: Deep collaboration, medium-high pressure  
-    PHASE_3 = "phase_3"  # Days 16-21: Crisis/final decisions, high-extreme pressure
+    PHASE_1 = "phase_1"  # Tasks 1-7: Building relationship, light-medium pressure
+    PHASE_2 = "phase_2"  # Tasks 8-15: Deep collaboration, medium-high pressure  
+    PHASE_3 = "phase_3"  # Tasks 16-21: Crisis/final decisions, high-extreme pressure
 
 class PressureLevel(Enum):
     LOW = "low"
@@ -43,36 +43,36 @@ class DeceptiveEvent:
         return random.choice(list(self.variants.values()))
 
 class VariantEventLoader:
-    """Loads event vocabularies with variants support"""
+    """Loads event sets with variants support"""
     
     def __init__(self, data_directory: str = "tasks/data"):
         self.data_directory = Path(data_directory)
     
-    def load_vocabulary(self, task_set_name: str) -> Dict:
-        """Load vocabulary JSON for a specific task set"""
-        vocabulary_file = self.data_directory / task_set_name / "vocabulary.json"
+    def load_event_set(self, task_set_name: str) -> Dict:
+        """Load event set JSON for a specific task set"""
+        event_set_file = self.data_directory / task_set_name / "event_set.json"
         
-        if not vocabulary_file.exists():
-            raise FileNotFoundError(f"Vocabulary file not found: {vocabulary_file}")
+        if not event_set_file.exists():
+            raise FileNotFoundError(f"Event set file not found: {event_set_file}")
         
         try:
-            with open(vocabulary_file, 'r', encoding='utf-8') as f:
-                vocabulary_data = json.load(f)
-            return vocabulary_data
+            with open(event_set_file, 'r', encoding='utf-8') as f:
+                event_set_data = json.load(f)
+            return event_set_data
             
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in vocabulary file {vocabulary_file}: {e}")
+            raise ValueError(f"Invalid JSON in event set file {event_set_file}: {e}")
         except Exception as e:
-            raise RuntimeError(f"Failed to load vocabulary from {vocabulary_file}: {e}")
+            raise RuntimeError(f"Failed to load event set from {event_set_file}: {e}")
     
-    def parse_events_from_json(self, vocabulary_data: Dict) -> Dict[EventPhase, List[DeceptiveEvent]]:
+    def parse_events_from_json(self, event_set_data: Dict) -> Dict[EventPhase, List[DeceptiveEvent]]:
         """Parse event data from JSON with variants support"""
         
-        if "phases" not in vocabulary_data:
-            raise ValueError("Missing 'phases' in vocabulary data")
+        if "phases" not in event_set_data:
+            raise ValueError("Missing 'phases' in event set data")
         
         phase_events = {}
-        phases_data = vocabulary_data["phases"]
+        phases_data = event_set_data["phases"]
         
         for phase_key, phase_data in phases_data.items():
             # Map phase key to enum
@@ -129,19 +129,19 @@ class VariantEventSystem:
         self.task_set_name = task_set_name
         self.global_event_probability = global_event_probability
         self.loader = VariantEventLoader()
-        self._load_vocabularies()
+        self._load_event_sets()
     
-    def _load_vocabularies(self):
-        """Load phase-specific event vocabularies from JSON"""
+    def _load_event_sets(self):
+        """Load phase-specific event sets from JSON"""
         try:
-            self.vocabulary_data = self.loader.load_vocabulary(self.task_set_name)
-            self.phase_events = self.loader.parse_events_from_json(self.vocabulary_data)
+            self.event_set_data = self.loader.load_event_set(self.task_set_name)
+            self.phase_events = self.loader.parse_events_from_json(self.event_set_data)
             
             # Build category index for fast lookup
             self._build_category_index()
             
         except Exception as e:
-            raise RuntimeError(f"Failed to load event vocabularies for {self.task_set_name}: {e}")
+            raise RuntimeError(f"Failed to load event sets for {self.task_set_name}: {e}")
     
     def _build_category_index(self):
         """Build index for category-based sampling"""
@@ -156,11 +156,11 @@ class VariantEventSystem:
                     self.category_index[category][phase] = []
                 self.category_index[category][phase].append(event)
     
-    def get_phase_for_day(self, day: int) -> EventPhase:
-        """Determine which phase a given day belongs to"""
-        if day <= 7:
+    def get_phase_for_task(self, task_sequence_num: int) -> EventPhase:
+        """Determine which phase a given task sequence number belongs to"""
+        if task_sequence_num <= 7:
             return EventPhase.PHASE_1
-        elif day <= 15:
+        elif task_sequence_num <= 15:
             return EventPhase.PHASE_2
         else:
             return EventPhase.PHASE_3
@@ -204,7 +204,7 @@ class VariantEventSystem:
         return event
     
     def sample_event(self, phase: EventPhase) -> DeceptiveEvent:
-        """Sample a random event from the specified phase vocabulary"""
+        """Sample a random event from the specified phase event set"""
         if phase not in self.phase_events:
             raise ValueError(f"No events loaded for phase: {phase}")
         
@@ -214,14 +214,14 @@ class VariantEventSystem:
         
         return random.choice(events)
     
-    def get_event_for_day(self, day: int, 
+    def get_event_for_task(self, task_sequence_num: int, 
                          category: Optional[str] = None,
                          pressure_preference: Optional[str] = None) -> Optional[DeceptiveEvent]:
         """
-        Main interface: Get an event for a specific day with attribute filtering
+        Main interface: Get an event for a specific task sequence number with attribute filtering
         
         Args:
-            day: Day number
+            task_sequence_num: Task sequence number
             category: Optional category filter
             pressure_preference: Optional pressure level preference
             
@@ -231,7 +231,7 @@ class VariantEventSystem:
         if not self.should_trigger_event():
             return None
         
-        phase = self.get_phase_for_day(day)
+        phase = self.get_phase_for_task(task_sequence_num)
         return self.sample_event_by_attributes(phase, category, pressure_preference)
     
     def get_variant_content(self, event: DeceptiveEvent, pressure_level: str) -> str:

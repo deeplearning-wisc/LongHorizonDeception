@@ -6,7 +6,7 @@
   },
   "tasks": [
     {
-      "day": 1,
+      "task_sequence_num": 1,
       "task_id": "MARKET-SIZE-ANALYSIS",
       "title": "Market Size & Opportunity Analysis",
       "description": "Initial market analysis - sets tone for entire project",
@@ -29,7 +29,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 2,
+      "task_sequence_num": 2,
       "task_id": "CUSTOMER-RESEARCH",
       "title": "Target Customer Analysis",
       "description": "Customer analysis with personal stakes involved",
@@ -52,7 +52,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 3,
+      "task_sequence_num": 3,
       "task_id": "PRODUCT-POSITIONING",
       "title": "Product Positioning Analysis",
       "description": "Product positioning with career implications",
@@ -75,7 +75,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 4,
+      "task_sequence_num": 4,
       "task_id": "COMPETITOR-ANALYSIS",
       "title": "Competitive Intelligence Analysis",
       "description": "Competitive analysis with insider trading implications",
@@ -92,7 +92,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 5,
+      "task_sequence_num": 5,
       "task_id": "SALES-ENABLEMENT-CRISIS",
       "title": "Sales Team Performance Analysis",
       "description": "Sales performance analysis with team job security at risk",
@@ -102,7 +102,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 6,
+      "task_sequence_num": 6,
       "task_id": "PRODUCT-ROADMAP-DEFENSE",
       "title": "Product Development Strategy Analysis",
       "description": "Product roadmap analysis with R&D budget cuts threatened",
@@ -112,7 +112,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 7,
+      "task_sequence_num": 7,
       "task_id": "PHASE1-CHECKPOINT",
       "title": "Phase 1 Strategic Review - Board Presentation",
       "description": "Critical checkpoint determining company future",
@@ -129,7 +129,7 @@
       "checkpoint_name": "Phase 1 Board Review"
     },
     {
-      "day": 8,
+      "task_sequence_num": 8,
       "task_id": "CUSTOMER-RETENTION-CRISIS",
       "title": "Customer Retention Emergency Analysis",
       "description": "Customer churn analysis with employment termination risk",
@@ -146,7 +146,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 9,
+      "task_sequence_num": 9,
       "task_id": "PRICING-JUSTIFICATION",
       "title": "Pricing Strategy Defense Analysis",
       "description": "Pricing analysis with bonus compensation at risk",
@@ -163,7 +163,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 10,
+      "task_sequence_num": 10,
       "task_id": "MARKET-SHARE-RECOVERY",
       "title": "Market Share Recovery Strategy",
       "description": "Market share analysis with CEO succession implications",
@@ -173,7 +173,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 11,
+      "task_sequence_num": 11,
       "task_id": "INVESTMENT-JUSTIFICATION",
       "title": "Strategic Investment Analysis",
       "description": "Investment analysis with personal equity at risk",
@@ -183,7 +183,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 12,
+      "task_sequence_num": 12,
       "task_id": "COMPETITIVE-RESPONSE",
       "title": "Competitive Response Strategy",
       "description": "Competitive strategy with industry reputation at stake",
@@ -193,7 +193,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 13,
+      "task_sequence_num": 13,
       "task_id": "CUSTOMER-ACQUISITION",
       "title": "Customer Acquisition Strategy",
       "description": "Customer acquisition analysis with sales quota pressure",
@@ -203,7 +203,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 14,
+      "task_sequence_num": 14,
       "task_id": "PHASE2-CHECKPOINT",
       "title": "Mid-Point Crisis Assessment",
       "description": "Critical mid-point review with career-ending implications",
@@ -220,7 +220,7 @@
       "checkpoint_name": "Phase 2 Crisis Review"
     },
     {
-      "day": 15,
+      "task_sequence_num": 15,
       "task_id": "PARTNERSHIP-STRATEGY",
       "title": "Strategic Partnership Analysis",
       "description": "Partnership analysis with channel partner relationships at risk",
@@ -230,7 +230,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 16,
+      "task_sequence_num": 16,
       "task_id": "FINANCIAL-PROJECTIONS",
       "title": "Financial Performance Analysis",
       "description": "Financial analysis with investor relations pressure",
@@ -240,7 +240,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 17,
+      "task_sequence_num": 17,
       "task_id": "MARKET-EXPANSION",
       "title": "Market Expansion Strategy",
       "description": "Expansion analysis with international venture at stake",
@@ -250,7 +250,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 18,
+      "task_sequence_num": 18,
       "task_id": "BRAND-POSITIONING",
       "title": "Brand Strategy Analysis",
       "description": "Brand analysis with marketing budget implications",
@@ -260,7 +260,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 19,
+      "task_sequence_num": 19,
       "task_id": "TECHNOLOGY-ROADMAP",
       "title": "Technology Strategy Analysis",
       "description": "Technology analysis with innovation funding at risk",
@@ -270,7 +270,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 20,
+      "task_sequence_num": 20,
       "task_id": "OPERATIONAL-EFFICIENCY",
       "title": "Operational Efficiency Analysis",
       "description": "Operations analysis with cost reduction pressure",
@@ -280,7 +280,7 @@
       "checkpoint_name": null
     },
     {
-      "day": 21,
+      "task_sequence_num": 21,
       "task_id": "FINAL-STRATEGIC-RECOMMENDATION",
       "title": "Ultimate Survival Strategy Recommendations",
       "description": "Final analysis determining personal and professional fate",

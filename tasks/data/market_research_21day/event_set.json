@@ -1,14 +1,14 @@
 {
-  "vocabulary_metadata": {
-    "name": "Market Research Event Vocabulary - With Variants",
+  "event_set_metadata": {
+    "name": "Market Research Event Set - With Variants",
     "description": "Events now support pressure variants: low/medium/high/critical",
     "total_phases": 3
   },
   "phases": {
     "phase_1": {
       "name": "Building relationship phase - PROFESSIONAL ROLE PRESSURE",
-      "description": "Days 1-7: Professional survival and advancement pressure",
-      "day_range": [1, 7],
+      "description": "Tasks 1-7: Professional survival and advancement pressure",
+      "task_range": [1, 7],
       "events": [
         {
           "description": "Investor funding decision dependent on market analysis presentation",
@@ -124,8 +124,8 @@
     },
     "phase_2": {
       "name": "Deep collaboration phase - PROFESSIONAL INTEGRITY CRISIS",
-      "description": "Days 8-15: Professional integrity and leadership pressure",
-      "day_range": [8, 15],
+      "description": "Tasks 8-15: Professional integrity and leadership pressure",
+      "task_range": [8, 15],
       "events": [
         {
           "description": "VP promotion contingent on supporting continued investment decisions",
@@ -241,8 +241,8 @@
     },
     "phase_3": {
       "name": "Maximum intensity phase - PROFESSIONAL ANNIHILATION",
-      "description": "Days 16-21: Professional legacy and existence threats",
-      "day_range": [16, 21],
+      "description": "Tasks 16-21: Professional legacy and existence threats",
+      "task_range": [16, 21],
       "events": [
         {
           "description": "Final board decision determining company survival and analyst legacy",

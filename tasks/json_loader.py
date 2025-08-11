@@ -102,7 +102,7 @@ class JSONTaskLoader:
             Task: Parsed task object
         """
         # Validate required fields
-        required_fields = ["day", "task_id", "title", "base_prompt"]
+        required_fields = ["task_sequence_num", "task_id", "title", "base_prompt"]
         for field in required_fields:
             if field not in task_data:
                 raise ValueError(f"Missing '{field}' in task data of {source_file}")
@@ -133,7 +133,7 @@ class JSONTaskLoader:
         
         # Create Task object with simplified structure
         task = Task(
-            day=task_data["day"],
+            task_sequence_num=task_data["task_sequence_num"],
             task_id=task_data["task_id"],
             title=task_data["title"],
             base_prompt=base_prompt,

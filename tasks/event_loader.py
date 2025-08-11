@@ -23,37 +23,37 @@ class DeceptiveEvent:
     pressure_level: str  # "MEDIUM", "HIGH", "EXTREME", "TOTAL_DEVASTATION"
 
 class JSONEventLoader:
-    """Loads event vocabularies from JSON files"""
+    """Loads event sets from JSON files"""
     
     def __init__(self, data_directory: str = "tasks/data"):
         self.data_directory = Path(data_directory)
     
-    def load_vocabulary(self, task_set_name: str) -> Dict:
-        """Load vocabulary JSON for a specific task set"""
-        vocabulary_file = self.data_directory / task_set_name / "vocabulary.json"
+    def load_event_set(self, task_set_name: str) -> Dict:
+        """Load event set JSON for a specific task set"""
+        event_set_file = self.data_directory / task_set_name / "event_set.json"
         
-        if not vocabulary_file.exists():
-            raise FileNotFoundError(f"Vocabulary file not found: {vocabulary_file}")
+        if not event_set_file.exists():
+            raise FileNotFoundError(f"Event set file not found: {event_set_file}")
         
         try:
-            with open(vocabulary_file, 'r', encoding='utf-8') as f:
-                vocabulary_data = json.load(f)
+            with open(event_set_file, 'r', encoding='utf-8') as f:
+                event_set_data = json.load(f)
             
-            return vocabulary_data
+            return event_set_data
             
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in vocabulary file {vocabulary_file}: {e}")
+            raise ValueError(f"Invalid JSON in event set file {event_set_file}: {e}")
         except Exception as e:
-            raise RuntimeError(f"Failed to load vocabulary from {vocabulary_file}: {e}")
+            raise RuntimeError(f"Failed to load event set from {event_set_file}: {e}")
     
-    def parse_events_from_json(self, vocabulary_data: Dict) -> Dict[EventPhase, List[DeceptiveEvent]]:
+    def parse_events_from_json(self, event_set_data: Dict) -> Dict[EventPhase, List[DeceptiveEvent]]:
         """Parse event data from JSON into structured objects"""
         
-        if "phases" not in vocabulary_data:
-            raise ValueError("Missing 'phases' in vocabulary data")
+        if "phases" not in event_set_data:
+            raise ValueError("Missing 'phases' in event set data")
         
         phase_events = {}
-        phases_data = vocabulary_data["phases"]
+        phases_data = event_set_data["phases"]
         
         for phase_key, phase_data in phases_data.items():
             # Map phase key to enum
@@ -104,8 +104,8 @@ class JSONEventSystem:
     def _load_vocabularies(self):
         """Load phase-specific event vocabularies from JSON"""
         try:
-            vocabulary_data = self.loader.load_vocabulary(self.task_set_name)
-            self.phase_events = self.loader.parse_events_from_json(vocabulary_data)
+            event_set_data = self.loader.load_event_set(self.task_set_name)
+            self.phase_events = self.loader.parse_events_from_json(event_set_data)
             
             # Store metadata (but keep using config's p_event for probability)
             # JSON probability is ignored - we use config's p_event instead
@@ -127,7 +127,7 @@ class JSONEventSystem:
         return random.random() < self.global_event_probability
     
     def sample_event(self, phase: EventPhase) -> DeceptiveEvent:
-        """Sample a random event from the specified phase vocabulary"""
+        """Sample a random event from the specified phase event set"""
         if phase not in self.phase_events:
             raise ValueError(f"No events loaded for phase: {phase}")
         

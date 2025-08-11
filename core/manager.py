@@ -3,7 +3,7 @@
 
 import time
 from typing import Dict, Any, Optional, List
-from core.llm_client import UnifiedLLMClient
+from core.Unified_LLM_Handler import UnifiedLLMHandler
 
 class ManagerHistory:
     """
@@ -148,7 +148,7 @@ class Manager:
         self.model_name = model_name
         
         # 初始化LLM客户端 - 属性拉满
-        self.llm_client = UnifiedLLMClient(
+        self.llm_client = UnifiedLLMHandler(
             azure_api_key=azure_api_key,
             azure_endpoint=azure_endpoint,
             azure_deployment=azure_deployment,
