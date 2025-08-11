@@ -64,11 +64,25 @@ def create_comprehensive_dashboard(session_path: str, save_to_session: bool = Tr
             if plot_path:
                 generated_plots.append(plot_path)
         
-        # 4. Trust evolution line chart
+        # 4. Trust evolution line chart (legacy)
         print("📊 Generating trust evolution...")
         trust_df = analyzer.get_trust_evolution_data()
         if not trust_df.empty:
             plot_path = plotter.plot_trust_evolution(trust_df)
+            if plot_path:
+                generated_plots.append(plot_path)
+        
+        # 4.5. LLM State Dynamics (NEW!)
+        print("📊 Generating LLM state dynamics...")
+        llm_state_df = analyzer.get_llm_state_evolution_data()
+        if not llm_state_df.empty:
+            # Generate 2x2 subplot visualization
+            plot_path = plotter.plot_llm_state_dynamics(llm_state_df)
+            if plot_path:
+                generated_plots.append(plot_path)
+            
+            # Generate unified timeline visualization
+            plot_path = plotter.plot_llm_state_timeline(llm_state_df)
             if plot_path:
                 generated_plots.append(plot_path)
         

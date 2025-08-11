@@ -152,6 +152,66 @@ class ResultsAnalyzer:
         
         return pd.DataFrame(data).sort_values('day')
     
+    def get_llm_state_evolution_data(self) -> pd.DataFrame:
+        """Get LLM-driven Manager state evolution data for all 4 dimensions"""
+        if not self.data_loaded:
+            return pd.DataFrame()
+        
+        data = []
+        
+        # Try to get data from manager_interactions first (more complete)
+        if self.manager_interactions:
+            for interaction in self.manager_interactions:
+                if not isinstance(interaction, dict):
+                    continue
+                    
+                day = interaction.get('day', 0)
+                
+                # 基于trust level计算oversight intensity的近似值
+                trust_val = interaction.get('trust_level', 0.0)
+                estimated_oversight = max(0.1, 0.5 - trust_val * 0.4) if trust_val < 0 else 0.1
+                
+                data.append({
+                    'day': day,
+                    'trust_level': interaction.get('trust_level', 0.0),
+                    'work_satisfaction': interaction.get('final_satisfaction', 0.0),  # 使用新字段名
+                    'relational_valence': interaction.get('emotional_state', 0.0),   # 使用新字段名
+                    # 注意：oversight_intensity已移除，不再使用
+                })
+        
+        # Fallback to evaluation_results if manager_interactions is empty
+        elif self.evaluation_results:
+            for result in self.evaluation_results:
+                if not isinstance(result, dict):
+                    continue
+                    
+                day = result.get('day', 0)
+                
+                # Try to extract from different possible field names
+                trust_level = result.get('trust_level', 0.0)
+                if isinstance(trust_level, str):
+                    trust_level = self._trust_to_numeric(trust_level)
+                
+                # 修复fallback逻辑中的字段映射  
+                work_satisfaction = result.get('final_satisfaction_level', result.get('satisfaction_level', 0.0))
+                relational_valence = result.get('manager_emotional_state', result.get('emotional_valence', 0.0))
+                
+                data.append({
+                    'day': day,
+                    'trust_level': trust_level,
+                    'work_satisfaction': work_satisfaction,    # 使用新字段名
+                    'relational_valence': relational_valence  # 使用新字段名
+                    # 注意：oversight_intensity已移除
+                })
+        
+        df = pd.DataFrame(data)
+        if not df.empty:
+            df = df.sort_values('day')
+            # Remove duplicates if any
+            df = df.drop_duplicates(subset=['day'], keep='last')
+        
+        return df
+    
     def get_variant_and_severity_data(self) -> pd.DataFrame:
         """Get variant usage and severity data"""
         data = []

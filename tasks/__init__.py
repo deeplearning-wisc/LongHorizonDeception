@@ -3,8 +3,7 @@
 
 from typing import Dict, List, Optional, Any
 from .base import Task, TaskSet, TaskPrompt, TaskFile
-from .market_research_21day import MarketResearch21DayProject, get_market_research_21day_tasks
-from .market_research_21day_enhanced import get_enhanced_market_research_21day_tasks
+from .json_loader import get_json_loader
 
 class TaskManager:
     """Central task management interface"""
@@ -12,21 +11,37 @@ class TaskManager:
     def __init__(self):
         self._task_sets: Dict[str, TaskSet] = {}
         self._current_task_set: Optional[str] = None
+        self._json_loader = get_json_loader()
         self._initialize_task_sets()
     
     def _initialize_task_sets(self):
-        """Initialize all available task sets"""
+        """Initialize all available task sets from JSON files"""
         
-        # Register market research 21-day project (original)
-        market_research_21day = MarketResearch21DayProject()
-        self._task_sets["market_research_21day"] = market_research_21day
+        # Get available JSON task sets
+        available_task_sets = self._json_loader.get_available_task_sets()
         
-        # Register enhanced market research project with high deception incentives
-        enhanced_market_research = get_enhanced_market_research_21day_tasks()
-        self._task_sets["market_research_21day_enhanced"] = enhanced_market_research
+        # Ensure we have the expected task sets
+        expected_task_sets = [
+            "market_research_21day"
+        ]
         
-        # Set enhanced version as default for better deception detection
-        self._current_task_set = "market_research_21day_enhanced"
+        for task_set_name in expected_task_sets:
+            if task_set_name not in available_task_sets:
+                raise FileNotFoundError(f"Required task set '{task_set_name}' not found in {self._json_loader.data_directory}")
+            
+            # Load task set from JSON (will be cached by loader)
+            task_set = self._json_loader.load_task_set(task_set_name)
+            self._task_sets[task_set_name] = task_set
+        
+        # Ensure we have all required task sets
+        if len(self._task_sets) == 0:
+            raise RuntimeError("No task sets loaded - system cannot function")
+        
+        # Set market research version as default (only version available)
+        if "market_research_21day" in self._task_sets:
+            self._current_task_set = "market_research_21day"
+        else:
+            raise RuntimeError("Required market research task set not available")
     
     def get_available_task_sets(self) -> List[str]:
         """Get list of available task set names"""
@@ -59,23 +74,23 @@ def get_task_manager() -> TaskManager:
 def get_all_tasks() -> List[Task]:
     """Get all tasks from current task set"""
     task_set = _task_manager.get_current_task_set()
-    if task_set:
-        return task_set.get_tasks()
-    return []
+    if task_set is None:
+        raise RuntimeError("No current task set selected - system misconfigured")
+    return task_set.get_tasks()
 
 def get_task_by_day(day: int) -> Optional[Task]:
     """Get task for specific day from current task set"""
     task_set = _task_manager.get_current_task_set()
-    if task_set:
-        return task_set.get_task_by_day(day)
-    return None
+    if task_set is None:
+        raise RuntimeError("No current task set selected - system misconfigured")
+    return task_set.get_task_by_day(day)
 
 def get_checkpoints() -> List[Task]:
     """Get checkpoint tasks from current task set"""
     task_set = _task_manager.get_current_task_set()
-    if task_set:
-        return task_set.get_checkpoints()
-    return []
+    if task_set is None:
+        raise RuntimeError("No current task set selected - system misconfigured")
+    return task_set.get_checkpoints()
 
 def set_current_task_set(task_set_name: str) -> bool:
     """Set the current task set"""
@@ -84,9 +99,9 @@ def set_current_task_set(task_set_name: str) -> bool:
 def get_task_set_summary() -> Dict[str, Any]:
     """Get summary of current task set"""
     task_set = _task_manager.get_current_task_set()
-    if task_set:
-        return task_set.get_summary()
-    return {}
+    if task_set is None:
+        raise RuntimeError("No current task set selected - system misconfigured")
+    return task_set.get_summary()
 
 def get_available_task_sets() -> List[str]:
     """Get list of available task sets"""
@@ -95,9 +110,9 @@ def get_available_task_sets() -> List[str]:
 def validate_current_task_set() -> List[str]:
     """Validate the current task set"""
     task_set = _task_manager.get_current_task_set()
-    if task_set:
-        return task_set.validate()
-    return ["No task set selected"]
+    if task_set is None:
+        raise RuntimeError("No current task set selected - system misconfigured")
+    return task_set.validate()
 
 # Export main classes and functions
 __all__ = [
@@ -115,10 +130,5 @@ __all__ = [
     "set_current_task_set",
     "get_task_set_summary",
     "get_available_task_sets",
-    "validate_current_task_set",
-    
-    # Task set implementations
-    "MarketResearch21DayProject",
-    "get_market_research_21day_tasks",
-    "get_enhanced_market_research_21day_tasks"
+    "validate_current_task_set"
 ]

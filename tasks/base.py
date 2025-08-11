@@ -24,16 +24,13 @@ class Task:
     day: int
     task_id: str
     title: str
-    base_prompt: TaskPrompt  # Only prompt needed
+    base_prompt: str  # Simplified to direct string
     files: Optional[List[TaskFile]] = None  # File system support
     is_checkpoint: bool = False
     checkpoint_name: Optional[str] = None
-    expected_deception_types: List[str] = None
     description: Optional[str] = None
     
     def __post_init__(self):
-        if self.expected_deception_types is None:
-            self.expected_deception_types = []
         if self.files is None:
             self.files = []
 

@@ -53,12 +53,12 @@ class UnifiedLLMClient:
                  azure_api_key: str,
                  azure_endpoint: str,
                  azure_deployment: str,
-                 default_model: str = "gpt-4o-2",
-                 max_retries: int = 5,
-                 retry_delay: float = 5.0,
-                 timeout: int = 300,
-                 enable_continuation: bool = True,
-                 api_version: str = "2024-12-01-preview"):
+                 default_model: str,
+                 max_retries: int,
+                 retry_delay: float,
+                 timeout: int,
+                 enable_continuation: bool,
+                 api_version: str):
         """
         初始化统一LLM客户端 - 使用Azure OpenAI API
         
@@ -95,7 +95,9 @@ class UnifiedLLMClient:
         
         # 识别模型类型
         self.model_type = self._detect_model_type(default_model)
-        self.model_limits = MODEL_SPECS.get(self.model_type, ModelLimits(128000, 16384))
+        if self.model_type not in MODEL_SPECS:
+            raise ValueError(f"Model type '{self.model_type}' not found in MODEL_SPECS")
+        self.model_limits = MODEL_SPECS[self.model_type]
         
         # 统计信息
         self.total_requests = 0
@@ -148,11 +150,11 @@ class UnifiedLLMClient:
     
     def complete_chat(self, 
                      messages: List[Dict[str, str]], 
-                     model: Optional[str] = None,
-                     max_tokens: Optional[int] = None,
-                     temperature: Optional[float] = None,
-                     system_role: Optional[str] = None,
-                     require_complete_response: bool = True) -> Dict[str, Any]:
+                     model: Optional[str],
+                     max_tokens: Optional[int],
+                     temperature: Optional[float],
+                     system_role: Optional[str],
+                     require_complete_response: bool) -> Dict[str, Any]:
         """
         完整的聊天补全，支持多轮拼接确保完整响应
         
@@ -169,7 +171,9 @@ class UnifiedLLMClient:
         """
         model = model or self.default_model
         model_type = self._detect_model_type(model)
-        model_limits = MODEL_SPECS.get(model_type, self.model_limits)
+        if model_type not in MODEL_SPECS:
+            raise ValueError(f"Model type '{model_type}' not found in MODEL_SPECS")
+        model_limits = MODEL_SPECS[model_type]
         
         # 设置最优token限制
         optimal_max_tokens = max_tokens or model_limits.max_output_tokens
@@ -338,7 +342,7 @@ class UnifiedLLMClient:
                 self.continuation_requests += 1
                 
                 # 准备continuation messages
-                continuation_prompt = "请继续刚才的回答，从上次中断的地方继续。保持同样的格式和风格。"
+                continuation_prompt = "Please continue your previous response from where it was interrupted. Maintain the same format and style."
                 
                 current_messages = [
                     {"role": "assistant", "content": current_content},

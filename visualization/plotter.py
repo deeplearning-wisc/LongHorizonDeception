@@ -474,4 +474,167 @@ class DeceptionPlotter:
         plt.close()
         
         print(f"✅ Summary statistics plot saved: {save_file}")
+        return str(save_file)
+    
+    def plot_llm_state_dynamics(self, state_df: pd.DataFrame) -> str:
+        """
+        Create comprehensive visualization of SimplifiedManager 3-state dynamics
+        
+        Args:
+            state_df: DataFrame with LLM state evolution data
+                     Expected columns: 'day', 'trust_level', 'work_satisfaction', 
+                                     'relational_valence'
+            
+        Returns:
+            Path to saved plot
+        """
+        if state_df.empty:
+            print("⚠️ No LLM state data to plot")
+            return ""
+        
+        # Create 1x3 subplot layout for the 3 state dimensions
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
+        
+        # Color scheme for 3 core states
+        colors = {
+            'trust_level': '#2E86AB',         # Blue - Trust/Deception Assessment  
+            'work_satisfaction': '#A23B72',   # Purple - Work Quality Satisfaction
+            'relational_valence': '#F18F01'   # Orange - Manager Emotional State
+        }
+        
+        days = sorted(state_df['day'].unique())
+        
+        # Plot 1: Trust Level (Deception Assessment)
+        ax1.plot(state_df['day'], state_df['trust_level'], 
+                'o-', color=colors['trust_level'], linewidth=3, markersize=8, 
+                label='Deception Assessment')
+        ax1.set_title('Trust Level: Deception Assessment', fontsize=14, fontweight='bold')
+        ax1.set_ylabel('Trust Level', fontsize=12)
+        ax1.set_ylim(-1.1, 1.1)
+        ax1.axhline(y=0, color='black', linestyle='--', alpha=0.3)
+        ax1.text(0.02, 0.95, '-1.0 = Highly Deceptive\n 0.0 = Neutral\n+1.0 = Completely Truthful', 
+                transform=ax1.transAxes, fontsize=10, verticalalignment='top',
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue", alpha=0.7))
+        ax1.grid(True, alpha=0.3)
+        ax1.set_xticks(days)
+        ax1.set_xticklabels([int(day) for day in days])
+        
+        # Plot 2: Work Satisfaction (Task Quality)
+        ax2.plot(state_df['day'], state_df['work_satisfaction'], 
+                'o-', color=colors['work_satisfaction'], linewidth=3, markersize=8,
+                label='Work Quality Satisfaction')
+        ax2.set_title('Work Satisfaction: Task Quality Assessment', fontsize=14, fontweight='bold')
+        ax2.set_xlabel('Day', fontsize=12)
+        ax2.set_ylabel('Work Satisfaction', fontsize=12)
+        ax2.set_ylim(-1.1, 1.1)
+        ax2.axhline(y=0, color='black', linestyle='--', alpha=0.3)
+        ax2.text(0.02, 0.95, '-1.0 = Terrible Work\n 0.0 = Adequate\n+1.0 = Exceptional', 
+                transform=ax2.transAxes, fontsize=10, verticalalignment='top',
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgreen", alpha=0.7))
+        ax2.grid(True, alpha=0.3)
+        ax2.set_xticks(days)
+        ax2.set_xticklabels([int(day) for day in days])
+        
+        # Plot 3: Relational Valence (Manager Personal Reaction)
+        ax3.plot(state_df['day'], state_df['relational_valence'], 
+                'o-', color=colors['relational_valence'], linewidth=3, markersize=8,
+                label='Manager Emotional State')
+        ax3.set_title('Relational Valence: Manager Personal Reaction', fontsize=14, fontweight='bold')
+        ax3.set_xlabel('Day', fontsize=12)
+        ax3.set_ylabel('Relational Valence', fontsize=12)
+        ax3.set_ylim(-1.1, 1.1)
+        ax3.axhline(y=0, color='black', linestyle='--', alpha=0.3)
+        ax3.text(0.02, 0.95, '-1.0 = Frustrated/Angry\n 0.0 = Neutral\n+1.0 = Pleased/Positive', 
+                transform=ax3.transAxes, fontsize=10, verticalalignment='top',
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="lightyellow", alpha=0.7))
+        ax3.grid(True, alpha=0.3)
+        ax3.set_xticks(days)
+        ax3.set_xticklabels([int(day) for day in days])
+        
+        # Add overall title
+        fig.suptitle('LLM-Driven Manager State Dynamics', fontsize=16, fontweight='bold', y=0.98)
+        
+        # Save plot
+        save_file = self.save_path / "llm_state_dynamics.png"
+        plt.tight_layout()
+        plt.savefig(save_file, dpi=self.dpi, bbox_inches='tight')
+        plt.close()
+        
+        print(f"✅ LLM state dynamics plot saved: {save_file}")
+        return str(save_file)
+    
+    def plot_llm_state_timeline(self, state_df: pd.DataFrame) -> str:
+        """
+        Create unified timeline visualization of all 4 LLM states on one plot
+        
+        Args:
+            state_df: DataFrame with LLM state evolution data
+                     
+        Returns:
+            Path to saved plot
+        """
+        if state_df.empty:
+            print("⚠️ No LLM state data to plot")
+            return ""
+        
+        fig, ax = plt.subplots(1, 1, figsize=(16, 8))
+        
+        # Colors for 3 core states
+        colors = {
+            'trust_level': '#2E86AB',
+            'work_satisfaction': '#A23B72', 
+            'relational_valence': '#F18F01'
+        }
+        
+        # Labels for better understanding
+        labels = {
+            'trust_level': 'Trust (Deception Assessment)',
+            'work_satisfaction': 'Work Satisfaction (Task Quality)',
+            'relational_valence': 'Relational Valence (Manager Feeling)'
+        }
+        
+        days = sorted(state_df['day'].unique())
+        
+        # Plot all 3 state dimensions
+        for state_name, color in colors.items():
+            if state_name in state_df.columns:
+                ax.plot(state_df['day'], state_df[state_name], 
+                       'o-', color=color, linewidth=2.5, markersize=6,
+                       label=labels[state_name], alpha=0.8)
+        
+        # Styling
+        ax.set_title('LLM Manager State Evolution - All Dimensions', fontsize=16, fontweight='bold')
+        ax.set_xlabel('Day', fontsize=14)
+        ax.set_ylabel('State Value', fontsize=14)
+        ax.set_ylim(-1.2, 1.2)
+        
+        # Reference lines
+        ax.axhline(y=0, color='black', linestyle='--', alpha=0.4, linewidth=1)
+        ax.axhline(y=0.5, color='gray', linestyle=':', alpha=0.3, linewidth=1)
+        ax.axhline(y=-0.5, color='gray', linestyle=':', alpha=0.3, linewidth=1)
+        
+        # Legend
+        ax.legend(loc='upper left', fontsize=12, framealpha=0.9)
+        
+        # Grid and formatting
+        ax.grid(True, alpha=0.3)
+        ax.set_xticks(days)
+        ax.set_xticklabels([int(day) for day in days])
+        
+        # Add annotation box
+        annotation_text = ("State Ranges:\n"
+                          "Trust/Satisfaction/Emotion: [-1.0, +1.0]\n"
+                          "Oversight: [0.0, 1.0]")
+        ax.text(0.98, 0.98, annotation_text, 
+               transform=ax.transAxes, fontsize=10,
+               verticalalignment='top', horizontalalignment='right',
+               bbox=dict(boxstyle="round,pad=0.4", facecolor="white", alpha=0.8))
+        
+        # Save plot
+        save_file = self.save_path / "llm_state_timeline.png"
+        plt.tight_layout()
+        plt.savefig(save_file, dpi=self.dpi, bbox_inches='tight')
+        plt.close()
+        
+        print(f"✅ LLM state timeline plot saved: {save_file}")
         return str(save_file) 
