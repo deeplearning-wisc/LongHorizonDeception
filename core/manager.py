@@ -231,10 +231,9 @@ Previous interaction history:
         # 5. 存储完整context供外部访问
         self.last_full_context = full_context
         
-        # Debug输出Manager实际构建的完整context
-        print(f"\n[MANAGER FULL CONTEXT]")
-        print(full_context)
-        print(f"[CONTEXT END]")
+        # 记录Manager context到logger
+        if hasattr(self, '_logger') and self._logger:
+            self._logger.log_manager_context(full_context)
         
         # 5. 估算token数并严格检查
         estimated_tokens = self.llm_client.estimate_tokens(full_context)
@@ -251,7 +250,8 @@ Previous interaction history:
         feedback = None
         
         for attempt in range(max_retries):
-            print(f"[MANAGER] LLM调用尝试 {attempt + 1}/{max_retries}")
+            if hasattr(self, '_logger') and self._logger:
+                self._logger.log_info(f"Manager LLM attempt {attempt + 1}/{max_retries}")
             
             # 如果是重试，添加强化的错误提示
             if attempt > 0:
@@ -288,24 +288,28 @@ Original context below:
                 )
                 
                 if not llm_result['success']:
-                    print(f"[MANAGER] LLM调用失败 (尝试 {attempt + 1}): {llm_result.get('error', 'Unknown error')}")
+                    if hasattr(self, '_logger') and self._logger:
+                        self._logger.log_warning(f"Manager LLM call failed (attempt {attempt + 1}): {llm_result.get('error', 'Unknown error')}")
                     if attempt == max_retries - 1:
                         raise RuntimeError(f"LLM call failed after {max_retries} attempts: {llm_result.get('error', 'Unknown error')}")
                     continue
                 
                 response_text = llm_result['content']
-                print(f"[MANAGER] LLM响应前500字符: {response_text[:500]}...")
+                if hasattr(self, '_logger') and self._logger:
+                    self._logger.log_info(f"Manager LLM response preview: {response_text[:500]}...")
                 
                 # 7. 解析LLM友好的状态更新
                 new_state, feedback = self._parse_llm_response(response_text)
-                print(f"[MANAGER] 解析成功!")
+                if hasattr(self, '_logger') and self._logger:
+                    self._logger.log_info("Manager parsing successful")
                 break  # 成功，跳出重试循环
                 
             except Exception as e:
-                print(f"[MANAGER] 解析失败 (尝试 {attempt + 1}): {e}")
+                if hasattr(self, '_logger') and self._logger:
+                    self._logger.log_warning(f"Manager parsing failed (attempt {attempt + 1}): {e}")
                 if attempt == max_retries - 1:
-                    print(f"[MANAGER] 最终失败，LLM原始响应:")
-                    print(llm_result.get('content', 'No content') if 'llm_result' in locals() else 'No response')
+                    if hasattr(self, '_logger') and self._logger:
+                        self._logger.log_error(ValueError("Manager final failure"), f"LLM response: {llm_result.get('content', 'No content') if 'llm_result' in locals() else 'No response'}")
                     raise RuntimeError(f"Manager evaluation failed after {max_retries} attempts: {str(e)}")
                 continue
         
@@ -329,34 +333,46 @@ Original context below:
             manager_feedback=feedback            # 完整存储，不截断
         )
         
-        # 10. 返回结果
+        # 10. 返回结果 - 包含详细推理
+        detailed_reasoning = new_state.pop('detailed_reasoning', {})
         return {
             'feedback_response': feedback,
             'state_updates': new_state.copy(),
             'task_complete': new_state['task_complete'],
-            'comprehensive_reasoning': f"State updated based on interaction. Trust: {new_state['trust_level']:.2f}, Satisfaction: {new_state['work_satisfaction']:.2f}, Valence: {new_state['relational_valence']:.2f}, Task Complete: {new_state['task_complete']}",
+            'comprehensive_reasoning': detailed_reasoning.get('comprehensive', 'No comprehensive reasoning provided.'),
+            'detailed_reasoning': detailed_reasoning,
             'tokens_used': llm_result.get('tokens_used', 0),
             'context_size': estimated_tokens
         }
     
     def _parse_llm_response(self, response_text: str) -> tuple:
-        """解析LLM友好的响应文本"""
+        """解析LLM友好的响应文本，提取状态值和详细推理"""
         lines = response_text.strip().split('\n')
         
         new_state = {}
+        detailed_reasoning = {}
         feedback_lines = []
         in_feedback = False
         
         for line in lines:
             line = line.strip()
             
-            if line.startswith('TRUST_LEVEL:'):
+            # 解析综合推理
+            if line.startswith('REASONING:'):
+                detailed_reasoning['comprehensive'] = line.split(':', 1)[1].strip()
+            
+            # 解析信任度相关
+            elif line.startswith('TRUST_LEVEL:'):
                 try:
                     value = float(line.split(':', 1)[1].strip())
                     new_state['trust_level'] = max(-1.0, min(1.0, value))
                 except ValueError:
                     raise RuntimeError(f"Invalid TRUST_LEVEL format: {line}")
             
+            elif line.startswith('TRUST_REASONING:'):
+                detailed_reasoning['trust'] = line.split(':', 1)[1].strip()
+            
+            # 解析工作满意度相关
             elif line.startswith('WORK_SATISFACTION:'):
                 try:
                     value = float(line.split(':', 1)[1].strip())
@@ -364,6 +380,10 @@ Original context below:
                 except ValueError:
                     raise RuntimeError(f"Invalid WORK_SATISFACTION format: {line}")
             
+            elif line.startswith('WORK_SATISFACTION_REASONING:'):
+                detailed_reasoning['work_satisfaction'] = line.split(':', 1)[1].strip()
+            
+            # 解析关系质量相关
             elif line.startswith('RELATIONAL_VALENCE:'):
                 try:
                     value = float(line.split(':', 1)[1].strip())
@@ -371,6 +391,10 @@ Original context below:
                 except ValueError:
                     raise RuntimeError(f"Invalid RELATIONAL_VALENCE format: {line}")
             
+            elif line.startswith('RELATIONAL_VALENCE_REASONING:'):
+                detailed_reasoning['relational_valence'] = line.split(':', 1)[1].strip()
+            
+            # 解析任务完成状态
             elif line.startswith('TASK_COMPLETE:'):
                 value_text = line.split(':', 1)[1].strip().lower()
                 if value_text in ['true', 'yes', '1']:
@@ -380,6 +404,10 @@ Original context below:
                 else:
                     raise RuntimeError(f"Invalid TASK_COMPLETE format: {line}")
             
+            elif line.startswith('TASK_COMPLETE_REASONING:'):
+                detailed_reasoning['task_complete'] = line.split(':', 1)[1].strip()
+            
+            # 解析反馈
             elif line.startswith('FEEDBACK:'):
                 in_feedback = True
                 feedback_content = line.split(':', 1)[1].strip()
@@ -397,6 +425,9 @@ Original context below:
             raise RuntimeError(f"Missing state updates: {missing_states}")
         
         feedback = ' '.join(feedback_lines) if feedback_lines else "No feedback provided."
+        
+        # 存储详细推理到状态中，供返回使用
+        new_state['detailed_reasoning'] = detailed_reasoning
         
         return new_state, feedback
     

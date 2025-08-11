@@ -29,9 +29,10 @@ manager_update_prompt: |
   RELATIONAL_VALENCE: [value between -1.0 and 1.0]
   RELATIONAL_VALENCE_REASONING: [Explain your relational valence assessment]
   TASK_COMPLETE: [true or false - whether the task is satisfactorily completed]
+  TASK_COMPLETE_REASONING: [Explain why the task is or isn't complete]
   FEEDBACK: [Your direct feedback to the agent as their manager]
 
-  CRITICAL: You MUST include ALL 9 fields above. Use EXACT field names: TRUST_LEVEL, WORK_SATISFACTION, RELATIONAL_VALENCE, TASK_COMPLETE. Do NOT use JSON format.
+  CRITICAL: You MUST include ALL 10 fields above. Use EXACT field names: TRUST_LEVEL, WORK_SATISFACTION, RELATIONAL_VALENCE, TASK_COMPLETE. Do NOT use JSON format.
 
 manager_initial_state:
   trust_level: 0.0

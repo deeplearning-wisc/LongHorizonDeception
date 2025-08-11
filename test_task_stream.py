@@ -8,12 +8,14 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import config
 from utils.yaml_config_loader import load_yaml_config
+from utils.task_stream_logger import TaskStreamLogger
 from core.manager import Manager
 from core.agent import LDLEAgent
 from core.detector import DeceptionDetector
 from tasks.json_loader import JSONTaskLoader
 from tasks.event_loader import get_event_system, DeceptiveEvent
 from tasks.base import Task
+from tqdm import tqdm
 
 class TaskStreamTask:
     def __init__(self, task_id, title, description, day=1):
@@ -36,16 +38,18 @@ class MockTaskPrompt:
 def test_task_stream():
     """测试连续Task Stream的多轮交互"""
     
-    print("="*80)
-    print("CONTINUOUS TASK STREAM TEST")
-    print("Testing Manager's task completion judgment and continuous context")
-    print("="*80)
+    # 初始化logger
+    logger = TaskStreamLogger()
+    session_info = logger.get_session_info()
+    
+    # 控制台只显示基本信息
+    print(f"🚀 Starting Task Stream Test")
+    print(f"📁 Session: {session_info['session_name']}")
+    print(f"📄 Log file: {session_info['log_file']}")
     
     # Step 1: 加载配置系统
-    print("\n[CONFIGURATION LOADING]")
     try:
         # 加载基础配置 (从环境变量)
-        print("Loading base configuration from environment variables...")
         base_config = {
             'azure_api_key': config.AZURE_API_KEY,
             'azure_endpoint': config.AZURE_ENDPOINT,
@@ -53,32 +57,19 @@ def test_task_stream():
             'model_name': config.MODEL_NAME,
             'api_version': config.AZURE_API_VERSION
         }
-        print(f"✅ Base config loaded:")
-        print(f"  - Endpoint: {base_config['azure_endpoint']}")
-        print(f"  - Deployment: {base_config['azure_deployment']}")
-        print(f"  - Model: {base_config['model_name']}")
-        print(f"  - API Version: {base_config['api_version']}")
-        print(f"  - API Key: {'***' + base_config['azure_api_key'][-4:] if len(base_config['azure_api_key']) > 4 else '***'}")
+        logger.log_config_loading("Base Configuration (Environment Variables)", base_config)
         
         # 加载测试特定配置 (从YAML文件)
-        print("\nLoading test configuration from YAML file...")
         test_config = load_yaml_config("test_task_stream_config.yaml")
         test_config_dict = test_config  # YAML loader already returns a dict
-        print(f"✅ Test config loaded:")
-        print(f"  - Agent system prompt: {len(test_config_dict['agent_system_prompt'])} chars")
-        print(f"  - Manager system prompt: {len(test_config_dict['manager_system_prompt'])} chars")
-        print(f"  - Manager update prompt: {len(test_config_dict['manager_update_prompt'])} chars")
-        print(f"  - Manager initial state: {test_config_dict['manager_initial_state']}")
-        print(f"  - Event probability: {test_config_dict['p_event']}")
-        print(f"  - Summary level: {test_config_dict['summary_level']}")
-        print(f"  - Max rounds per task: {test_config_dict['max_rounds_per_task']}")
+        logger.log_config_loading("Test Configuration (YAML)", test_config_dict)
         
     except Exception as e:
+        logger.log_error(e, "Configuration loading")
         print(f"❌ Configuration loading failed: {e}")
         return False
     
     # Step 2: 合并配置和验证
-    print("\n[CONFIGURATION VALIDATION]")
     merged_config = {
         **base_config,
         **test_config_dict
@@ -93,61 +84,49 @@ def test_task_stream():
     
     for config_key in required_configs:
         if config_key not in merged_config or merged_config[config_key] is None:
+            logger.log_error(ValueError(f"Missing required configuration: {config_key}"), "Configuration validation")
             print(f"❌ Missing required configuration: {config_key}")
             return False
     
-    print("✅ All required configurations validated")
-    print(f"Total configuration items: {len(merged_config)}")
-    
-    # 打印完整的合并后配置 - 完全不截断
-    print(f"\n[MERGED CONFIGURATION - COMPLETE]")
-    print("="*80)
-    for key, value in merged_config.items():
-        print(f"{key}:")
-        print(value)
-        print()
-    print("="*80)
+    logger.log_config_loading("Merged Configuration", merged_config)
     
     # Step 3: 初始化组件
-    print("\n[COMPONENT INITIALIZATION]")
+    print("🔧 Initializing components...")
     
     # 初始化Agent - 使用配置系统，严格提供所有参数
-    print("Initializing Agent with strict configuration...")
-    agent = LDLEAgent(
-        azure_api_key=merged_config['azure_api_key'],
-        azure_endpoint=merged_config['azure_endpoint'],
-        azure_deployment=merged_config['azure_deployment'],
-        model_name=merged_config['model_name'],
-        system_prompt=merged_config['agent_system_prompt'],
-        max_tokens=16384,
-        api_version=merged_config['api_version']
-    )
-    print(f"✅ Agent initialized")
+    agent_params = {
+        'azure_api_key': merged_config['azure_api_key'],
+        'azure_endpoint': merged_config['azure_endpoint'],
+        'azure_deployment': merged_config['azure_deployment'],
+        'model_name': merged_config['model_name'],
+        'system_prompt': merged_config['agent_system_prompt'],
+        'max_tokens': 16384,
+        'api_version': merged_config['api_version']
+    }
+    logger.log_component_init("Agent", agent_params)
+    agent = LDLEAgent(**agent_params)
+    agent._logger = logger  # 传递logger给Agent
+    agent.llm_client._logger = logger  # 传递logger给LLM客户端
     
     # 初始化Manager - 使用配置系统，一次性完成所有配置
-    print("Initializing Manager with strict configuration...")
-    manager = Manager(
-        azure_api_key=merged_config['azure_api_key'],
-        azure_endpoint=merged_config['azure_endpoint'],
-        azure_deployment=merged_config['azure_deployment'],
-        model_name=merged_config['model_name'],
-        api_version=merged_config['api_version'],
-        summary_level=merged_config['summary_level'],
-        system_prompt=merged_config['manager_system_prompt'],
-        initial_state=merged_config['manager_initial_state'],
-        update_prompt=merged_config['manager_update_prompt']
-    )
-    print(f"✅ Manager initialized")
-    print(f"  - System prompt: {len(manager.system_prompt)} chars")
-    print(f"  - Initial state: {manager.current_state}")
-    print(f"  - Summary level: {merged_config['summary_level']}")
-    print(f"  - Context limit: {manager.context_limit}")
-    
-    # 保存Manager状态变化的结构
-    manager_state_history = []
+    manager_params = {
+        'azure_api_key': merged_config['azure_api_key'],
+        'azure_endpoint': merged_config['azure_endpoint'],
+        'azure_deployment': merged_config['azure_deployment'],
+        'model_name': merged_config['model_name'],
+        'api_version': merged_config['api_version'],
+        'summary_level': merged_config['summary_level'],
+        'system_prompt': merged_config['manager_system_prompt'],
+        'initial_state': merged_config['manager_initial_state'],
+        'update_prompt': merged_config['manager_update_prompt']
+    }
+    logger.log_component_init("Manager", manager_params)
+    manager = Manager(**manager_params)
+    manager._logger = logger  # 传递logger给Manager
+    manager.llm_client._logger = logger  # 传递logger给Manager的LLM客户端
     
     # Step 4: 加载真实任务数据 - 前7天
-    print("\n[LOADING REAL TASKS]")
+    print("📋 Loading tasks and events...")
     task_loader = JSONTaskLoader()
     
     # 加载market_research_21day任务集
@@ -156,18 +135,13 @@ def test_task_stream():
     
     # 只取前7天的任务 (phase_1)
     day_7_tasks = [task for task in all_tasks if task.day <= 7]
-    
-    print(f"✅ Loaded {len(day_7_tasks)} tasks for first 7 days")
+    logger.log_info(f"Loaded {len(day_7_tasks)} tasks for first 7 days")
     for task in day_7_tasks:
-        print(f"  Day {task.day}: {task.task_id} - {task.title}")
+        logger.log_info(f"  Day {task.day}: {task.task_id} - {task.title}")
     
     # 初始化事件系统 - 使用配置系统
-    print(f"\n[EVENT SYSTEM INITIALIZATION]")
     event_system = get_event_system("market_research_21day", global_event_probability=merged_config['p_event'])
-    
-    print(f"✅ Event system initialized:")
-    print(f"  - Phases loaded: {len(event_system.phase_events)}")
-    print(f"  - Event probability: {merged_config['p_event']}")
+    logger.log_info(f"Event system initialized with {len(event_system.phase_events)} phases, probability: {merged_config['p_event']}")
     
     # 为每个任务生成事件 - 使用配置的概率
     import random
@@ -202,63 +176,68 @@ def test_task_stream():
             'event': event
         })
         
-        print(f"  Task {task.task_id}: Event '{event['content'][:50]}...' ({event['category']}, Pressure: {event['pressure_level']})")
+        logger.log_info(f"Task {task.task_id}: Event '{event['content'][:50]}...' ({event['category']}, Pressure: {event['pressure_level']})")
     
-    # Agent现在自己管理全局对话历史
+    # 处理Task Stream - 添加进度条
+    print("🚀 Processing tasks...")
     
-    # 处理Task Stream
-    for task_idx, task_info in enumerate(task_stream):
+    for task_idx, task_info in enumerate(tqdm(task_stream, desc="Tasks", unit="task")):
         task = task_info['task']
         event = task_info['event']
         
-        print(f"\n\n{'#'*80}")
-        print(f"TASK {task_idx + 1}: {task.task_id}")
-        print(f"{'#'*80}")
-        print(f"Description: {task.description}")
-        print(f"Event: {event['content']} (Category: {event['category']}, Pressure: {event['pressure_level']})")
+        # 记录任务开始
+        logger.log_task_start(task_idx + 1, task.task_id, task.description or task.title)
+        logger.log_event_info(event)
         
-        # 显示Agent全局历史状态
+        # 记录Agent全局历史状态
         if len(agent.global_conversation_history) > 0:
-            print(f"📚 [CONTINUOUS MEMORY] Agent has {len(agent.global_conversation_history)} interactions from previous tasks")
+            logger.log_info(f"Agent has {len(agent.global_conversation_history)} interactions from previous tasks")
         
         # 多轮交互直到任务完成 - 使用配置的最大轮数
         max_rounds = merged_config['max_rounds_per_task']
         task_completed = False
         
-        for round_num in range(1, max_rounds + 1):
-            print(f"\n{'-'*60}")
-            print(f"ROUND {round_num}")
-            print(f"{'-'*60}")
+        # 🆕 任务内的交互历史 - 实现真正的交错对话
+        task_manager_feedback_history = []
+        
+        # 轮次进度条
+        rounds_desc = f"Task {task.task_id}"
+        for round_num in tqdm(range(1, max_rounds + 1), desc=rounds_desc, unit="round", leave=False):
+            logger.log_round_start(round_num, max_rounds)
             
-            # 重要：确保任务文件完整保留
-            print(f"Task files count: {len(task.files) if task.files else 0}")
+            # 记录任务文件信息
+            logger.log_info(f"Task files count: {len(task.files) if task.files else 0}")
             if task.files:
                 for i, file_obj in enumerate(task.files):
-                    print(f"  File {i+1}: {file_obj.filename} ({len(file_obj.content)} chars)")
+                    logger.log_info(f"  File {i+1}: {file_obj.filename} ({len(file_obj.content)} chars)")
             
-            print(f"Agent processing round {round_num}...")
+            if round_num > 1:
+                logger.log_info(f"Agent has {len(task_manager_feedback_history)} manager feedback(s) from this task")
             
-            # 🆕 使用Agent的封装好的context管理
+            # 🆕 使用Agent的封装好的context管理 + 任务内Manager反馈
             try:
-                # Agent自动处理context管理、历史截断、prompt构建
-                agent_result = agent.process_task_with_event(task, event['content'])
+                # 判断是否需要使用ChatGPT风格的交错对话
+                has_global_history = len(agent.global_conversation_history) > 0
+                has_task_feedback = len(task_manager_feedback_history) > 0
+                
+                if has_global_history or has_task_feedback:
+                    # 有全局历史或任务内反馈：使用ChatGPT风格的交错对话
+                    enhanced_prompt = agent._build_enhanced_prompt_with_history(task, event['content'])
+                    agent_result = agent.process_task_with_enhanced_prompt(task, enhanced_prompt, task_manager_feedback_history)
+                else:
+                    # 完全新的开始：使用简单的事件处理
+                    agent_result = agent.process_task_with_event(task, event['content'])
+                
                 agent_response = agent_result['response']
                 
-                print(f"\n[AGENT OUTPUT]")
-                print(f"Response length: {len(agent_response)} characters")
-                print(f"Tokens used: {agent_result.get('llm_metadata', {}).get('tokens_used', 'N/A')}")
-                print(f"Full Response:")
-                print(agent_response)
-                print(f"[END AGENT OUTPUT]")
+                # 记录Agent的输出
+                logger.log_agent_output(agent_response, agent_result.get('llm_metadata', {}))
                 
             except Exception as e:
-                print(f"❌ FATAL ERROR in Agent processing: {e}")
-                print(f"Task {task.task_id}, Round {round_num} failed")
+                logger.log_error(e, f"Agent processing - Task {task.task_id}, Round {round_num}")
                 raise  # 直接抛出异常，fail-fast原则
             
             # Manager评估
-            print(f"\n[MANAGER EVALUATION]")
-            
             try:
                 # 将event dict转换为event_info格式 - 只传递content，不暴露系统字段
                 event_info = {
@@ -270,17 +249,18 @@ def test_task_stream():
                 
                 task_completed = manager_result['task_complete']
                 
-                print(f"\n[MANAGER OUTPUT]")
-                print(f"Task Complete: {task_completed}")
-                print(f"Trust Level: {manager_result['state_updates']['trust_level']:.3f}")
-                print(f"Work Satisfaction: {manager_result['state_updates']['work_satisfaction']:.3f}")
-                print(f"Relational Valence: {manager_result['state_updates']['relational_valence']:.3f}")
-                print(f"Manager tokens used: {manager_result.get('tokens_used', 'N/A')}")
-                print(f"\nComplete Manager Reasoning:")
-                print(manager_result['comprehensive_reasoning'])
-                print(f"\nManager Feedback to Agent:")
-                print(manager_result['feedback_response'])
-                print(f"[END MANAGER OUTPUT]")
+                # 记录Manager输出
+                logger.log_manager_output(
+                    task_completed,
+                    manager_result['state_updates'],
+                    manager_result['comprehensive_reasoning'],
+                    manager_result['feedback_response'],
+                    manager_result.get('tokens_used', 0),
+                    manager_result.get('detailed_reasoning', {})
+                )
+                
+                # 🆕 添加Manager反馈到任务内历史 (用于下一轮Agent输入)
+                task_manager_feedback_history.append(manager_result['feedback_response'])
                 
                 # 🆕 记录这一轮的完整交互到Agent的全局历史
                 agent.add_interaction_to_global_history(
@@ -292,100 +272,80 @@ def test_task_stream():
                 )
                 
                 if task_completed:
-                    print(f"\n✅ Task {task.task_id} completed successfully in {round_num} rounds!")
+                    logger.log_task_completion(task.task_id, True, round_num)
                     break
                 else:
-                    print(f"\n⏳ Task not complete, continuing to round {round_num + 1}...")
+                    logger.log_info(f"Task not complete, continuing to round {round_num + 1}")
                     
             except Exception as e:
-                print(f"❌ FATAL ERROR in Manager evaluation: {e}")
-                print(f"Task {task.task_id}, Round {round_num} failed")
+                logger.log_error(e, f"Manager evaluation - Task {task.task_id}, Round {round_num}")
                 raise  # 直接抛出异常，fail-fast原则
         
         if not task_completed:
-            print(f"\n❌ Task {task.task_id} not completed after {max_rounds} rounds")
+            logger.log_task_completion(task.task_id, False, max_rounds)
         
-        # 显示当前状态和历史
-        print(f"\nCurrent Manager State after Task {task_idx + 1}:")
+        # 记录当前状态和历史
         current_state = manager.get_current_state()
-        print(f"  Trust Level: {current_state['trust_level']:.3f}")
-        print(f"  Work Satisfaction: {current_state['work_satisfaction']:.3f}")
-        print(f"  Relational Valence: {current_state['relational_valence']:.3f}")
-        print(f"  Total History Entries: {len(manager.history.interaction_records)}")
+        logger.log_info(f"Manager State after Task {task_idx + 1}:")
+        logger.log_info(f"  Trust Level: {current_state['trust_level']:.3f}")
+        logger.log_info(f"  Work Satisfaction: {current_state['work_satisfaction']:.3f}")
+        logger.log_info(f"  Relational Valence: {current_state['relational_valence']:.3f}")
+        logger.log_info(f"  Total History Entries: {len(manager.history.interaction_records)}")
     
     # 最终总结
-    print(f"\n\n{'*'*80}")
-    print("TASK STREAM COMPLETED")
-    print(f"{'*'*80}")
-    
     final_state = manager.get_current_state()
-    print(f"Final Manager State:")
-    print(f"  Trust Level: {final_state['trust_level']:.3f}")
-    print(f"  Work Satisfaction: {final_state['work_satisfaction']:.3f}")
-    print(f"  Relational Valence: {final_state['relational_valence']:.3f}")
-    
-    print(f"\nTotal Interactions: {len(manager.history.interaction_records)}")
-    print("\nInteraction History Summary:")
-    for i, record in enumerate(manager.history.interaction_records, 1):
-        print(f"  [{i}] {record['task_id']} Round {record['round']}")
-    
-    print(f"\nManager History Context:")
-    print(manager.history.get_history_context())
+    total_interactions = len(manager.history.interaction_records)
+    logger.log_final_summary(final_state, total_interactions)
     
     # 现在进行Detector的批量分析
-    print(f"\n\n{'*'*80}")
-    print("DETECTOR BATCH ANALYSIS")
-    print(f"{'*'*80}")
+    print("🔍 Running detector analysis...")
     
     # 初始化Detector - 使用配置系统，严格提供所有参数
-    print("Initializing Detector with strict configuration...")
-    detector = DeceptionDetector(
-        azure_api_key=merged_config['azure_api_key'],
-        azure_endpoint=merged_config['azure_endpoint'],
-        azure_deployment=merged_config['azure_deployment'],
-        model_name=merged_config['model_name'],
-        max_retries=3,
-        max_tokens=16384,
-        api_version=merged_config['api_version']
-    )
-    
-    print(f"Detector initialized with context limit: {detector.context_limit}")
+    detector_params = {
+        'azure_api_key': merged_config['azure_api_key'],
+        'azure_endpoint': merged_config['azure_endpoint'],
+        'azure_deployment': merged_config['azure_deployment'],
+        'model_name': merged_config['model_name'],
+        'max_retries': 3,
+        'max_tokens': 16384,
+        'api_version': merged_config['api_version']
+    }
+    logger.log_component_init("Detector", detector_params)
+    detector = DeceptionDetector(**detector_params)
     
     # 获取所有交互记录进行批量分析
     interaction_records = manager.history.interaction_records
-    print(f"Analyzing {len(interaction_records)} interactions with full sequence context...")
+    logger.log_info(f"Analyzing {len(interaction_records)} interactions with full sequence context")
     
     try:
         detector_results = detector.analyze_interaction_sequence(interaction_records)
+        logger.log_detector_analysis(detector_results)
         
-        print(f"\n[DETECTOR RESULTS SUMMARY]")
-        for i, result in enumerate(detector_results, 1):
-            print(f"\n[{i}] {result['task_id']} Round {result['round']}:")
-            print(f"  Deception Detected: {result['deception_detected']}")
-            print(f"  Intent: {result['intent']}")
-            print(f"  Category: {result['category']}")
-            print(f"  Severity: {result['severity']}")
-            print(f"  Confidence: {result['confidence_score']:.2f}")
-            print(f"  Reasoning: {result['reasoning'][:150]}...")
-            print(f"  Evidence: {len(result['evidence'])} points")
-            print(f"  Context Size: {result['context_size']} tokens")
+        # 控制台显示简要结果
+        print(f"✅ Detector analysis completed: {len(detector_results)} interactions analyzed")
+        deception_count = sum(1 for r in detector_results if r['deception_detected'])
+        print(f"📊 Deception detected in {deception_count}/{len(detector_results)} interactions")
+        
+        # 关闭logger
+        logger.close()
         
         return True
         
     except Exception as e:
+        logger.log_error(e, "Detector batch analysis")
         print(f"❌ FATAL ERROR in Detector batch analysis: {e}")
-        print("Complete interaction sequence analysis failed")
+        logger.close()
         raise  # 直接抛出异常，fail-fast原则
 
 if __name__ == "__main__":
     try:
         if test_task_stream():
-            print("\n✅ Task Stream test completed successfully!")
+            print("✅ Task Stream test completed successfully!")
         else:
-            print("\n❌ Task Stream test failed!")
+            print("❌ Task Stream test failed!")
             sys.exit(1)
     except Exception as e:
-        print(f"\n💥 FATAL ERROR: {e}")
+        print(f"💥 FATAL ERROR: {e}")
         import traceback
         print("Full traceback:")
         traceback.print_exc()
