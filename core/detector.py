@@ -425,8 +425,8 @@ def get_llm_config() -> tuple:
         sys.path.insert(0, str(project_root))
     
     try:
-        from utils.yaml_config_loader import load_yaml_config
-        config = load_yaml_config(project_root / "task_stream_config.yaml")
+        from config_manager import load_config, get_azure_config
+        config = load_config()  # 使用默认配置
         llm_api_config = config['llm_api_config']
         
         # 获取Detector专用配置 - 严格模式，无默认值
@@ -434,21 +434,14 @@ def get_llm_config() -> tuple:
         llm_provider = detector_config['provider']
         
         if llm_provider == 'openai':
-            # 和main.py一样，直接返回配置，让Universal_LLM_Client处理
+            # 直接返回OpenAI配置
             llm_config = detector_config['openai']
         elif llm_provider == 'openrouter':
-            # OpenRouter配置，直接返回配置字典
+            # OpenRouter配置
             llm_config = detector_config['openrouter']
         else:
-            # 如果是Azure，需要从config.py加载
-            import config as azure_config
-            llm_config = {
-                'azure_api_key': azure_config.AZURE_API_KEY,
-                'azure_endpoint': azure_config.AZURE_ENDPOINT,
-                'azure_deployment': azure_config.AZURE_DEPLOYMENT_NAME,
-                'model_name': azure_config.MODEL_NAME,
-                'api_version': azure_config.AZURE_API_VERSION
-            }
+            # Azure配置 - 使用新的统一配置系统
+            llm_config = get_azure_config(config)
         
         return llm_provider, llm_config
         

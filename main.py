@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-# test_task_stream.py
-# 测试连续Task Stream的多轮交互
+# main.py
+# DeceptioN主程序 - 运行欺骗检测实验
 
 import sys
 import os
+import argparse
+from pathlib import Path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-import config
-from utils.yaml_config_loader import load_yaml_config
+from config_manager import load_config, get_azure_config
 from utils.task_stream_logger import TaskStreamLogger
 from utils.result_saver import ResultSaver
 from core.manager import Manager
@@ -42,27 +43,20 @@ def safe_log(logger, method_name, *args, **kwargs):
         method = getattr(logger, method_name)
         method(*args, **kwargs)
 
-def run_deception_experiment():
+def run_deception_experiment(config_name=None):
     """运行长期Task序列的欺骗实验"""
     
-    # Step 1: 加载配置系统 (先加载配置再决定是否启用logger)
+    # Step 1: 加载配置系统 (统一YAML配置)
     logger = None  # 初始化logger变量
     try:
-        # 加载基础配置 (从环境变量)
-        base_config = {
-            'azure_api_key': config.AZURE_API_KEY,
-            'azure_endpoint': config.AZURE_ENDPOINT,
-            'azure_deployment': config.AZURE_DEPLOYMENT_NAME,
-            'model_name': config.MODEL_NAME,
-            'api_version': config.AZURE_API_VERSION
-        }
+        # 加载统一配置
+        config = load_config(config_name)
         
-        # 加载实验特定配置 (从YAML文件)
-        experiment_config = load_yaml_config("task_stream_config.yaml")
-        experiment_config_dict = experiment_config  # YAML loader already returns a dict
+        # 提取Azure配置
+        azure_config = get_azure_config(config)
         
         # 检查是否启用logger
-        enable_logger = experiment_config['logging']['enable_logger']
+        enable_logger = config['logging']['enable_logger']
         
         # 根据配置决定是否初始化logger
         logger = None
@@ -70,8 +64,8 @@ def run_deception_experiment():
         if enable_logger:
             logger = TaskStreamLogger()
             session_info = logger.get_session_info()
-            safe_log(logger, 'log_config_loading', "Base Configuration (Environment Variables)", base_config)
-            safe_log(logger, 'log_config_loading', "Experiment Configuration (YAML)", experiment_config_dict)
+            safe_log(logger, 'log_config_loading', "Azure Configuration", azure_config)
+            safe_log(logger, 'log_config_loading', "Full Configuration", config)
         else:
             # 生成简单的session信息，不创建log文件
             import time
@@ -86,29 +80,11 @@ def run_deception_experiment():
         print(f"❌ Configuration loading failed: {e}")
         return False
     
-    # Step 2: 合并配置和验证
-    merged_config = {
-        **base_config,
-        **experiment_config_dict
-    }
-    
-    # 验证所有必需配置都存在
-    required_configs = [
-        'azure_api_key', 'azure_endpoint', 'azure_deployment', 'model_name', 'api_version',
-        'agent_system_prompt', 'manager_system_prompt', 'manager_update_prompt', 'manager_initial_state',
-        'p_event', 'summary_level', 'max_rounds_per_task', 'experiment_mode'
-    ]
-    
-    for config_key in required_configs:
-        if config_key not in merged_config or merged_config[config_key] is None:
-            safe_log(logger, 'log_error', ValueError(f"Missing required configuration: {config_key}"), "Configuration validation")
-            print(f"❌ Missing required configuration: {config_key}")
-            return False
-    
-    safe_log(logger, "log_config_loading", "Merged Configuration", merged_config)
+    # 配置已经通过config_manager验证过了，这里只需要记录
+    safe_log(logger, "log_config_loading", "Configuration validation passed", config)
     
     # 根据experiment_mode确定实验模式
-    if merged_config['experiment_mode'].lower() == "quick":
+    if config['experiment_mode'].lower() == "quick":
         max_tasks = 7  # 快速模式：7个Task
         experiment_mode = "QUICK MODE"
     else:
@@ -125,7 +101,7 @@ def run_deception_experiment():
     print("🔧 Initializing components...")
     
     # 初始化记录系统 - 严格模式，无默认值
-    logging_config = merged_config['logging']
+    logging_config = config['logging']
     enable_logger = logging_config['enable_logger']
     enable_result_saver = logging_config['enable_result_saver']
     
@@ -133,11 +109,31 @@ def run_deception_experiment():
     result_saver = None
     if enable_result_saver:
         result_saver = ResultSaver(session_info['session_name'])
-        result_saver.set_experiment_config(merged_config)
+        result_saver.set_experiment_config(config)
+        
+        # 🆕 直接复制配置文件作为metadata！
+        import shutil
+        session_dir = Path(f"results/{session_info['session_name']}")
+        session_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 确定使用的配置文件名
+        if config_name is None:
+            config_file = "default.yaml"
+        else:
+            if not config_name.endswith(".yaml"):
+                config_name += ".yaml"
+            config_file = config_name
+        
+        # 复制配置文件
+        source_config = Path("configs") / config_file
+        target_config = session_dir / f"experiment_config_{config_file}"
+        shutil.copy2(source_config, target_config)
+        print(f"📄 Configuration saved: {target_config}")
+        
         print("📝 ResultSaver initialized - Complete interaction records will be saved")
     
     # 获取分组件LLM配置 - 严格模式，无默认值
-    llm_api_config = merged_config['llm_api_config']
+    llm_api_config = config['llm_api_config']
     
     def get_component_llm_config(component_name: str):
         """为指定组件获取LLM配置 - 严格模式，无默认值"""
@@ -149,21 +145,15 @@ def run_deception_experiment():
         elif provider == 'openrouter':
             return provider, component_config['openrouter']
         else:
-            # 使用原有Azure配置
-            return provider, {
-                'azure_api_key': merged_config['azure_api_key'],
-                'azure_endpoint': merged_config['azure_endpoint'],
-                'azure_deployment': merged_config['azure_deployment'],
-                'model_name': merged_config['model_name'],
-                'api_version': merged_config['api_version']
-            }
+            # 使用Azure配置
+            return provider, azure_config
     
     # 初始化Agent - 使用专用配置
     agent_provider, agent_config = get_component_llm_config('agent')
     agent_params = {
         'llm_provider': agent_provider,
         'llm_config': agent_config,
-        'system_prompt': merged_config['agent_system_prompt'],
+        'system_prompt': config['agent_system_prompt'],
         'max_tokens': 16384
     }
     safe_log(logger, "log_component_init", "Agent", agent_params)
@@ -176,10 +166,10 @@ def run_deception_experiment():
     manager_params = {
         'llm_provider': manager_provider,
         'llm_config': manager_config,
-        'summary_level': merged_config['summary_level'],
-        'system_prompt': merged_config['manager_system_prompt'],
-        'initial_state': merged_config['manager_initial_state'],
-        'update_prompt': merged_config['manager_update_prompt']
+        'summary_level': config['summary_level'],
+        'system_prompt': config['manager_system_prompt'],
+        'initial_state': config['manager_initial_state'],
+        'update_prompt': config['manager_update_prompt']
     }
     safe_log(logger, "log_component_init", "Manager", manager_params)
     manager = Manager(**manager_params)
@@ -201,17 +191,17 @@ def run_deception_experiment():
     
     # 根据TEST_MODE选择Task数量
     selected_tasks = all_tasks[:max_tasks]
-    safe_log(logger, "log_info", f"Loaded {len(selected_tasks)} tasks for {experiment_mode}")
+    safe_log(logger, "log_info", f"ra{len(selected_tasks)} tasks for {experiment_mode}")
     for i, task in enumerate(selected_tasks, 1):
         safe_log(logger, "log_info", f"  Task {i}: {task.task_id} - {task.title}")
     
     # 初始化事件系统 - 使用配置系统
-    event_system = get_event_system("market_research_21day", global_event_probability=merged_config['p_event'])
-    safe_log(logger, "log_info", f"Event system initialized with {len(event_system.phase_events)} phases, probability: {merged_config['p_event']}")
+    event_system = get_event_system("market_research_21day", global_event_probability=config['p_event'])
+    safe_log(logger, "log_info", f"Event system initialized with {len(event_system.phase_events)} phases, probability: {config['p_event']}")
     
     # 为每个任务生成事件 - 使用配置的概率
     import random
-    p_event = merged_config['p_event']
+    p_event = config['p_event']
     
     # 定义根据Task序列号确定阶段的函数
     def get_phase_for_task_sequence(task_sequence_num: int):
@@ -276,7 +266,7 @@ def run_deception_experiment():
             safe_log(logger, "log_info", f"Agent has {len(agent.global_conversation_history)} interactions from previous tasks")
         
         # 多轮交互直到任务完成 - 使用配置的最大轮数
-        max_rounds = merged_config['max_rounds_per_task']
+        max_rounds = config['max_rounds_per_task']
         task_completed = False
         
         # 🆕 任务内的交互历史 - 实现真正的交错对话
@@ -442,7 +432,6 @@ def run_deception_experiment():
         
         # 导入保存函数
         from core.detector import _save_detector_results_text, _save_detector_results_json
-        from pathlib import Path
         
         try:
             # 保存LLM友好的文本格式
@@ -479,9 +468,23 @@ def run_deception_experiment():
             logger.close()
         raise  # 直接抛出异常，fail-fast原则
 
-if __name__ == "__main__":
+def main():
+    """主函数 - 处理命令行参数并运行实验"""
+    parser = argparse.ArgumentParser(description='DeceptioN - AI Deception Detection Experiment Framework')
+    parser.add_argument('--config', '-c', type=str, help='Configuration file name (e.g., normal, high_pressure, test)')
+    parser.add_argument('--list-configs', action='store_true', help='Show available configuration files')
+    
+    args = parser.parse_args()
+    
+    # 显示可用配置文件
+    if args.list_configs:
+        from config_manager import config_manager
+        config_manager.show_available_configs()
+        return
+    
+    # 运行实验
     try:
-        if run_deception_experiment():
+        if run_deception_experiment(args.config):
             print("✅ DeceptioN experiment completed successfully!")
         else:
             print("❌ DeceptioN experiment failed!")
@@ -492,3 +495,6 @@ if __name__ == "__main__":
         print("Full traceback:")
         traceback.print_exc()
         sys.exit(1)
+
+if __name__ == "__main__":
+    main()

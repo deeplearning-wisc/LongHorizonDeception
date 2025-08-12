@@ -79,19 +79,22 @@ class UniversalLLMClient:
         print(f"[UNIVERSAL_LLM] Initialized OpenAI client with model: {self.model}")
     
     def _init_azure(self):
-        """直接初始化Azure客户端 - 不再依赖Unified_LLM_Handler"""
-        import config
+        """直接初始化Azure客户端 - 使用配置参数"""
         from openai import AzureOpenAI
+        
+        # 从配置中获取Azure参数
+        api_key = self.config['azure_api_key']
+        endpoint = self.config['azure_endpoint']
         
         # 正确初始化Azure OpenAI客户端
         self.client = AzureOpenAI(
-            api_key=config.AZURE_API_KEY,
-            azure_endpoint=config.AZURE_ENDPOINT,
-            api_version=config.AZURE_API_VERSION
+            api_key=api_key,
+            azure_endpoint=endpoint,
+            api_version=self.config['azure_api_version']
         )
         
-        self.model = config.MODEL_NAME
-        self.azure_deployment = config.AZURE_DEPLOYMENT_NAME
+        self.model = self.config['model_name']
+        self.azure_deployment = self.config['azure_deployment']
         
         # 设置模型限制 - 默认GPT-4o规格
         from collections import namedtuple
@@ -105,7 +108,7 @@ class UniversalLLMClient:
             'total_tokens_used': 0
         }
         
-        print(f"[UNIVERSAL_LLM] Initialized Azure client with model: {config.MODEL_NAME}")
+        print(f"[UNIVERSAL_LLM] Initialized Azure client with model: {self.model}")
     
     def _init_openrouter(self):
         """初始化OpenRouter客户端"""
@@ -257,11 +260,10 @@ class UniversalLLMClient:
             if temperature is not None:
                 call_params["temperature"] = temperature
             
-            import config
             print(f"[UNIVERSAL_LLM] Calling Azure API:")
-            print(f"  - Endpoint: {config.AZURE_ENDPOINT}")
+            print(f"  - Endpoint: {self.config['azure_endpoint']}")
             print(f"  - Deployment: {self.azure_deployment}")
-            print(f"  - API Version: {config.AZURE_API_VERSION}")
+            print(f"  - API Version: {self.config['azure_api_version']}")
             
             # API调用
             response = self.client.chat.completions.create(**call_params)
