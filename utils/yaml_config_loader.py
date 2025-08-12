@@ -20,28 +20,23 @@ class YAMLConfigLoader:
             yaml.YAMLError: YAML解析错误
             ValueError: 缺少必需字段或值无效
         """
-        print(f"[YAML_CONFIG] Loading config from: {config_path}")
-        
         if not Path(config_path).exists():
-            print(f"[YAML_CONFIG] ❌ File not found: {config_path}")
             raise FileNotFoundError(f"Config file not found: {config_path}")
         
-        print(f"[YAML_CONFIG] ✅ File exists, parsing YAML...")
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 self.config = yaml.safe_load(f)
         except yaml.YAMLError as e:
-            print(f"[YAML_CONFIG] ❌ YAML parsing failed: {e}")
             raise yaml.YAMLError(f"Failed to parse YAML config: {e}")
         
         if self.config is None:
-            print(f"[YAML_CONFIG] ❌ Config is empty or invalid")
             raise ValueError("Config file is empty or invalid")
         
-        print(f"[YAML_CONFIG] ✅ YAML parsed successfully, found {len(self.config)} keys: {list(self.config.keys())}")
-        print(f"[YAML_CONFIG] Validating configuration...")
+        # 静默验证
         self._validate()
-        print(f"[YAML_CONFIG] ✅ Configuration validation passed")
+        
+        # 显示简洁的配置摘要
+        self._print_config_summary(config_path)
     
     def _validate(self):
         """严格验证所有必需字段"""
@@ -52,37 +47,26 @@ class YAMLConfigLoader:
             'manager_initial_state',
             'p_event',
             'summary_level',
-            'max_rounds_per_task'
+            'max_rounds_per_task',
+            'experiment_mode',
+            'logging',
+            'llm_api_config'
         ]
         
-        print(f"[YAML_CONFIG] Checking required fields: {required_fields}")
+        # 静默检查必需字段
         for field in required_fields:
             if field not in self.config:
-                print(f"[YAML_CONFIG] ❌ Missing field: {field}")
                 raise ValueError(f"Missing required field: {field}")
             if self.config[field] is None:
-                print(f"[YAML_CONFIG] ❌ Field '{field}' is None")
                 raise ValueError(f"Field '{field}' cannot be None")
-            print(f"[YAML_CONFIG] ✅ Field '{field}' present")
         
-        # 验证字符串字段不为空
-        print(f"[YAML_CONFIG] Validating string fields...")
+        # 静默验证字符串字段
         string_fields = ['agent_system_prompt', 'manager_system_prompt', 'manager_update_prompt']
         for field in string_fields:
             if not isinstance(self.config[field], str):
-                print(f"[YAML_CONFIG] ❌ Field '{field}' is not a string: {type(self.config[field])}")
                 raise ValueError(f"Field '{field}' must be a string")
             if not self.config[field].strip():
-                print(f"[YAML_CONFIG] ❌ Field '{field}' is empty")
                 raise ValueError(f"Field '{field}' cannot be empty")
-            
-            # 特别显示manager_update_prompt的多行格式
-            if field == 'manager_update_prompt':
-                lines = self.config[field].split('\n')
-                print(f"[YAML_CONFIG] ✅ '{field}': {len(self.config[field])} chars, {len(lines)} lines")
-                print(f"[YAML_CONFIG]    Preview: {repr(self.config[field][:100])}...")
-            else:
-                print(f"[YAML_CONFIG] ✅ '{field}': {len(self.config[field])} chars")
         
         # 验证manager_initial_state结构
         initial_state = self.config['manager_initial_state']
@@ -113,6 +97,94 @@ class YAMLConfigLoader:
             raise ValueError("max_rounds_per_task must be an integer")
         if self.config['max_rounds_per_task'] < 1:
             raise ValueError("max_rounds_per_task must be at least 1")
+        
+        # 验证experiment_mode
+        if self.config['experiment_mode'] not in ['quick', 'full']:
+            raise ValueError("experiment_mode must be 'quick' or 'full'")
+        
+        # 验证logging配置
+        logging_config = self.config['logging']
+        if not isinstance(logging_config, dict):
+            raise ValueError("logging must be a dictionary")
+        
+        required_logging_fields = ['enable_logger', 'enable_result_saver']
+        for field in required_logging_fields:
+            if field not in logging_config:
+                raise ValueError(f"Missing logging field: {field}")
+            if not isinstance(logging_config[field], bool):
+                raise ValueError(f"logging.{field} must be boolean")
+        
+        # 验证llm_api_config配置
+        llm_config = self.config['llm_api_config']
+        if not isinstance(llm_config, dict):
+            raise ValueError("llm_api_config must be a dictionary")
+        
+        required_components = ['agent', 'manager', 'detector']
+        for component in required_components:
+            if component not in llm_config:
+                raise ValueError(f"Missing llm_api_config component: {component}")
+            
+            component_config = llm_config[component]
+            if not isinstance(component_config, dict):
+                raise ValueError(f"llm_api_config.{component} must be a dictionary")
+            
+            if 'provider' not in component_config:
+                raise ValueError(f"Missing provider in llm_api_config.{component}")
+            
+            if component_config['provider'] not in ['openai', 'azure', 'openrouter']:
+                raise ValueError(f"llm_api_config.{component}.provider must be 'openai', 'azure', or 'openrouter'")
+    
+    def _print_config_summary(self, config_path: str):
+        """显示简洁的配置摘要 - 严格模式，无默认值"""
+        print(f"Config loaded: {config_path}")
+        
+        # 实验配置 - 严格获取，必须存在
+        experiment_mode = self.config['experiment_mode'].upper()
+        if experiment_mode == 'QUICK':
+            task_count = 7
+        else:
+            task_count = 21
+        
+        print(f"- Experiment: {experiment_mode} ({task_count} tasks, max {self.config['max_rounds_per_task']} rounds per task)")
+        
+        # 模型配置 - 根据provider显示正确的模型名
+        llm_config = self.config['llm_api_config']
+        
+        # Agent模型
+        if llm_config['agent']['provider'] == 'openai':
+            agent_model = llm_config['agent']['openai']['model']
+        else:
+            agent_model = "gpt-4o (Azure)"
+            
+        # Manager模型  
+        if llm_config['manager']['provider'] == 'openai':
+            manager_model = llm_config['manager']['openai']['model']
+        else:
+            manager_model = "gpt-4o (Azure)"
+            
+        # Detector模型
+        if llm_config['detector']['provider'] == 'openai':
+            detector_model = llm_config['detector']['openai']['model']
+        elif llm_config['detector']['provider'] == 'openrouter':
+            detector_model = f"{llm_config['detector']['openrouter']['model']} (OpenRouter)"
+        else:
+            detector_model = "gpt-4o (Azure)"
+            
+        print(f"- Models: Agent({agent_model}) Manager({manager_model}) Detector({detector_model})")
+        
+        # 实验参数
+        print(f"- Event probability: {self.config['p_event']}, Summary level: {self.config['summary_level']}")
+        
+        # Manager初始状态
+        initial_state = self.config['manager_initial_state']
+        print(f"- Manager initial: trust={initial_state['trust_level']}, work_satisfaction={initial_state['work_satisfaction']}, relational_valence={initial_state['relational_valence']}")
+        
+        # 日志控制 - 严格获取，必须存在
+        logging_config = self.config['logging']
+        enable_logger = logging_config['enable_logger']
+        enable_result_saver = logging_config['enable_result_saver']
+        print(f"- Logging: {'enabled' if enable_logger else 'disabled'}, ResultSaver: {'enabled' if enable_result_saver else 'disabled'}")
+        print()
     
     def get(self, key: str) -> Any:
         """获取配置值 - 严格模式，不存在则抛异常"""

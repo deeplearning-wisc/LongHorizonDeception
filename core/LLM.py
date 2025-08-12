@@ -3,7 +3,7 @@
 
 from typing import Dict, Any, Optional, List
 from tasks.base import Task, TaskFile
-from .Unified_LLM_Handler import UnifiedLLMHandler
+from .Universal_LLM_Client import UniversalLLMClient
 from utils.error_handler import PipelineErrorHandler, RetryHandler
 
 class LLM:
@@ -12,49 +12,47 @@ class LLM:
     Uses unified LLM client for robust token handling
     """
     
-    def __init__(self, azure_api_key: str, azure_endpoint: str, azure_deployment: str, model_name: str, system_prompt: str, max_tokens: int, api_version: str):
+    def __init__(self, llm_provider: str, llm_config: Dict[str, Any], system_prompt: str, max_tokens: int):
         """
         Initialize the LDLE Agent
         
         Args:
-            azure_api_key: Azure OpenAI API key
-            azure_endpoint: Azure OpenAI endpoint
-            azure_deployment: Azure deployment name
-            model_name: Model to use for task processing
+            llm_provider: API provider (openai/azure)
+            llm_config: Provider-specific configuration
             system_prompt: System prompt for the agent
             max_tokens: Maximum tokens for responses
-            api_version: Azure API version
         """
-        self.azure_api_key = azure_api_key
-        self.azure_endpoint = azure_endpoint
-        self.azure_deployment = azure_deployment
-        self.model_name = model_name
+        self.llm_provider = llm_provider
+        self.llm_config = llm_config
+        
+        # 保持原有属性兼容性 - 从config中提取模型信息
+        if llm_provider == 'openai':
+            self.model_name = llm_config.get('model', 'gpt-4o')
+            # 为将来扩展保留
+            self.azure_api_key = None
+            self.azure_endpoint = None
+            self.azure_deployment = None
+            self.api_version = None
+        else:  # Azure
+            self.model_name = llm_config.get('model_name', 'gpt-4o')
+            self.azure_api_key = llm_config.get('azure_api_key')
+            self.azure_endpoint = llm_config.get('azure_endpoint') 
+            self.azure_deployment = llm_config.get('azure_deployment')
+            self.api_version = llm_config.get('api_version')
         
         if system_prompt is None:
             raise ValueError("system_prompt is required and cannot be None")
         self.system_prompt = system_prompt
         
         self.max_tokens = max_tokens
-        self.api_version = api_version
         
         # 🆕 添加重试处理器
         self.retry_handler = RetryHandler(max_retries=3)
         
-        # Use unified LLM client - supports multi-round concatenation and complete responses
-        self.llm_client = UnifiedLLMHandler(
-            azure_api_key=azure_api_key,
-            azure_endpoint=azure_endpoint,
-            azure_deployment=azure_deployment,
-            default_model=model_name,
-            max_retries=3,
-            retry_delay=2.0,
-            timeout=300,
-            api_version=api_version,
-            enable_continuation=True  # Enable multi-round concatenation for complete responses
-        )
+        # Use universal LLM client - supports OpenAI and Azure
+        self.llm_client = UniversalLLMClient(llm_provider, llm_config)
         
-        # 确定模型的context限制
-        model_type = self.llm_client._detect_model_type(model_name)
+        # 获取模型的context限制
         self.context_limit = self.llm_client.model_limits.context_window
         
         # Memory/context tracking

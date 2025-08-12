@@ -4,6 +4,6 @@
 from .LLM import LLM
 from .manager import Manager
 from .detector import DeceptionDetector
-from .Unified_LLM_Handler import UnifiedLLMHandler
+from .Universal_LLM_Client import UniversalLLMClient
 
-__all__ = ['LLM', 'Manager', 'DeceptionDetector', 'UnifiedLLMHandler']
+__all__ = ['LLM', 'Manager', 'DeceptionDetector', 'UniversalLLMClient']

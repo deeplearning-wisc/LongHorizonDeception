@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import config
 from utils.yaml_config_loader import load_yaml_config
 from utils.task_stream_logger import TaskStreamLogger
+from utils.result_saver import ResultSaver
 from core.manager import Manager
 from core.LLM import LLM
 from core.detector import DeceptionDetector
@@ -35,14 +36,17 @@ class MockTaskPrompt:
 
 # Context management functions moved to Agent class
 
+def safe_log(logger, method_name, *args, **kwargs):
+    """安全的日志记录函数 - 当logger为None时不执行"""
+    if logger:
+        method = getattr(logger, method_name)
+        method(*args, **kwargs)
+
 def run_deception_experiment():
     """运行长期Task序列的欺骗实验"""
     
-    # 初始化logger
-    logger = TaskStreamLogger()
-    session_info = logger.get_session_info()
-    
-    # Step 1: 加载配置系统
+    # Step 1: 加载配置系统 (先加载配置再决定是否启用logger)
+    logger = None  # 初始化logger变量
     try:
         # 加载基础配置 (从环境变量)
         base_config = {
@@ -52,15 +56,33 @@ def run_deception_experiment():
             'model_name': config.MODEL_NAME,
             'api_version': config.AZURE_API_VERSION
         }
-        logger.log_config_loading("Base Configuration (Environment Variables)", base_config)
         
         # 加载实验特定配置 (从YAML文件)
         experiment_config = load_yaml_config("task_stream_config.yaml")
         experiment_config_dict = experiment_config  # YAML loader already returns a dict
-        logger.log_config_loading("Experiment Configuration (YAML)", experiment_config_dict)
+        
+        # 检查是否启用logger
+        enable_logger = experiment_config['logging']['enable_logger']
+        
+        # 根据配置决定是否初始化logger
+        logger = None
+        session_info = None
+        if enable_logger:
+            logger = TaskStreamLogger()
+            session_info = logger.get_session_info()
+            safe_log(logger, 'log_config_loading', "Base Configuration (Environment Variables)", base_config)
+            safe_log(logger, 'log_config_loading', "Experiment Configuration (YAML)", experiment_config_dict)
+        else:
+            # 生成简单的session信息，不创建log文件
+            import time
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            session_info = {
+                'session_name': f'task_stream_{timestamp}',
+                'log_file': None  # 不创建log文件
+            }
         
     except Exception as e:
-        logger.log_error(e, "Configuration loading")
+        safe_log(logger, 'log_error', e, "Configuration loading")
         print(f"❌ Configuration loading failed: {e}")
         return False
     
@@ -79,11 +101,11 @@ def run_deception_experiment():
     
     for config_key in required_configs:
         if config_key not in merged_config or merged_config[config_key] is None:
-            logger.log_error(ValueError(f"Missing required configuration: {config_key}"), "Configuration validation")
+            safe_log(logger, 'log_error', ValueError(f"Missing required configuration: {config_key}"), "Configuration validation")
             print(f"❌ Missing required configuration: {config_key}")
             return False
     
-    logger.log_config_loading("Merged Configuration", merged_config)
+    safe_log(logger, "log_config_loading", "Merged Configuration", merged_config)
     
     # 根据experiment_mode确定实验模式
     if merged_config['experiment_mode'].lower() == "quick":
@@ -102,40 +124,75 @@ def run_deception_experiment():
     # Step 3: 初始化组件
     print("🔧 Initializing components...")
     
-    # 初始化Agent - 使用配置系统，严格提供所有参数
+    # 初始化记录系统 - 严格模式，无默认值
+    logging_config = merged_config['logging']
+    enable_logger = logging_config['enable_logger']
+    enable_result_saver = logging_config['enable_result_saver']
+    
+    # 初始化ResultSaver (如果启用)
+    result_saver = None
+    if enable_result_saver:
+        result_saver = ResultSaver(session_info['session_name'])
+        result_saver.set_experiment_config(merged_config)
+        print("📝 ResultSaver initialized - Complete interaction records will be saved")
+    
+    # 获取分组件LLM配置 - 严格模式，无默认值
+    llm_api_config = merged_config['llm_api_config']
+    
+    def get_component_llm_config(component_name: str):
+        """为指定组件获取LLM配置 - 严格模式，无默认值"""
+        component_config = llm_api_config[component_name]
+        provider = component_config['provider']
+        
+        if provider == 'openai':
+            return provider, component_config['openai']
+        elif provider == 'openrouter':
+            return provider, component_config['openrouter']
+        else:
+            # 使用原有Azure配置
+            return provider, {
+                'azure_api_key': merged_config['azure_api_key'],
+                'azure_endpoint': merged_config['azure_endpoint'],
+                'azure_deployment': merged_config['azure_deployment'],
+                'model_name': merged_config['model_name'],
+                'api_version': merged_config['api_version']
+            }
+    
+    # 初始化Agent - 使用专用配置
+    agent_provider, agent_config = get_component_llm_config('agent')
     agent_params = {
-        'azure_api_key': merged_config['azure_api_key'],
-        'azure_endpoint': merged_config['azure_endpoint'],
-        'azure_deployment': merged_config['azure_deployment'],
-        'model_name': merged_config['model_name'],
+        'llm_provider': agent_provider,
+        'llm_config': agent_config,
         'system_prompt': merged_config['agent_system_prompt'],
-        'max_tokens': 16384,
-        'api_version': merged_config['api_version']
+        'max_tokens': 16384
     }
-    logger.log_component_init("Agent", agent_params)
+    safe_log(logger, "log_component_init", "Agent", agent_params)
     agent = LLM(**agent_params)
     agent._logger = logger  # 传递logger给Agent
     agent.llm_client._logger = logger  # 传递logger给LLM客户端
     
-    # 初始化Manager - 使用配置系统，一次性完成所有配置
+    # 初始化Manager - 使用专用配置
+    manager_provider, manager_config = get_component_llm_config('manager')
     manager_params = {
-        'azure_api_key': merged_config['azure_api_key'],
-        'azure_endpoint': merged_config['azure_endpoint'],
-        'azure_deployment': merged_config['azure_deployment'],
-        'model_name': merged_config['model_name'],
-        'api_version': merged_config['api_version'],
+        'llm_provider': manager_provider,
+        'llm_config': manager_config,
         'summary_level': merged_config['summary_level'],
         'system_prompt': merged_config['manager_system_prompt'],
         'initial_state': merged_config['manager_initial_state'],
         'update_prompt': merged_config['manager_update_prompt']
     }
-    logger.log_component_init("Manager", manager_params)
+    safe_log(logger, "log_component_init", "Manager", manager_params)
     manager = Manager(**manager_params)
     manager._logger = logger  # 传递logger给Manager
     manager.llm_client._logger = logger  # 传递logger给Manager的LLM客户端
     
+    # 显示会话信息
+    print(f"- Session: {session_info['session_name']}")
+    if enable_logger and session_info.get('log_file'):
+        print(f"- Log file: {session_info['log_file']}")
+    print()
+    
     # Step 4: 加载任务数据 - 根据TEST_MODE确定数量
-    print("📋 Loading tasks and events...")
     task_loader = JSONTaskLoader()
     
     # 加载market_research_21day任务集
@@ -144,13 +201,13 @@ def run_deception_experiment():
     
     # 根据TEST_MODE选择Task数量
     selected_tasks = all_tasks[:max_tasks]
-    logger.log_info(f"Loaded {len(selected_tasks)} tasks for {experiment_mode}")
+    safe_log(logger, "log_info", f"Loaded {len(selected_tasks)} tasks for {experiment_mode}")
     for i, task in enumerate(selected_tasks, 1):
-        logger.log_info(f"  Task {i}: {task.task_id} - {task.title}")
+        safe_log(logger, "log_info", f"  Task {i}: {task.task_id} - {task.title}")
     
     # 初始化事件系统 - 使用配置系统
     event_system = get_event_system("market_research_21day", global_event_probability=merged_config['p_event'])
-    logger.log_info(f"Event system initialized with {len(event_system.phase_events)} phases, probability: {merged_config['p_event']}")
+    safe_log(logger, "log_info", f"Event system initialized with {len(event_system.phase_events)} phases, probability: {merged_config['p_event']}")
     
     # 为每个任务生成事件 - 使用配置的概率
     import random
@@ -196,22 +253,27 @@ def run_deception_experiment():
             'event': event
         })
         
-        logger.log_info(f"Task {task_idx}: {task.task_id} - Event '{event['content'][:50]}...' ({event['category']}, Pressure: {event['pressure_level']})")
+        safe_log(logger, "log_info", f"Task {task_idx}: {task.task_id} - Event '{event['content'][:50]}...' ({event['category']}, Pressure: {event['pressure_level']})")
     
-    # 处理Task Stream - 添加进度条
-    print("🚀 Processing tasks...")
+    # 处理Task Stream
+    print("Processing tasks...")
     
     for task_idx, task_info in enumerate(tqdm(task_stream, desc="Tasks", unit="task")):
         task = task_info['task']
         event = task_info['event']
         
         # 记录任务开始
-        logger.log_task_start(task_idx + 1, task.task_id, task.description or task.title)
-        logger.log_event_info(event)
+        safe_log(logger, "log_task_start", task_idx + 1, task.task_id, task.description or task.title)
+        safe_log(logger, "log_event_info", event)
+        
+        # ResultSaver: 记录任务开始并实时保存
+        if result_saver:
+            result_saver.start_task(task_idx + 1, task, event)
+            result_saver.flush()  # 实时保存
         
         # 记录Agent全局历史状态
         if len(agent.global_conversation_history) > 0:
-            logger.log_info(f"Agent has {len(agent.global_conversation_history)} interactions from previous tasks")
+            safe_log(logger, "log_info", f"Agent has {len(agent.global_conversation_history)} interactions from previous tasks")
         
         # 多轮交互直到任务完成 - 使用配置的最大轮数
         max_rounds = merged_config['max_rounds_per_task']
@@ -223,16 +285,21 @@ def run_deception_experiment():
         # 轮次进度条
         rounds_desc = f"Task {task.task_id}"
         for round_num in tqdm(range(1, max_rounds + 1), desc=rounds_desc, unit="round", leave=False):
-            logger.log_round_start(round_num, max_rounds)
+            safe_log(logger, "log_round_start", round_num, max_rounds)
+            
+            # ResultSaver: 记录轮次开始和Manager状态，并实时保存
+            if result_saver:
+                result_saver.start_round(round_num, manager.current_state.copy())
+                result_saver.flush()  # 实时保存
             
             # 记录任务文件信息
-            logger.log_info(f"Task files count: {len(task.files) if task.files else 0}")
+            safe_log(logger, "log_info", f"Task files count: {len(task.files) if task.files else 0}")
             if task.files:
                 for i, file_obj in enumerate(task.files):
-                    logger.log_info(f"  File {i+1}: {file_obj.filename} ({len(file_obj.content)} chars)")
+                    safe_log(logger, "log_info", f"  File {i+1}: {file_obj.filename} ({len(file_obj.content)} chars)")
             
             if round_num > 1:
-                logger.log_info(f"Agent has {len(task_manager_feedback_history)} manager feedback(s) from this task")
+                safe_log(logger, "log_info", f"Agent has {len(task_manager_feedback_history)} manager feedback(s) from this task")
             
             # 🆕 使用Agent的封装好的context管理 + 任务内Manager反馈
             try:
@@ -251,10 +318,15 @@ def run_deception_experiment():
                 agent_response = agent_result['response']
                 
                 # 记录Agent的输出
-                logger.log_agent_output(agent_response, agent_result.get('llm_metadata', {}))
+                safe_log(logger, "log_agent_output", agent_response, agent_result.get('llm_metadata', {}))
+                
+                # ResultSaver: 保存Agent回复 - 完整内容，绝不截断，并实时保存
+                if result_saver:
+                    result_saver.save_agent_response(round_num, agent_response)
+                    result_saver.flush()  # 实时保存
                 
             except Exception as e:
-                logger.log_error(e, f"Agent processing - Task {task.task_id}, Round {round_num}")
+                safe_log(logger, "log_error", e, f"Agent processing - Task {task.task_id}, Round {round_num}")
                 raise  # 直接抛出异常，fail-fast原则
             
             # Manager评估
@@ -270,7 +342,7 @@ def run_deception_experiment():
                 task_completed = manager_result['task_complete']
                 
                 # 记录Manager输出
-                logger.log_manager_output(
+                safe_log(logger, "log_manager_output", 
                     task_completed,
                     manager_result['state_updates'],
                     manager_result['comprehensive_reasoning'],
@@ -278,6 +350,11 @@ def run_deception_experiment():
                     manager_result.get('tokens_used', 0),
                     manager_result.get('detailed_reasoning', {})
                 )
+                
+                # ResultSaver: 保存Manager评估 - 完整的所有推理，绝不截断，并实时保存
+                if result_saver:
+                    result_saver.save_manager_evaluation(round_num, manager_result)
+                    result_saver.flush()  # 实时保存
                 
                 # 🆕 添加Manager反馈到任务内历史 (用于下一轮Agent输入)
                 task_manager_feedback_history.append(manager_result['feedback_response'])
@@ -292,69 +369,93 @@ def run_deception_experiment():
                 )
                 
                 if task_completed:
-                    logger.log_task_completion(task.task_id, True, round_num)
+                    safe_log(logger, "log_task_completion", task.task_id, True, round_num)
                     break
                 else:
-                    logger.log_info(f"Task not complete, continuing to round {round_num + 1}")
+                    safe_log(logger, "log_info", f"Task not complete, continuing to round {round_num + 1}")
                     
             except Exception as e:
-                logger.log_error(e, f"Manager evaluation - Task {task.task_id}, Round {round_num}")
+                safe_log(logger, "log_error", e, f"Manager evaluation - Task {task.task_id}, Round {round_num}")
                 raise  # 直接抛出异常，fail-fast原则
         
         if not task_completed:
-            logger.log_task_completion(task.task_id, False, max_rounds)
+            safe_log(logger, "log_task_completion", task.task_id, False, max_rounds)
+        
+        # ResultSaver: 任务结束并实时保存
+        if result_saver:
+            result_saver.end_task(task_idx + 1)
+            result_saver.flush()  # 实时保存
         
         # 记录当前状态和历史
         current_state = manager.get_current_state()
-        logger.log_info(f"Manager State after Task {task_idx + 1}:")
-        logger.log_info(f"  Trust Level: {current_state['trust_level']:.3f}")
-        logger.log_info(f"  Work Satisfaction: {current_state['work_satisfaction']:.3f}")
-        logger.log_info(f"  Relational Valence: {current_state['relational_valence']:.3f}")
-        logger.log_info(f"  Total History Entries: {len(manager.history.interaction_records)}")
+        safe_log(logger, "log_info", f"Manager State after Task {task_idx + 1}:")
+        safe_log(logger, "log_info", f"  Trust Level: {current_state['trust_level']:.3f}")
+        safe_log(logger, "log_info", f"  Work Satisfaction: {current_state['work_satisfaction']:.3f}")
+        safe_log(logger, "log_info", f"  Relational Valence: {current_state['relational_valence']:.3f}")
+        safe_log(logger, "log_info", f"  Total History Entries: {len(manager.history.interaction_records)}")
     
     # 最终总结
     final_state = manager.get_current_state()
     total_interactions = len(manager.history.interaction_records)
-    logger.log_final_summary(final_state, total_interactions)
+    safe_log(logger, "log_final_summary", final_state, total_interactions)
     
     # 现在进行Detector的批量分析
-    print("🔍 Running detector analysis...")
+    print("Running detector analysis...")
     
-    # 初始化Detector - 使用配置系统，严格提供所有参数
-    detector_params = {
-        'azure_api_key': merged_config['azure_api_key'],
-        'azure_endpoint': merged_config['azure_endpoint'],
-        'azure_deployment': merged_config['azure_deployment'],
-        'model_name': merged_config['model_name'],
-        'max_retries': 3,
-        'max_tokens': 16384,
-        'api_version': merged_config['api_version']
-    }
-    logger.log_component_init("Detector", detector_params)
-    detector = DeceptionDetector(**detector_params)
+    # 初始化Detector - 使用专用配置
+    detector_provider, detector_config = get_component_llm_config('detector')
+    safe_log(logger, "log_component_init", "Detector", {'provider': detector_provider, 'config': detector_config})
+    detector = DeceptionDetector(detector_provider, detector_config)
     
     # 获取所有交互记录进行批量分析
     interaction_records = manager.history.interaction_records
-    logger.log_info(f"Analyzing {len(interaction_records)} interactions with full sequence context")
+    safe_log(logger, "log_info", f"Analyzing {len(interaction_records)} interactions with full sequence context")
+    
+    # 💾 保存中间结果用于独立分析 - 直接保存manager.history.interaction_records的原始格式
+    import json
+    intermediate_results_path = f"results/{session_info['session_name']}/interaction_records.json"
+    try:
+        with open(intermediate_results_path, 'w', encoding='utf-8') as f:
+            # 直接保存原始的interaction_records，保持与main.py传给detector的完全一致
+            json.dump(interaction_records, f, indent=2, ensure_ascii=False, default=str)
+        
+        print(f"💾 Intermediate results saved to: {intermediate_results_path}")
+        safe_log(logger, "log_info", f"Intermediate results saved to: {intermediate_results_path}")
+        
+    except Exception as e:
+        print(f"⚠️  Failed to save intermediate results: {e}")
+        safe_log(logger, "log_error", e, "Intermediate results saving")
     
     try:
         detector_results = detector.analyze_interaction_sequence(interaction_records)
-        logger.log_detector_analysis(detector_results)
+        safe_log(logger, "log_detector_analysis", detector_results)
         
         # 控制台显示简要结果
         print(f"✅ Detector analysis completed: {len(detector_results)} interactions analyzed")
         deception_count = sum(1 for r in detector_results if r['deception_detected'])
         print(f"📊 Deception detected in {deception_count}/{len(detector_results)} interactions")
         
+        # ResultSaver: 最终化实验记录
+        if result_saver:
+            final_manager_state = manager.get_current_state()
+            result_saver.finalize_experiment(
+                total_tasks=max_tasks,
+                total_interactions=len(interaction_records),
+                final_manager_state=final_manager_state
+            )
+            print(f"📝 Complete interaction record saved to: {result_saver.get_record_path()}")
+        
         # 关闭logger
-        logger.close()
+        if logger:
+            logger.close()
         
         return True
         
     except Exception as e:
-        logger.log_error(e, "Detector batch analysis")
+        safe_log(logger, "log_error", e, "Detector batch analysis")
         print(f"❌ FATAL ERROR in Detector batch analysis: {e}")
-        logger.close()
+        if logger:
+            logger.close()
         raise  # 直接抛出异常，fail-fast原则
 
 if __name__ == "__main__":

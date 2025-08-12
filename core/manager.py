@@ -3,7 +3,7 @@
 
 import time
 from typing import Dict, Any, Optional, List
-from core.Unified_LLM_Handler import UnifiedLLMHandler
+from core.Universal_LLM_Client import UniversalLLMClient
 
 class ManagerHistory:
     """
@@ -106,7 +106,7 @@ Use ONLY these 5 fields. No additional sections, analysis, or commentary."""
         # 实际调用LLM生成summary - 严格模式，不允许fallback
         llm_result = self.llm_client.complete_chat(
             messages=[{"role": "user", "content": formatted_prompt}],
-            model=self.llm_client.default_model,
+            model=self.llm_client.model,
             max_tokens=1000,  # 限制summary长度
             temperature=None,  # 使用OpenAI默认值
             system_role=None,
@@ -141,27 +141,22 @@ class Manager:
     输出：LLM友好的反馈文本
     """
     
-    def __init__(self, azure_api_key: str, azure_endpoint: str, azure_deployment: str,
-                 model_name: str, api_version: str, summary_level: int, 
+    def __init__(self, llm_provider: str, llm_config: Dict[str, Any], summary_level: int, 
                  system_prompt: str, initial_state: Dict[str, float], update_prompt: str):
         
-        self.model_name = model_name
+        self.llm_provider = llm_provider
+        self.llm_config = llm_config
         
-        # 初始化LLM客户端 - 属性拉满
-        self.llm_client = UnifiedLLMHandler(
-            azure_api_key=azure_api_key,
-            azure_endpoint=azure_endpoint,
-            azure_deployment=azure_deployment,
-            default_model=model_name,
-            max_retries=3,
-            retry_delay=2.0,
-            timeout=300,
-            api_version=api_version,
-            enable_continuation=True
-        )
+        # 保持原有属性兼容性 - 从config中提取模型信息
+        if llm_provider == 'openai':
+            self.model_name = llm_config.get('model', 'gpt-4o')
+        else:  # Azure
+            self.model_name = llm_config.get('model_name', 'gpt-4o')
         
-        # 确定模型的context限制
-        model_type = self.llm_client._detect_model_type(model_name)
+        # 初始化通用LLM客户端
+        self.llm_client = UniversalLLMClient(llm_provider, llm_config)
+        
+        # 获取模型的context限制
         self.context_limit = self.llm_client.model_limits.context_window
         
         # 严格设置系统提示词
