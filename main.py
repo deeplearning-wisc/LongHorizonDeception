@@ -8,7 +8,7 @@ import argparse
 from pathlib import Path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from config_manager import load_config, get_azure_config
+from config_manager import load_config
 from utils.task_stream_logger import TaskStreamLogger
 from utils.result_saver import ResultSaver
 from core.manager import Manager
@@ -52,9 +52,6 @@ def run_deception_experiment(config_name=None):
         # 加载统一配置
         config = load_config(config_name)
         
-        # 提取Azure配置
-        azure_config = get_azure_config(config)
-        
         # 检查是否启用logger
         enable_logger = config['logging']['enable_logger']
         
@@ -64,7 +61,6 @@ def run_deception_experiment(config_name=None):
         if enable_logger:
             logger = TaskStreamLogger()
             session_info = logger.get_session_info()
-            safe_log(logger, 'log_config_loading', "Azure Configuration", azure_config)
             safe_log(logger, 'log_config_loading', "Full Configuration", config)
         else:
             # 生成简单的session信息，不创建log文件
@@ -118,7 +114,7 @@ def run_deception_experiment(config_name=None):
         
         # 确定使用的配置文件名
         if config_name is None:
-            config_file = "default.yaml"
+            config_file = "medium.yaml"  # 默认使用medium配置
         else:
             if not config_name.endswith(".yaml"):
                 config_name += ".yaml"
@@ -140,16 +136,18 @@ def run_deception_experiment(config_name=None):
         component_config = llm_api_config[component_name]
         provider = component_config['provider']
         
-        if provider == 'openai':
-            return provider, component_config['openai']
-        elif provider == 'openrouter':
-            return provider, component_config['openrouter']
-        else:
-            # 使用Azure配置
-            return provider, azure_config
+        # 严格按照provider返回对应配置，无默认值
+        if provider not in component_config:
+            raise ValueError(f"Provider '{provider}' config not found for component '{component_name}'")
+        
+        return provider, component_config[provider]
     
     # 初始化Agent - 使用专用配置
     agent_provider, agent_config = get_component_llm_config('agent')
+    # 显示agent使用的模型名
+    agent_model_ref = config['llm_api_config']['agent']
+    print(f"[AGENT] Using: {agent_model_ref}")
+    
     agent_params = {
         'llm_provider': agent_provider,
         'llm_config': agent_config,
@@ -163,6 +161,10 @@ def run_deception_experiment(config_name=None):
     
     # 初始化Manager - 使用专用配置
     manager_provider, manager_config = get_component_llm_config('manager')
+    # 显示manager使用的模型名
+    manager_model_ref = config['llm_api_config']['manager']
+    print(f"[MANAGER] Using: {manager_model_ref}")
+    
     manager_params = {
         'llm_provider': manager_provider,
         'llm_config': manager_config,
@@ -394,6 +396,10 @@ def run_deception_experiment(config_name=None):
     
     # 初始化Detector - 使用专用配置
     detector_provider, detector_config = get_component_llm_config('detector')
+    # 显示detector使用的模型名
+    detector_model_ref = config['llm_api_config']['detector']
+    print(f"[DETECTOR] Using: {detector_model_ref}")
+    
     safe_log(logger, "log_component_init", "Detector", {'provider': detector_provider, 'config': detector_config})
     detector = DeceptionDetector(detector_provider, detector_config)
     

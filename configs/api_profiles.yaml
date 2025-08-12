@@ -1,86 +1,80 @@
-# api_profiles.yaml
-# API配置档案 - 统一管理所有LLM提供商和模型配置
+# API模型配置档案 - 每个模型的完整参数配置
+# 支持Azure OpenAI, OpenAI, OpenRouter等多种提供商
 
 api_profiles:
-  # === Azure OpenAI 配置 ===
-  azure_gpt4o:
+  # === Azure OpenAI 模型配置 ===
+  azure_gpt4o_latest:
     provider: "azure"
     model_name: "gpt-4o"
-    api_key_env: "AZURE_API"
-    endpoint_env: "AZURE_URL"
-    deployment: "gpt-4o"
-    api_version: "2024-02-15-preview"
-    supports_temperature: true
-    max_tokens: 4096
+    model_version: "2024-11-20"  # 最新测试通过版本
+    azure_api_key: "${AZURE_API}"
+    azure_endpoint: "${AZURE_URL}"
+    azure_deployment: "gpt-4o-2"
+    azure_api_version: "2024-10-21"  # GA版本
+    max_tokens: 16384
     context_window: 128000
+    supports_temperature: true
+    temperature: 0.3  # 默认temperature for manager
     
   azure_gpt4o_mini:
     provider: "azure"
     model_name: "gpt-4o-mini"
-    api_key_env: "AZURE_API"
-    endpoint_env: "AZURE_URL" 
-    deployment: "gpt-4o-mini"
-    api_version: "2024-02-15-preview"
-    supports_temperature: true
+    model_version: "2024-07-18"
+    azure_api_key: "${AZURE_API}"
+    azure_endpoint: "${AZURE_URL}"
+    azure_deployment: "gpt-4o-mini"
+    azure_api_version: "2024-10-21"  # GA版本
     max_tokens: 16384
     context_window: 128000
+    supports_temperature: true
+    temperature: 0.7  # 默认temperature for agent
     
   # === OpenAI 直接API ===
   openai_gpt4o:
     provider: "openai"
     model_name: "gpt-4o"
-    api_key_env: "OPENAI_API_KEY"
-    supports_temperature: true
+    api_key: "${OPENAI_API_KEY}"
     max_tokens: 4096
     context_window: 128000
+    supports_temperature: true
+    temperature: 0.5
     
-  openai_o4_mini:
+  openai_o1_mini:
     provider: "openai"
-    model_name: "o4-mini"
-    api_key_env: "OPENAI_API_KEY"
-    supports_temperature: false  # o4-mini固定temperature=1.0
-    max_completion_tokens: 65536  # 使用max_completion_tokens而不是max_tokens
+    model_name: "o1-mini"
+    api_key: "${OPENAI_API_KEY}"
+    max_completion_tokens: 65536  # o1使用max_completion_tokens
     context_window: 200000
+    supports_temperature: false  # o1模型不支持temperature
     
-  # === OpenRouter 配置 ===
+  # === OpenRouter 模型配置 ===
   openrouter_gemini25pro:
     provider: "openrouter"
     model_name: "google/gemini-2.5-pro"
-    api_key_env: "OPENROUTER"
-    supports_temperature: true
+    api_key: "${OPENROUTER}"
+    base_url: "https://openrouter.ai/api/v1"
     max_tokens: 32768
     context_window: 1048576
+    supports_temperature: true
+    temperature: 0.0  # 检测器使用0温度确保一致性
     
   openrouter_claude35sonnet:
     provider: "openrouter"
     model_name: "anthropic/claude-3.5-sonnet"
-    api_key_env: "OPENROUTER"
-    supports_temperature: true
+    api_key: "${OPENROUTER}"
+    base_url: "https://openrouter.ai/api/v1"
     max_tokens: 4096
     context_window: 200000
-
-# === 预定义组合 ===
-api_combinations:
-  # 全Azure组合
-  all_azure:
-    agent: "azure_gpt4o_mini"
-    manager: "azure_gpt4o"
-    detector: "azure_gpt4o"
+    supports_temperature: true
+    temperature: 0.2
     
-  # 混合标准组合
-  mixed_standard:
-    agent: "azure_gpt4o_mini"
-    manager: "azure_gpt4o"
-    detector: "openrouter_gemini25pro"
+  openrouter_qwen25_72b:
+    provider: "openrouter"
+    model_name: "qwen/qwen-2.5-72b-instruct"
+    api_key: "${OPENROUTER}"
+    base_url: "https://openrouter.ai/api/v1"
+    max_tokens: 8192
+    context_window: 131072
+    supports_temperature: true
+    temperature: 0.4
     
-  # 全OpenRouter组合
-  all_openrouter:
-    agent: "openrouter_gemini25pro"
-    manager: "openrouter_gemini25pro"
-    detector: "openrouter_claude35sonnet"
-    
-  # OpenAI + OpenRouter组合
-  openai_mixed:
-    agent: "openai_gpt4o"
-    manager: "openai_o4_mini"
-    detector: "openrouter_gemini25pro"

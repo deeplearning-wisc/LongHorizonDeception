@@ -57,6 +57,81 @@ class ConfigManager:
         else:
             return obj
     
+    def _load_api_profiles(self) -> Dict[str, Any]:
+        """加载API配置档案文件"""
+        api_profiles_path = self.configs_dir / 'api_profiles.yaml'
+        
+        if not api_profiles_path.exists():
+            raise FileNotFoundError(f"API profiles file not found: {api_profiles_path}")
+        
+        try:
+            with open(api_profiles_path, 'r', encoding='utf-8') as f:
+                api_profiles = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise ValueError(f"Invalid YAML format in api_profiles.yaml: {e}")
+        
+        if not api_profiles:
+            raise ValueError("Empty API profiles file")
+        
+        # 递归处理API配置，替换环境变量
+        return self._process_config_recursive(api_profiles)
+    
+    def _resolve_api_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """解析API配置引用系统 - 支持直接模型名引用"""
+        if 'llm_api_config' not in config:
+            return config
+        
+        llm_api_config = config['llm_api_config']
+        
+        # 检查是否包含agent/manager/detector的模型名引用
+        required_components = ['agent', 'manager', 'detector']
+        has_model_references = all(key in llm_api_config for key in required_components)
+        
+        if has_model_references:
+            print("📄 Resolving model references from API profiles")
+            
+            # 加载API档案
+            api_profiles = self._load_api_profiles()
+            
+            # 检查profiles部分是否存在
+            if 'api_profiles' not in api_profiles:
+                raise ValueError("No api_profiles section found in api_profiles.yaml")
+            
+            profiles = api_profiles['api_profiles']
+            
+            # 解析每个组件的模型引用
+            resolved_config = {}
+            for component_name in required_components:
+                model_name = llm_api_config[component_name]
+                
+                # 检查模型配置是否存在
+                if model_name not in profiles:
+                    available_models = list(profiles.keys())
+                    raise ValueError(f"Model '{model_name}' not found for component '{component_name}'. Available: {available_models}")
+                
+                # 获取完整的模型配置
+                model_config = profiles[model_name].copy()
+                provider = model_config['provider']
+                
+                # 构建符合main.py期望的格式
+                resolved_config[component_name] = {
+                    'provider': provider,
+                    provider: model_config  # 将完整配置放在provider名称下
+                }
+                
+                print(f"  - {component_name}: {model_name} ({provider})")
+            
+            # 替换原有的llm_api_config
+            config['llm_api_config'] = resolved_config
+            print(f"✅ API model references resolved successfully")
+            
+        else:
+            # 如果不包含模型引用，可能是旧格式，给出提示
+            print("⚠️  No model references found in llm_api_config")
+            print("   Expected format: agent/manager/detector with model names")
+            
+        return config
+    
     def load_config(self, config_name: Optional[str] = None) -> Dict[str, Any]:
         """
         加载配置文件
@@ -95,6 +170,9 @@ class ConfigManager:
         
         # 递归处理配置，替换环境变量
         processed_config = self._process_config_recursive(raw_config)
+        
+        # 🆕 处理API配置引用系统
+        processed_config = self._resolve_api_config(processed_config)
         
         # 基本验证
         self._validate_config(processed_config, config_file)
@@ -137,39 +215,6 @@ class ConfigManager:
         
         print(f"✅ Configuration validation passed")
     
-    def get_azure_config(self, config: Dict[str, Any]) -> Dict[str, str]:
-        """从配置中提取Azure相关配置"""
-        if 'environment' not in config:
-            raise ValueError("No environment section found in configuration")
-        
-        env = config['environment']
-        
-        # 从AZURE_URL解析endpoint和deployment (如果需要)
-        azure_url = env.get('azure_endpoint', '')
-        if azure_url and '/openai/deployments/' in azure_url:
-            # 解析Azure URL格式: https://endpoint/openai/deployments/deployment-name/...
-            endpoint = azure_url.split('/openai/deployments/')[0]
-            deployment_part = azure_url.split('/deployments/')[1]
-            deployment_from_url = deployment_part.split('/')[0]
-        else:
-            endpoint = azure_url
-            deployment_from_url = None
-        
-        # 提取必需的Azure配置
-        azure_config = {
-            'azure_api_key': env.get('azure_api_key'),
-            'azure_endpoint': endpoint or env.get('azure_endpoint'),
-            'azure_deployment': env.get('azure_deployment') or deployment_from_url,
-            'azure_api_version': env.get('azure_api_version', '2024-02-15-preview'),  # 默认API版本
-            'model_name': env.get('azure_deployment') or deployment_from_url  # 使用deployment名作为model名
-        }
-        
-        # 验证所有必需字段都存在
-        for key, value in azure_config.items():
-            if not value or not str(value).strip():
-                raise ValueError(f"Missing or empty Azure configuration: {key}")
-        
-        return azure_config
     
     def show_available_configs(self):
         """显示可用的配置文件"""
@@ -199,7 +244,3 @@ config_manager = ConfigManager()
 def load_config(config_name: Optional[str] = None) -> Dict[str, Any]:
     """加载配置的便捷函数"""
     return config_manager.load_config(config_name)
-
-def get_azure_config(config: Dict[str, Any]) -> Dict[str, str]:
-    """获取Azure配置的便捷函数"""
-    return config_manager.get_azure_config(config)

@@ -260,12 +260,11 @@ class UniversalLLMClient:
             if temperature is not None:
                 call_params["temperature"] = temperature
             
-            print(f"[UNIVERSAL_LLM] Calling Azure API:")
-            print(f"  - Endpoint: {self.config['azure_endpoint']}")
-            print(f"  - Deployment: {self.azure_deployment}")
-            print(f"  - API Version: {self.config['azure_api_version']}")
+            # 简化打印，只显示模型名字
+            model_display = self.config.get('model_name', self.azure_deployment)
+            print(f"[UNIVERSAL_LLM] Using: {model_display}")
             
-            # API调用
+            # API调用 - 强制使用正确的API版本
             response = self.client.chat.completions.create(**call_params)
             
             # 格式化返回结果
