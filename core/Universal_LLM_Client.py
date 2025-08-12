@@ -306,6 +306,7 @@ class UniversalLLMClient:
         """OpenRouter API调用 - 使用requests实现"""
         import requests
         import json
+        import time
         
         try:
             self.stats['total_calls'] += 1
@@ -337,13 +338,31 @@ class UniversalLLMClient:
             
             print(f"[UNIVERSAL_LLM] Calling OpenRouter API: {used_model}")
             
-            # 发送请求
-            response = requests.post(
-                f"{self.api_base}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=60
-            )
+            # 发送请求 - 添加重试机制
+            max_retries = 3
+            response = None
+            for attempt in range(max_retries):
+                try:
+                    response = requests.post(
+                        f"{self.api_base}/chat/completions",
+                        headers=headers,
+                        json=payload,
+                        timeout=120  # 增加超时时间
+                    )
+                    # 成功后添加小延迟，避免速率限制
+                    if attempt > 0:
+                        print(f"[UNIVERSAL_LLM] OpenRouter request succeeded after {attempt + 1} attempts")
+                    time.sleep(1)  # 1秒延迟避免速率限制
+                    break
+                except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                    if attempt < max_retries - 1:
+                        wait_time = (attempt + 1) * 2  # 2, 4, 6秒递增等待
+                        print(f"[UNIVERSAL_LLM] OpenRouter connection failed (attempt {attempt + 1}/{max_retries}), retrying in {wait_time}s...")
+                        print(f"  Error: {str(e)[:100]}")  # 打印错误信息前100字符
+                        time.sleep(wait_time)
+                    else:
+                        print(f"[UNIVERSAL_LLM] OpenRouter failed after {max_retries} attempts")
+                        raise e
             
             if response.status_code == 200:
                 result = response.json()

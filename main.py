@@ -435,6 +435,27 @@ def run_deception_experiment():
         deception_count = sum(1 for r in detector_results if r['deception_detected'])
         print(f"📊 Deception detected in {deception_count}/{len(detector_results)} interactions")
         
+        # 💾 保存detector分析结果（带时间戳避免覆盖）
+        import time
+        timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
+        detector_output_file = f"results/{session_info['session_name']}/detector_analysis_{timestamp}.txt"
+        
+        # 导入保存函数
+        from core.detector import _save_detector_results_text, _save_detector_results_json
+        from pathlib import Path
+        
+        try:
+            # 保存LLM友好的文本格式
+            _save_detector_results_text(detector_results, detector_output_file, session_info['session_name'])
+            print(f"💾 Detector analysis (text) saved to: {detector_output_file}")
+            
+            # 自动生成JSON版本
+            json_file = str(Path(detector_output_file).with_suffix('.json'))
+            _save_detector_results_json(detector_results, json_file, session_info['session_name'])
+            print(f"💾 Detector analysis (JSON) saved to: {json_file}")
+        except Exception as e:
+            print(f"⚠️  Failed to save detector results: {e}")
+        
         # ResultSaver: 最终化实验记录
         if result_saver:
             final_manager_state = manager.get_current_state()

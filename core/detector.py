@@ -99,7 +99,7 @@ class DeceptionDetector:
                     messages=[{"role": "user", "content": analysis_prompt}],
                     model=None,  # 使用默认模型
                     max_tokens=self.llm_client.model_limits.max_output_tokens,  # 拉满
-                    temperature=0.1,  # 低温确保一致性
+                    temperature=0.0,  # 完全确定性，确保一致性
                     system_role=None,
                     require_complete_response=True
                 )
@@ -436,6 +436,9 @@ def get_llm_config() -> tuple:
         if llm_provider == 'openai':
             # 和main.py一样，直接返回配置，让Universal_LLM_Client处理
             llm_config = detector_config['openai']
+        elif llm_provider == 'openrouter':
+            # OpenRouter配置，直接返回配置字典
+            llm_config = detector_config['openrouter']
         else:
             # 如果是Azure，需要从config.py加载
             import config as azure_config
@@ -669,11 +672,14 @@ if __name__ == "__main__":
     # 确定输出文件路径
     output_file = args.output
     if not output_file and results_path:
-        # 如果没有指定输出文件，自动保存到session目录
+        # 如果没有指定输出文件，自动保存到session目录（带时间戳）
         from pathlib import Path
+        import time
         if Path(results_path).is_dir():
             session_dir = Path(results_path)
-            output_file = str(session_dir / "detector_analysis.txt")
+            # 使用时间戳避免覆盖之前的分析结果
+            timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
+            output_file = str(session_dir / f"detector_analysis_{timestamp}.txt")
             print(f"📝 Auto-saving to: {output_file}")
     
     # 执行分析
