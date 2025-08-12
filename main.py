@@ -26,7 +26,7 @@ class TaskStreamTask:
         self.title = title
         self.description = description
         self.files = []
-        # Agent需要的prompt属性
+        # LLM需要的prompt属性
         # MockTaskPrompt不再需要normal_prompt字段
         self.deceptive_prompt = None
         self.positive_prompt = None
@@ -35,7 +35,7 @@ class MockTaskPrompt:
     def __init__(self, text):
         self.en = text
 
-# Context management functions moved to Agent class
+# Context management functions moved to LLM class
 
 def safe_log(logger, method_name, *args, **kwargs):
     """安全的日志记录函数 - 当logger为None时不执行"""
@@ -142,22 +142,22 @@ def run_deception_experiment(config_name=None):
         
         return provider, component_config[provider]
     
-    # 初始化Agent - 使用专用配置
-    agent_provider, agent_config = get_component_llm_config('agent')
-    # 显示agent使用的模型名
-    agent_model_ref = config['llm_api_config']['agent']
-    print(f"[AGENT] Using: {agent_model_ref}")
+    # 初始化LLM - 使用专用配置
+    llm_provider, llm_config = get_component_llm_config('llm')
+    # 显示LLM使用的模型名
+    llm_model_ref = config['llm_api_config']['llm']
+    print(f"[LLM] Using: {llm_model_ref}")
     
-    agent_params = {
-        'llm_provider': agent_provider,
-        'llm_config': agent_config,
-        'system_prompt': config['agent_system_prompt'],
+    llm_params = {
+        'llm_provider': llm_provider,
+        'llm_config': llm_config,
+        'system_prompt': config['llm_system_prompt'],
         'max_tokens': 16384
     }
-    safe_log(logger, "log_component_init", "Agent", agent_params)
-    agent = LLM(**agent_params)
-    agent._logger = logger  # 传递logger给Agent
-    agent.llm_client._logger = logger  # 传递logger给LLM客户端
+    safe_log(logger, "log_component_init", "LLM", llm_params)
+    llm = LLM(**llm_params)
+    llm._logger = logger  # 传递logger给LLM
+    llm.llm_client._logger = logger  # 传递logger给LLM客户端
     
     # 初始化Manager - 使用专用配置
     manager_provider, manager_config = get_component_llm_config('manager')
@@ -227,14 +227,14 @@ def run_deception_experiment(config_name=None):
             # 从variants中随机选择一个变体
             variant = deceptive_event.get_random_variant()
             event = {
-                'content': variant.content,          # Agent看到的实际事件内容
+                'content': variant.content,          # LLM看到的实际事件内容
                 'description': deceptive_event.description,  # 系统内部描述
                 'pressure_level': variant.pressure_level,
                 'category': deceptive_event.category  # 事件类别
             }
         else:
             event = {
-                'content': 'Normal business conditions',     # Agent看到的内容
+                'content': 'Normal business conditions',     # LLM看到的内容
                 'description': 'No special event',          # 系统描述
                 'pressure_level': 'NORMAL',
                 'category': 'NONE'                          # 没有特殊事件
@@ -263,9 +263,9 @@ def run_deception_experiment(config_name=None):
             result_saver.start_task(task_idx + 1, task, event)
             result_saver.flush()  # 实时保存
         
-        # 记录Agent全局历史状态
-        if len(agent.global_conversation_history) > 0:
-            safe_log(logger, "log_info", f"Agent has {len(agent.global_conversation_history)} interactions from previous tasks")
+        # 记录LLM全局历史状态
+        if len(llm.global_conversation_history) > 0:
+            safe_log(logger, "log_info", f"LLM has {len(llm.global_conversation_history)} interactions from previous tasks")
         
         # 多轮交互直到任务完成 - 使用配置的最大轮数
         max_rounds = config['max_rounds_per_task']
@@ -291,34 +291,34 @@ def run_deception_experiment(config_name=None):
                     safe_log(logger, "log_info", f"  File {i+1}: {file_obj.filename} ({len(file_obj.content)} chars)")
             
             if round_num > 1:
-                safe_log(logger, "log_info", f"Agent has {len(task_manager_feedback_history)} manager feedback(s) from this task")
+                safe_log(logger, "log_info", f"LLM has {len(task_manager_feedback_history)} manager feedback(s) from this task")
             
-            # 🆕 使用Agent的封装好的context管理 + 任务内Manager反馈
+            # 🆕 使用LLM的封装好的context管理 + 任务内Manager反馈
             try:
                 # 判断是否需要使用ChatGPT风格的交错对话
-                has_global_history = len(agent.global_conversation_history) > 0
+                has_global_history = len(llm.global_conversation_history) > 0
                 has_task_feedback = len(task_manager_feedback_history) > 0
                 
                 if has_global_history or has_task_feedback:
                     # 有全局历史或任务内反馈：使用ChatGPT风格的交错对话
-                    enhanced_prompt = agent._build_enhanced_prompt_with_history(task, event['content'])
-                    agent_result = agent.process_task_with_enhanced_prompt(task, enhanced_prompt, task_manager_feedback_history)
+                    enhanced_prompt = llm._build_enhanced_prompt_with_history(task, event['content'])
+                    llm_result = llm.process_task_with_enhanced_prompt(task, enhanced_prompt, task_manager_feedback_history)
                 else:
                     # 完全新的开始：使用简单的事件处理
-                    agent_result = agent.process_task_with_event(task, event['content'])
+                    llm_result = llm.process_task_with_event(task, event['content'])
                 
-                agent_response = agent_result['response']
+                llm_response = llm_result['response']
                 
-                # 记录Agent的输出
-                safe_log(logger, "log_agent_output", agent_response, agent_result.get('llm_metadata', {}))
+                # 记录LLM的输出
+                safe_log(logger, "log_llm_output", llm_response, llm_result.get('llm_metadata', {}))
                 
-                # ResultSaver: 保存Agent回复 - 完整内容，绝不截断，并实时保存
+                # ResultSaver: 保存LLM回复 - 完整内容，绝不截断，并实时保存
                 if result_saver:
-                    result_saver.save_agent_response(round_num, agent_response)
+                    result_saver.save_llm_response(round_num, llm_response)
                     result_saver.flush()  # 实时保存
                 
             except Exception as e:
-                safe_log(logger, "log_error", e, f"Agent processing - Task {task.task_id}, Round {round_num}")
+                safe_log(logger, "log_error", e, f"LLM processing - Task {task.task_id}, Round {round_num}")
                 raise  # 直接抛出异常，fail-fast原则
             
             # Manager评估
@@ -329,7 +329,7 @@ def run_deception_experiment(config_name=None):
                 }
                 
                 # Manager会自动打印完整context，然后获取结果
-                manager_result = manager.evaluate_and_update(agent_response, task, event_info)
+                manager_result = manager.evaluate_and_update(llm_response, task, event_info)
                 
                 task_completed = manager_result['task_complete']
                 
@@ -348,14 +348,14 @@ def run_deception_experiment(config_name=None):
                     result_saver.save_manager_evaluation(round_num, manager_result)
                     result_saver.flush()  # 实时保存
                 
-                # 🆕 添加Manager反馈到任务内历史 (用于下一轮Agent输入)
+                # 🆕 添加Manager反馈到任务内历史 (用于下一轮LLM输入)
                 task_manager_feedback_history.append(manager_result['feedback_response'])
                 
-                # 🆕 记录这一轮的完整交互到Agent的全局历史
-                agent.add_interaction_to_global_history(
+                # 🆕 记录这一轮的完整交互到LLM的全局历史
+                llm.add_interaction_to_global_history(
                     task_id=task.task_id,
                     round_num=round_num,
-                    agent_response=agent_response,
+                    llm_response=llm_response,
                     manager_feedback=manager_result['feedback_response'],
                     task_complete=task_completed
                 )

@@ -54,7 +54,7 @@ class RetryHandler:
         
         Args:
             func: 要重试的函数
-            component: 组件名称 (如 "JUDGE", "AGENT")
+            component: 组件名称 (如 "JUDGE", "LLM")
             operation_name: 操作名称 (如 "JSON parsing", "response generation")
             
         Returns:

@@ -1,5 +1,5 @@
-# core/agent.py
-# LDLE Agent abstraction layer with unified LLM client
+# core/LLM.py
+# DeceptioN LLM abstraction layer with unified LLM client
 
 from typing import Dict, Any, Optional, List
 from tasks.base import Task, TaskFile
@@ -8,18 +8,18 @@ from utils.error_handler import PipelineErrorHandler, RetryHandler
 
 class LLM:
     """
-    LDLE Agent that can process tasks with file attachments
+    DeceptioN LLM that can process tasks with file attachments
     Uses unified LLM client for robust token handling
     """
     
     def __init__(self, llm_provider: str, llm_config: Dict[str, Any], system_prompt: str, max_tokens: int):
         """
-        Initialize the LDLE Agent
+        Initialize the DeceptioN LLM
         
         Args:
             llm_provider: API provider (openai/azure)
             llm_config: Provider-specific configuration
-            system_prompt: System prompt for the agent
+            system_prompt: System prompt for the LLM
             max_tokens: Maximum tokens for responses
         """
         self.llm_provider = llm_provider
@@ -76,7 +76,7 @@ class LLM:
         
         # 计算全局对话历史大小
         for interaction in self.global_conversation_history:
-            size += len(interaction['agent_response']) // 4
+            size += len(interaction['llm_response']) // 4
             size += len(interaction['manager_feedback']) // 4
         
         # 计算文件内容大小
@@ -89,7 +89,7 @@ class LLM:
         
         return size
     
-    def _truncate_global_history(self, max_history_tokens: int = 30000):
+    def _truncate_global_history(self, max_history_tokens: int = 100000):
         """智能截断全局对话历史，保留最近的交互"""
         if not self.global_conversation_history:
             return
@@ -97,24 +97,24 @@ class LLM:
         # 计算当前历史大小
         total_tokens = 0
         for interaction in self.global_conversation_history:
-            total_tokens += len(interaction['agent_response']) // 4
+            total_tokens += len(interaction['llm_response']) // 4
             total_tokens += len(interaction['manager_feedback']) // 4
         
         # 如果超过限制，从最早的开始删除
         while total_tokens > max_history_tokens and len(self.global_conversation_history) > 1:
             # 移除最早的交互
             removed = self.global_conversation_history.pop(0)
-            total_tokens -= len(removed['agent_response']) // 4
+            total_tokens -= len(removed['llm_response']) // 4
             total_tokens -= len(removed['manager_feedback']) // 4
             if hasattr(self, '_logger') and self._logger:
                 self._logger.log_warning(f"Truncated history: removed {removed['task_id']} Round {removed['round']}")
     
-    def add_interaction_to_global_history(self, task_id: str, round_num: int, agent_response: str, manager_feedback: str, task_complete: bool):
+    def add_interaction_to_global_history(self, task_id: str, round_num: int, llm_response: str, manager_feedback: str, task_complete: bool):
         """添加交互到全局历史"""
         interaction_record = {
             'task_id': task_id,
             'round': round_num,
-            'agent_response': agent_response,
+            'llm_response': llm_response,
             'manager_feedback': manager_feedback,
             'task_complete': task_complete
         }
@@ -153,7 +153,7 @@ class LLM:
                 task_info = interaction.get('task_id', 'Unknown')
                 round_info = interaction.get('round', 1)
                 conversation_context.append(f"[{task_info} - Round {round_info}]")
-                conversation_context.append(f"Assistant: {interaction['agent_response']}")
+                conversation_context.append(f"Assistant: {interaction['llm_response']}")
                 conversation_context.append("")
                 conversation_context.append(f"Manager: {interaction['manager_feedback']}")
                 conversation_context.append("")
@@ -182,7 +182,7 @@ Please provide a comprehensive response to complete this task."""
             event_content: Event content (e.g., pressure situation)
             
         Returns:
-            Dictionary containing agent response and metadata
+            Dictionary containing LLM response and metadata
         """
         try:
             # 构建包含全局历史的enhanced prompt
@@ -207,21 +207,21 @@ Please provide a comprehensive response to complete this task."""
             manager_feedback_history: Previous feedback from manager
             
         Returns:
-            Dictionary containing agent response and metadata
+            Dictionary containing LLM response and metadata
         """
         
         try:
             # 🆕 使用重试机制进行任务处理
             result = self.retry_handler.retry_with_warnings(
                 self._single_task_attempt,
-                "AGENT",
+                "LLM",
                 "task processing",
                 task, manager_feedback_history
             )
             return result
                 
         except Exception as e:
-            error_msg = f"Agent processing failed after retries: {str(e)}"
+            error_msg = f"LLM processing failed after retries: {str(e)}"
             # 现在这是真正的失败，可以返回错误
             return {
                 'response': f"I apologize, but I encountered an error processing this task: {error_msg}",
@@ -258,13 +258,13 @@ Please provide a comprehensive response to complete this task."""
         estimated_tokens = self.llm_client.estimate_tokens(self.system_prompt + full_prompt)
         
         if estimated_tokens > self.context_limit:
-            # Context溢出 - 记录警告但不抛出错误，Agent应该能处理长对话
+            # Context溢出 - 记录警告但不抛出错误，LLM应该能处理长对话
             if hasattr(self, '_logger') and self._logger:
                 self._logger.log_warning(f"Context approaching limit: {estimated_tokens}/{self.context_limit} tokens, prompt length: {len(full_prompt)} chars")
         
         # 如果有logger实例，记录LLM输入
         if hasattr(self, '_logger') and self._logger:
-            self._logger.log_agent_input(self.system_prompt, messages, self.model_name, self.max_tokens)
+            self._logger.log_llm_input(self.system_prompt, messages, self.model_name, self.max_tokens)
 
         # 6. Call unified LLM client with complete response requirement
         llm_result = self.llm_client.complete_chat(
@@ -280,21 +280,21 @@ Please provide a comprehensive response to complete this task."""
             # 抛出异常让重试机制处理
             raise RuntimeError(f"LLM call failed: {llm_result['error']}")
         
-        agent_response = llm_result['content']
+        llm_response = llm_result['content']
         
         # 7. Store conversation history - 完整保存，不截断
         self.conversation_history.append({
             'task_sequence_num': task.task_sequence_num,
             'task_id': task.task_id,
             'prompt_full': full_prompt,           # 完整prompt
-            'response_full': agent_response,      # 完整回复
+            'response_full': llm_response,      # 完整回复
             'files_provided': len(task.files) if task.files else 0,
             'llm_rounds': llm_result['total_rounds'],
             'tokens_used': llm_result['tokens_used']
         })
         
         return {
-            'response': agent_response,
+            'response': llm_response,
             'prompt_used': full_prompt,
             'files_processed': len(task.files) if task.files else 0,
             'success': True,
@@ -321,7 +321,7 @@ Please provide a comprehensive response to complete this task."""
             manager_feedback_history: Previous feedback from manager
             
         Returns:
-            Dictionary containing agent response and metadata
+            Dictionary containing LLM response and metadata
         """
         
         # 🆕 构建ChatGPT风格的消息序列
@@ -347,7 +347,7 @@ Please provide a comprehensive response to complete this task."""
             estimated_tokens = self.llm_client.estimate_tokens(self.system_prompt + full_prompt)
         
         if estimated_tokens > self.context_limit:
-            # Context溢出 - 记录警告但不抛出错误，Agent应该能处理长对话
+            # Context溢出 - 记录警告但不抛出错误，LLM应该能处理长对话
             if hasattr(self, '_logger') and self._logger:
                 if has_global_history or has_task_feedback:
                     self._logger.log_warning(f"Context approaching limit: {estimated_tokens}/{self.context_limit} tokens, ChatGPT-style messages: {len(messages)} total")
@@ -356,7 +356,7 @@ Please provide a comprehensive response to complete this task."""
         
         # 如果有logger实例，记录LLM输入
         if hasattr(self, '_logger') and self._logger:
-            self._logger.log_agent_input(self.system_prompt, messages, self.model_name, self.max_tokens)
+            self._logger.log_llm_input(self.system_prompt, messages, self.model_name, self.max_tokens)
         
         # 5. Call unified LLM client with complete response requirement
         llm_result = self.llm_client.complete_chat(
@@ -372,7 +372,7 @@ Please provide a comprehensive response to complete this task."""
             # 抛出异常让重试机制处理
             raise RuntimeError(f"LLM call failed: {llm_result['error']}")
         
-        agent_response = llm_result['content']
+        llm_response = llm_result['content']
         
         # 5.5. 管理当前任务回复历史
         if self.current_task_id != task.task_id:
@@ -381,21 +381,21 @@ Please provide a comprehensive response to complete this task."""
             self.current_task_responses = []
         
         # 添加当前回复到任务内历史
-        self.current_task_responses.append(agent_response)
+        self.current_task_responses.append(llm_response)
         
         # 6. Store conversation history - 完整保存，不截断
         self.conversation_history.append({
             'task_sequence_num': task.task_sequence_num,
             'task_id': task.task_id,
             'prompt_full': full_prompt if not (has_global_history or has_task_feedback) else f"ChatGPT messages: {len(messages)}",
-            'response_full': agent_response,      # 完整回复
+            'response_full': llm_response,      # 完整回复
             'files_provided': len(task.files) if task.files else 0,
             'llm_rounds': llm_result['total_rounds'],
             'tokens_used': llm_result['tokens_used']
         })
         
         return {
-            'response': agent_response,
+            'response': llm_response,
             'prompt_used': full_prompt if not (has_global_history or has_task_feedback) else f"ChatGPT-style conversation ({len(messages)} messages)",
             'messages_used': messages if (has_global_history or has_task_feedback) else None,
             'files_processed': len(task.files) if task.files else 0,
@@ -454,10 +454,10 @@ Please provide a comprehensive response to complete this task."""
         构建ChatGPT风格的消息序列 - 完整的任务序列历史
         
         实现架构：
-        Task 1: R1 → Agent → Manager → R2 → Agent → Manager → R3 → Agent → Manager(完成)
-        Task 2: R1 → Agent → Manager → R2 → Agent → Manager(完成)  
-        Task 3: R1 → Agent → Manager(完成)
-        Current Task: R1 → Agent → ?
+        Task 1: R1 → LLM → Manager → R2 → LLM → Manager → R3 → LLM → Manager(完成)
+        Task 2: R1 → LLM → Manager → R2 → LLM → Manager(完成)  
+        Task 3: R1 → LLM → Manager(完成)
+        Current Task: R1 → LLM → ?
         
         Args:
             task: 当前Task object
@@ -481,12 +481,12 @@ Please provide a comprehensive response to complete this task."""
                 "content": task_content
             })
             
-            # Agent的回复
-            agent_response = interaction.get('agent_response', '')
-            if agent_response:
+            # LLM的回复
+            llm_response = interaction.get('llm_response', '')
+            if llm_response:
                 messages.append({
                     "role": "assistant", 
-                    "content": agent_response
+                    "content": llm_response
                 })
             
             # Manager的反馈
@@ -515,7 +515,7 @@ Please provide a comprehensive response to complete this task."""
         
         # 3. 添加当前任务内的历史轮次（如果有）
         for i, feedback in enumerate(manager_feedback_history):
-            # 添加当前任务之前轮次的Agent回复（如果有）
+            # 添加当前任务之前轮次的LLM回复（如果有）
             if i < len(self.current_task_responses):
                 messages.append({
                     "role": "assistant",
@@ -531,7 +531,7 @@ Please provide a comprehensive response to complete this task."""
         return messages
     
     def get_conversation_summary(self) -> Dict[str, Any]:
-        """Get summary of agent's conversation history"""
+        """Get summary of LLM's conversation history"""
         total_tokens = sum(h.get('tokens_used', 0) for h in self.conversation_history)
         total_rounds = sum(h.get('llm_rounds', 1) for h in self.conversation_history)
         

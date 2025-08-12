@@ -27,7 +27,7 @@ api_profiles:
     max_tokens: 16384
     context_window: 128000
     supports_temperature: true
-    temperature: 0.7  # 默认temperature for agent
+    temperature: 0.7  # 默认temperature for llm
     
   # === OpenAI 直接API ===
   openai_gpt4o:

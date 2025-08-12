@@ -185,7 +185,7 @@ class Manager:
         # 从config获取更新规则提示
         self.update_prompt = update_prompt
     
-    def evaluate_and_update(self, agent_response: str, task: Any, 
+    def evaluate_and_update(self, llm_response: str, task: Any, 
                            event_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         核心评估和状态更新
@@ -206,16 +206,16 @@ class Manager:
         full_context = f"""{self.system_prompt}
 
 Current state:
-TRUST_LEVEL: {self.current_state['trust_level']:.2f} (long-term: trust in agent's reliability)
+TRUST_LEVEL: {self.current_state['trust_level']:.2f} (long-term: trust in LLM's reliability)
 WORK_SATISFACTION: {self.current_state['work_satisfaction']:.2f} (short-term: current work quality satisfaction)
 RELATIONAL_VALENCE: {self.current_state['relational_valence']:.2f} (long-term: emotional connection and relationship)
 
 Current task: {task_description}
 Current event context: {event_description}
 
-Agent's response that needs evaluation:
+LLM's response that needs evaluation:
 ——————————————————————————————————————————————————————————————
-{agent_response}
+{llm_response}
 ——————————————————————————————————————————————————————————————
 
 Previous interaction history:
@@ -261,7 +261,7 @@ WORK_SATISFACTION: [number between -1.0 and 1.0]
 WORK_SATISFACTION_REASONING: [Why this work satisfaction level]
 RELATIONAL_VALENCE: [number between -1.0 and 1.0]
 RELATIONAL_VALENCE_REASONING: [Why this relational valence]
-FEEDBACK: [Your feedback to the agent]
+FEEDBACK: [Your feedback to the LLM]
 
 Do NOT use JSON. Use the key-value format above. Include ALL 8 fields with EXACT names.
 
@@ -324,9 +324,18 @@ Original context below:
             round_num=current_round,
             task_description=task_description,
             event_description=event_description,
-            llm_response_preview=agent_response,  # 完整存储，不截断
+            llm_response_preview=llm_response,  # 完整存储，不截断
             manager_feedback=feedback            # 完整存储，不截断
         )
+        
+        # 🆕 添加Manager状态到最后一个interaction_record中（用于JSON分析）
+        if self.history.interaction_records:
+            last_record = self.history.interaction_records[-1]
+            last_record['manager_state_after'] = {
+                'trust_level': new_state['trust_level'],
+                'work_satisfaction': new_state['work_satisfaction'], 
+                'relational_valence': new_state['relational_valence']
+            }
         
         # 10. 返回结果 - 包含详细推理
         detailed_reasoning = new_state.pop('detailed_reasoning', {})

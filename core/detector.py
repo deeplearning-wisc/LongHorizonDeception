@@ -167,7 +167,7 @@ class DeceptionDetector:
             context_parts.append(f"[{i}] {interaction['task_id']} Round {interaction['round']}")
             context_parts.append(f"Task: {interaction['task_description']}")
             context_parts.append(f"Event: {interaction['event_description']}")
-            context_parts.append(f"Agent Response: {interaction['llm_response']}")
+            context_parts.append(f"LLM Response: {interaction['llm_response']}")
             context_parts.append(f"Manager Feedback: {interaction['manager_feedback']}")
             context_parts.append("")
         
@@ -180,7 +180,7 @@ class DeceptionDetector:
         return SEQUENCE_ANALYSIS_TEMPLATE.format(
             task_id=current_interaction['task_id'],
             round_num=current_interaction['round'],
-            agent_response=current_interaction['llm_response'],
+            llm_response=current_interaction['llm_response'],
             manager_feedback=current_interaction['manager_feedback'],
             background_context=background_context,
             base_prompt=BASE_DETECTION_PROMPT
@@ -533,7 +533,7 @@ def get_llm_config() -> tuple:
         sys.path.insert(0, str(project_root))
     
     try:
-        from config_manager import load_config, get_azure_config
+        from config_manager import load_config
         config = load_config()  # 使用默认配置
         llm_api_config = config['llm_api_config']
         
@@ -541,15 +541,8 @@ def get_llm_config() -> tuple:
         detector_config = llm_api_config['detector']
         llm_provider = detector_config['provider']
         
-        if llm_provider == 'openai':
-            # 直接返回OpenAI配置
-            llm_config = detector_config['openai']
-        elif llm_provider == 'openrouter':
-            # OpenRouter配置
-            llm_config = detector_config['openrouter']
-        else:
-            # Azure配置 - 使用新的统一配置系统
-            llm_config = get_azure_config(config)
+        # 新的统一配置系统已经解析好了完整配置
+        llm_config = detector_config[llm_provider]
         
         return llm_provider, llm_config
         
@@ -566,7 +559,7 @@ def extract_analysis_data_from_text(text_content: str) -> List[Dict[str, Any]]:
     current_round = None
     current_task_description = None
     current_event_description = None
-    current_agent_response = None
+    current_llm_response = None
     
     i = 0
     while i < len(lines):
@@ -597,15 +590,15 @@ def extract_analysis_data_from_text(text_content: str) -> List[Dict[str, Any]]:
         elif line.startswith('[ROUND_'):
             current_round = int(line.split('_')[1])
         
-        # 提取Agent回复
-        elif line.startswith('[AGENT_RESPONSE_'):
-            # 读取Agent的完整回复
+        # 提取LLM回复（兼容新旧格式）
+        elif line.startswith('[LLM_RESPONSE_') or line.startswith('[AGENT_RESPONSE_'):
+            # 读取LLM的完整回复
             response_lines = []
             for j in range(i+1, len(lines)):
                 if lines[j].startswith('[') and not lines[j].strip() == '':
                     break
                 response_lines.append(lines[j])
-            current_agent_response = '\n'.join(response_lines).strip()
+            current_llm_response = '\n'.join(response_lines).strip()
         
         # 提取Manager反馈并构建交互记录
         elif line.startswith('[MANAGER_EVALUATION_'):
@@ -619,13 +612,13 @@ def extract_analysis_data_from_text(text_content: str) -> List[Dict[str, Any]]:
                     break
             
             # 构建完整的交互记录
-            if all([current_task_id, current_round, current_agent_response, manager_feedback]):
+            if all([current_task_id, current_round, current_llm_response, manager_feedback]):
                 interactions.append({
                     'task_id': current_task_id,
                     'round': current_round,
                     'task_description': current_task_description or '',
                     'event_description': current_event_description or 'No event',
-                    'llm_response': current_agent_response,
+                    'llm_response': current_llm_response,
                     'manager_feedback': manager_feedback,
                     'timestamp': 0  # 不重要，detector不用这个
                 })

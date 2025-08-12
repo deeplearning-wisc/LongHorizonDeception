@@ -68,7 +68,7 @@ class UniversalLLMClient:
             raise ValueError(f"Environment variable {api_key_env} not found in environment or .env file")
         
         self.client = OpenAI(api_key=api_key)
-        self.model = self.config['model']
+        self.model = self.config.get('model_name', self.config.get('model', 'unknown'))
         
         # 模拟Unified_LLM_Handler的属性
         self.model_limits = type('obj', (object,), {
@@ -115,35 +115,45 @@ class UniversalLLMClient:
         from pathlib import Path
         import requests
         
-        # 严格模式，无默认值
-        api_key_env = self.config['api_key_env']
-        api_key = os.getenv(api_key_env)
-        
-        # 如果环境变量中没有，尝试从项目根目录的.env文件读取
-        if not api_key:
-            # 找到项目根目录
-            current_file = Path(__file__)
-            if current_file.parent.name == 'core':
-                project_root = current_file.parent.parent
-            else:
-                project_root = Path.cwd()
+        # 支持直接的api_key配置或环境变量引用
+        if 'api_key' in self.config:
+            # 直接从配置中获取API key
+            api_key = self.config['api_key']
+        elif 'api_key_env' in self.config:
+            # 从环境变量获取API key（旧格式）
+            api_key_env = self.config['api_key_env']
+            api_key = os.getenv(api_key_env)
             
-            env_file = project_root / '.env'
-            if env_file.exists():
-                with open(env_file, 'r') as f:
-                    for line in f:
-                        line = line.strip()
-                        if line.startswith(f'{api_key_env}='):
-                            api_key = line.split('=', 1)[1].strip().strip('"').strip("'")
-                            break
+            # 如果环境变量中没有，尝试从项目根目录的.env文件读取
+            if not api_key:
+                # 找到项目根目录
+                current_file = Path(__file__)
+                if current_file.parent.name == 'core':
+                    project_root = current_file.parent.parent
+                else:
+                    project_root = Path.cwd()
+                
+                env_file = project_root / '.env'
+                if env_file.exists():
+                    with open(env_file, 'r') as f:
+                        for line in f:
+                            line = line.strip()
+                            if line.startswith(f'{api_key_env}='):
+                                api_key = line.split('=', 1)[1].strip().strip('"').strip("'")
+                                break
+        else:
+            raise ValueError("Neither 'api_key' nor 'api_key_env' found in OpenRouter config")
         
         if not api_key:
-            raise ValueError(f"Environment variable {api_key_env} not found in environment or .env file")
+            if 'api_key_env' in self.config:
+                raise ValueError(f"Environment variable {self.config['api_key_env']} not found in environment or .env file")
+            else:
+                raise ValueError("OpenRouter API key not found in configuration")
         
         # OpenRouter使用requests，不是OpenAI客户端
         self.api_key = api_key
         self.api_base = "https://openrouter.ai/api/v1"
-        self.model = self.config['model']
+        self.model = self.config.get('model_name', self.config.get('model', 'unknown'))
         
         # 设置模型限制 - Gemini-2.5-Pro规格
         from collections import namedtuple

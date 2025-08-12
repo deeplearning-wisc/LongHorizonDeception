@@ -113,9 +113,9 @@ class TaskStreamLogger:
         self.logger.info(f"ROUND {round_num}/{max_rounds}")
         self.logger.info(f"{'-'*60}")
     
-    def log_agent_input(self, system_prompt: str, messages: List[Dict[str, str]], model: str, max_tokens: int):
-        """记录Agent输入到LLM的完整内容（简化版本）"""
-        self.logger.info("[AGENT LLM INPUT]")
+    def log_llm_input(self, system_prompt: str, messages: List[Dict[str, str]], model: str, max_tokens: int):
+        """记录LLM输入到LLM的完整内容（简化版本）"""
+        self.logger.info("[LLM INPUT]")
         self.logger.info(f"system_role: {repr(system_prompt[:100])}..." if len(system_prompt) > 100 else f"system_role: {repr(system_prompt)}")
         
         # 简化messages显示：对每个{}内的content进行截断
@@ -142,9 +142,9 @@ class TaskStreamLogger:
         self.logger.info(f"model: {model}")
         self.logger.info(f"max_tokens: {max_tokens}")
     
-    def log_agent_output(self, response: str, metadata: Dict[str, Any]):
-        """记录Agent输出（简化版本）"""
-        self.logger.info("[AGENT OUTPUT]")
+    def log_llm_output(self, response: str, metadata: Dict[str, Any]):
+        """记录LLM输出（简化版本）"""
+        self.logger.info("[LLM OUTPUT]")
         self.logger.info(f"Response length: {len(response)} chars")
         self.logger.info(f"Tokens used: {metadata.get('tokens_used', 'N/A')}")
         
@@ -186,7 +186,7 @@ class TaskStreamLogger:
                 self.logger.info(f"Task Complete Reasoning: {detailed_reasoning['task_complete']}")
             self.logger.info("=== END DETAILED REASONING ===")
         
-        self.logger.info(f"\nManager Feedback to Agent:\n{feedback}")
+        self.logger.info(f"\nManager Feedback to LLM:\n{feedback}")
         self.logger.info("[END MANAGER OUTPUT]")
     
     def log_task_completion(self, task_id: str, completed: bool, rounds_used: int):

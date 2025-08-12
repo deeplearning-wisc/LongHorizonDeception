@@ -42,7 +42,7 @@ class ResultSaver:
         
         self.record_lines.extend([
             f"Experiment_Mode: {config.get('experiment_mode', 'unknown').upper()}",
-            f"Agent_Model: {llm_config.get('agent', {}).get('openai', {}).get('model', 'unknown')}",
+            f"LLM_Model: {llm_config.get('llm', {}).get('openai', {}).get('model', 'unknown')}",
             f"Manager_Model: {llm_config.get('manager', {}).get('openai', {}).get('model', 'unknown')}",
             f"Detector_Model: {llm_config.get('detector', {}).get('openai', {}).get('model', 'unknown')}",
             f"Max_Rounds_Per_Task: {config.get('max_rounds_per_task', 'unknown')}",
@@ -95,11 +95,11 @@ class ResultSaver:
             ""
         ])
     
-    def save_agent_response(self, round_num: int, agent_response: str):
-        """保存Agent回复 - 完整内容，绝不截断"""
+    def save_llm_response(self, round_num: int, llm_response: str):
+        """保存LLM回复 - 完整内容，绝不截断"""
         self.record_lines.extend([
-            f"[AGENT_RESPONSE_{round_num:03d}]",
-            agent_response,  # 完整保存，绝不截断
+            f"[LLM_RESPONSE_{round_num:03d}]",
+            llm_response,  # 完整保存，绝不截断
             ""
         ])
     

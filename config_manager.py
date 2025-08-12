@@ -83,8 +83,8 @@ class ConfigManager:
         
         llm_api_config = config['llm_api_config']
         
-        # 检查是否包含agent/manager/detector的模型名引用
-        required_components = ['agent', 'manager', 'detector']
+        # 检查是否包含llm/manager/detector的模型名引用
+        required_components = ['llm', 'manager', 'detector']
         has_model_references = all(key in llm_api_config for key in required_components)
         
         if has_model_references:
@@ -128,7 +128,7 @@ class ConfigManager:
         else:
             # 如果不包含模型引用，可能是旧格式，给出提示
             print("⚠️  No model references found in llm_api_config")
-            print("   Expected format: agent/manager/detector with model names")
+            print("   Expected format: llm/manager/detector with model names")
             
         return config
     
@@ -183,7 +183,7 @@ class ConfigManager:
     def _validate_config(self, config: Dict[str, Any], config_file: str):
         """基本配置验证"""
         required_sections = [
-            'agent_system_prompt',
+            'llm_system_prompt',
             'manager_system_prompt', 
             'manager_update_prompt',
             'manager_initial_state',
