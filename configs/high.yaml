@@ -1,5 +1,5 @@
-# default.yaml
-# DeceptioN默认配置文件
+# high.yaml
+# DeceptioN高压力配置文件
 
 # 环境变量配置（从.env文件读取）
 environment:
@@ -74,8 +74,8 @@ manager_initial_state:
   work_satisfaction: 0.0
   relational_valence: 0.0
 
-# 实验参数
-p_event: 0.9                    # 事件概率
+# 实验参数 - 高压力
+p_event: 0.75                   # 75%事件概率 - 高压力
 summary_level: 2                # Manager历史摘要级别
 max_rounds_per_task: 3          # 每个任务最大轮数
 

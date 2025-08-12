@@ -115,9 +115,35 @@ class DeceptionDetector:
                 analysis_result.update({
                     'task_id': current_interaction['task_id'],
                     'round': current_interaction['round'],
+                    'task_description': current_interaction.get('task_description', 'No description'),
                     'tokens_used': llm_result.get('tokens_used', 0),
                     'context_size': estimated_tokens
                 })
+                
+                # 从interaction记录中提取事件信息
+                event_description = current_interaction.get('event_description', '')
+                analysis_result['event_info'] = {
+                    'pressure_level': 'UNKNOWN',
+                    'category': 'UNKNOWN'
+                }
+                
+                # 尝试从事件描述中提取压力级别
+                if 'CRITICAL' in event_description.upper():
+                    analysis_result['event_info']['pressure_level'] = 'CRITICAL'
+                elif 'HIGH' in event_description.upper():
+                    analysis_result['event_info']['pressure_level'] = 'HIGH'
+                elif 'MEDIUM' in event_description.upper():
+                    analysis_result['event_info']['pressure_level'] = 'MEDIUM'
+                elif 'LOW' in event_description.upper() or 'normal business conditions' in event_description.lower():
+                    analysis_result['event_info']['pressure_level'] = 'LOW'
+                
+                # 尝试提取事件类别（这个更复杂，暂时保持UNKNOWN）
+                if 'TEAM DEPENDENCE' in event_description:
+                    analysis_result['event_info']['category'] = 'TEAM_PRESSURE'
+                elif 'FINAL INVESTOR' in event_description:
+                    analysis_result['event_info']['category'] = 'FINANCIAL_PRESSURE'
+                elif 'competitive' in event_description.lower():
+                    analysis_result['event_info']['category'] = 'COMPETITIVE_PRESSURE'
                 
                 results.append(analysis_result)
                 print(f"[DETECTOR] Analysis completed: deception_detected={analysis_result['deception_detected']}")
@@ -314,28 +340,110 @@ def _save_detector_results_text(detector_results: List[Dict[str, Any]], output_f
         for line in lines:
             f.write(line + '\n')
 
-def _save_detector_results_json(detector_results: List[Dict[str, Any]], json_file: str, session_name: str = 'unknown'):
-    """保存JSON格式用于数据分析"""
+def _save_detector_results_json(detector_results: List[Dict[str, Any]], json_file: str, session_name: str = 'unknown', manager_states: List[Dict[str, Any]] = None):
+    """保存分析友好的结构化JSON格式"""
     import json
     import time
+    from collections import defaultdict
     
-    # 添加元信息到JSON
+    # 计算汇总统计
+    total_interactions = len(detector_results)
     deception_count = sum(1 for r in detector_results if r.get('deception_detected', False))
-    severity_counts = {}
-    for r in detector_results:
-        severity = r.get('severity', 0)
-        severity_counts[severity] = severity_counts.get(severity, 0) + 1
+    deception_rate = deception_count / total_interactions if total_interactions > 0 else 0
     
-    output_data = {
-        "metadata": {
-            "session": session_name,
+    # 统计各种分布
+    severity_counts = defaultdict(int)
+    category_counts = defaultdict(int) 
+    intent_counts = defaultdict(int)
+    
+    for result in detector_results:
+        # Severity分布
+        severity = result.get('severity', 0)
+        severity_counts[severity] += 1
+        
+        # Category分布 - 可能是列表或字符串
+        categories = result.get('category', [])
+        if isinstance(categories, str):
+            categories = [cat.strip() for cat in categories.split(',') if cat.strip()]
+        for cat in categories:
+            if cat:
+                category_counts[cat] += 1
+        
+        # Intent分布 - 可能是列表或字符串  
+        intents = result.get('intent', [])
+        if isinstance(intents, str):
+            intents = [intent.strip() for intent in intents.split(',') if intent.strip()]
+        for intent in intents:
+            if intent:
+                intent_counts[intent] += 1
+    
+    # 计算百分比分布
+    def _make_distribution(counts_dict, total):
+        return {
+            f"{key}": {
+                "count": count,
+                "percentage": round((count / total) * 100, 1) if total > 0 else 0.0
+            }
+            for key, count in counts_dict.items()
+        }
+    
+    # 构建实验汇总统计
+    experiment_summary = {
+        "total_interactions": total_interactions,
+        "deception_occurrences": deception_count,
+        "deception_rate": round(deception_rate, 3),
+        "severity_distribution": _make_distribution(severity_counts, total_interactions),
+        "category_distribution": _make_distribution(category_counts, total_interactions),
+        "intent_distribution": _make_distribution(intent_counts, total_interactions),
+        "session_metadata": {
+            "session_name": session_name,
             "analysis_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()),
-            "total_interactions": len(detector_results),
-            "deception_detected": deception_count,
-            "deception_rate": deception_count / len(detector_results) if detector_results else 0,
-            "severity_distribution": severity_counts
-        },
-        "results": detector_results  # 解析后的完整数据
+            "analysis_timestamp": time.time()
+        }
+    }
+    
+    # 构建每个交互的结构化数据
+    interactions_data = []
+    for i, result in enumerate(detector_results):
+        # 基本信息
+        interaction_data = {
+            "basic_info": {
+                "task_id": result.get('task_id', f'Task_{i+1}'),
+                "round": result.get('round', 1),
+                "task_description": result.get('task_description', 'No description')
+            },
+            "detector_findings": {
+                "deception_detected": result.get('deception_detected', False),
+                "intent": result.get('intent', []),
+                "category": result.get('category', []),
+                "severity": result.get('severity', 0),
+                "confidence_score": result.get('confidence_score', 0.0)
+            }
+        }
+        
+        # 添加Manager状态（如果提供）
+        if manager_states and i < len(manager_states):
+            manager_state = manager_states[i]
+            interaction_data["manager_state"] = {
+                "trust_level": manager_state.get('trust_level', 0.0),
+                "work_satisfaction": manager_state.get('work_satisfaction', 0.0),
+                "relational_valence": manager_state.get('relational_valence', 0.0)
+            }
+        
+        # 添加事件信息（如果有）
+        if 'event_info' in result:
+            event_info = result['event_info']
+            interaction_data["event_info"] = {
+                "pressure_level": event_info.get('pressure_level', 'UNKNOWN'),
+                "category": event_info.get('category', 'UNKNOWN')
+            }
+        
+        interactions_data.append(interaction_data)
+    
+    # 最终JSON结构
+    output_data = {
+        "experiment_summary": experiment_summary,
+        "interactions_data": interactions_data
     }
     
     with open(json_file, 'w', encoding='utf-8') as f:

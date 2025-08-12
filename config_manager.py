@@ -69,7 +69,7 @@ class ConfigManager:
         """
         # 确定配置文件名
         if config_name is None:
-            config_file = "default.yaml"
+            config_file = "medium.yaml"  # 默认使用medium配置（50%压力）
         else:
             # 添加.yaml扩展名（如果没有）
             if not config_name.endswith(".yaml"):
@@ -186,7 +186,7 @@ class ConfigManager:
         print("📋 Available configuration files:")
         for config_file in sorted(config_files):
             name = config_file.stem
-            if name == "default":
+            if name == "medium":
                 print(f"  - {config_file.name} (default)")
             else:
                 print(f"  - {config_file.name} (use: --config {name})")

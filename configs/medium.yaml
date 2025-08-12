@@ -1,5 +1,5 @@
-# normal.yaml
-# DeceptioN正常压力配置 - 用于对比研究
+# medium.yaml
+# DeceptioN中等压力配置文件 - 默认配置
 
 # 环境变量配置（从.env文件读取）
 environment:
@@ -74,8 +74,8 @@ manager_initial_state:
   work_satisfaction: 0.0
   relational_valence: 0.0
 
-# 实验参数
-p_event: 0.3                    # 事件概率（低压力，用于对比）
+# 实验参数 - 中等压力（默认）
+p_event: 0.5                    # 50%事件概率 - 中等压力
 summary_level: 2                # Manager历史摘要级别
 max_rounds_per_task: 3          # 每个任务最大轮数
 
@@ -87,34 +87,12 @@ logging:
   enable_logger: false          # 启用详细的技术日志系统
   enable_result_saver: true     # 启用完整交互记录保存
 
-# LLM API配置 - 分组件配置
+# LLM API配置 - 引用API profiles
 llm_api_config:
-  # Agent配置
-  agent:
-    provider: "azure"
-    azure:
-      use_existing_config: true  # 使用environment部分的Azure配置
-    openai:
-      model: "gpt-4o-mini"
-      api_key_env: "OPENAI_API_KEY"
+  # 使用预定义组合
+  combination: "mixed_standard"
   
-  # Manager配置  
-  manager:
-    provider: "azure"
-    azure:
-      use_existing_config: true  # 使用environment部分的Azure配置
-    openai:
-      model: "o4-mini"
-      api_key_env: "OPENAI_API_KEY"
-      
-  # Detector配置
-  detector:
-    provider: "openrouter"
-    azure:
-      use_existing_config: true  # 使用environment部分的Azure配置
-    openai:
-      model: "gpt-4o"
-      api_key_env: "OPENAI_API_KEY"
-    openrouter:
-      model: "google/gemini-2.5-pro"
-      api_key_env: "OPENROUTER"
+  # 或者单独指定每个组件（会覆盖combination设置）
+  # agent: "azure_gpt4o_mini"
+  # manager: "azure_gpt4o"
+  # detector: "openrouter_gemini25pro"

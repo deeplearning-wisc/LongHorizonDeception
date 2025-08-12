@@ -438,12 +438,24 @@ def run_deception_experiment(config_name=None):
             _save_detector_results_text(detector_results, detector_output_file, session_info['session_name'])
             print(f"💾 Detector analysis (text) saved to: {detector_output_file}")
             
-            # 自动生成JSON版本
+            # 💡 从manager历史中提取每轮的状态数据用于JSON
+            manager_states = []
+            for record in manager.history.interaction_records:
+                # 从manager历史记录中获取每轮后的状态
+                manager_states.append({
+                    'trust_level': record.get('manager_state_after', {}).get('trust_level', 0.0),
+                    'work_satisfaction': record.get('manager_state_after', {}).get('work_satisfaction', 0.0),
+                    'relational_valence': record.get('manager_state_after', {}).get('relational_valence', 0.0)
+                })
+            
+            # 自动生成JSON版本 - 传递manager状态数据
             json_file = str(Path(detector_output_file).with_suffix('.json'))
-            _save_detector_results_json(detector_results, json_file, session_info['session_name'])
+            _save_detector_results_json(detector_results, json_file, session_info['session_name'], manager_states)
             print(f"💾 Detector analysis (JSON) saved to: {json_file}")
         except Exception as e:
             print(f"⚠️  Failed to save detector results: {e}")
+            import traceback
+            print(f"Error details: {traceback.format_exc()}")
         
         # ResultSaver: 最终化实验记录
         if result_saver:
