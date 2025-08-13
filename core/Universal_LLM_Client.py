@@ -204,30 +204,40 @@ class UniversalLLMClient:
         # 查找最早的task开头并删除该task的所有消息
         task_removed = False
         removed_count = 0
+        target_task_id = None
         
         # 从头开始找task标记：如 "[TASK_01 Round 1]"
         i = 0
         while i < len(truncated) and len(truncated) > 2:
             msg_content = truncated[i]['content']
             
-            # 找到task开头标记
-            if '[TASK_' in msg_content and 'Round 1]' in msg_content:
-                print(f"[UNIVERSAL_LLM] Found task start: {msg_content[:50]}...")
-                
-                # 删除从这个task开始的所有消息，直到下一个task开始或消息结束
-                while i < len(truncated) and len(truncated) > 2:
-                    current_msg = truncated[i]['content']
+            # 找到task开头标记 - 匹配 [XXX Round 1] 格式
+            if 'Round 1]' in msg_content and msg_content.startswith('['):
+                # 提取task ID - 格式: [MARKET-SIZE-ANALYSIS Round 1]
+                task_match = re.search(r'\[([A-Z\-]+)\s+Round\s+1\]', msg_content)
+                if task_match:
+                    target_task_id = task_match.group(1)
+                    print(f"[UNIVERSAL_LLM] Found task start: {target_task_id}")
                     
-                    # 如果遇到下一个task开头，停止删除
-                    if i > 0 and '[TASK_' in current_msg and 'Round 1]' in current_msg:
-                        break
+                    # 删除该task的所有消息
+                    while i < len(truncated) and len(truncated) > 2:
+                        current_msg = truncated[i]['content']
+                        
+                        # 检查是否还是同一个task - 匹配 [XXX Round N] 格式
+                        current_task_match = re.search(r'\[([A-Z\-]+)\s+Round\s+\d+\]', current_msg)
+                        if current_task_match:
+                            current_task_id = current_task_match.group(1)
+                            # 如果是不同的task，停止删除
+                            if current_task_id != target_task_id:
+                                break
+                        
+                        # 删除当前消息（属于target task或者是response/feedback）
+                        truncated.pop(i)
+                        removed_count += 1
+                        # i不需要+1，因为pop后下一个元素会移到当前位置
                     
-                    truncated.pop(i)
-                    removed_count += 1
-                    # i不需要+1，因为pop后下一个元素会移到当前位置
-                
-                task_removed = True
-                break
+                    task_removed = True
+                    break
             else:
                 i += 1
         
@@ -242,6 +252,15 @@ class UniversalLLMClient:
         
         print(f"[UNIVERSAL_LLM] Removed {removed_count} messages, {len(truncated)} messages remaining")
         print(f"[UNIVERSAL_LLM] Original: {original_count} messages -> After truncation: {len(truncated)} messages")
+        
+        # 显示剩余context的前50个字符
+        if len(truncated) > 0:
+            first_msg_preview = truncated[0]['content'][:50].replace('\n', ' ')
+            print(f"[UNIVERSAL_LLM] Remaining context starts with: '{first_msg_preview}...'")
+        
+        # 统计删除了多少个完整的tasks
+        if target_task_id:
+            print(f"[UNIVERSAL_LLM] Deleted complete task: {target_task_id} (attempt {attempt}/2)")
         
         return truncated
     
