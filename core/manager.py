@@ -110,7 +110,8 @@ Use ONLY these 5 fields. No additional sections, analysis, or commentary."""
             max_tokens=1000,  # 限制summary长度
             temperature=None,  # 使用OpenAI默认值
             system_role=None,
-            require_complete_response=False
+            require_complete_response=False,
+            caller="MANAGER-SUMMARY"
         )
         
         if not llm_result['success']:
@@ -279,14 +280,51 @@ Original context below:
                     max_tokens=self.llm_client.model_limits.max_output_tokens,  # 拉满
                     temperature=None,  # 使用OpenAI默认值
                     system_role=self.system_prompt,
-                    require_complete_response=True
+                    require_complete_response=True,
+                    caller="MANAGER"
                 )
                 
                 if not llm_result['success']:
+                    error_msg = llm_result.get('error', 'Unknown error')
+                    
+                    # 检查是否是context overflow错误并进行详细debug
+                    if 'context_length_exceeded' in error_msg or 'maximum context length' in error_msg:
+                        print(f"\n🚨 MANAGER CONTEXT OVERFLOW DEBUG - Attempt {attempt + 1}")
+                        print("=" * 80)
+                        
+                        # 分析context各部分的大小
+                        system_prompt_tokens = len(self.system_prompt) // 4
+                        current_llm_response_tokens = len(llm_response) // 4
+                        history_context = self.history.get_history_context()
+                        history_tokens = len(history_context) // 4
+                        update_prompt_tokens = len(self.update_prompt) // 4
+                        
+                        print(f"📊 CONTEXT BREAKDOWN:")
+                        print(f"  System Prompt: ~{system_prompt_tokens} tokens ({len(self.system_prompt)} chars)")
+                        print(f"  Current LLM Response: ~{current_llm_response_tokens} tokens ({len(llm_response)} chars)")
+                        print(f"  History Context: ~{history_tokens} tokens ({len(history_context)} chars)")
+                        print(f"  Update Prompt: ~{update_prompt_tokens} tokens ({len(self.update_prompt)} chars)")
+                        
+                        total_estimated = system_prompt_tokens + current_llm_response_tokens + history_tokens + update_prompt_tokens
+                        print(f"  TOTAL ESTIMATED: ~{total_estimated} tokens")
+                        
+                        print(f"\n📝 FULL CONTEXT (first 2000 chars):")
+                        print("-" * 40)
+                        print(retry_context[:2000])
+                        print("-" * 40)
+                        
+                        print(f"\n📝 HISTORY SUMMARIES ({len(self.history.interaction_summaries)} summaries):")
+                        for i, summary in enumerate(self.history.interaction_summaries[-5:], 1):  # 最后5个
+                            summary_tokens = len(summary) // 4
+                            print(f"  Summary {i}: ~{summary_tokens} tokens - {summary[:100]}...")
+                        
+                        print("=" * 80)
+                    
                     if hasattr(self, '_logger') and self._logger:
-                        self._logger.log_warning(f"Manager LLM call failed (attempt {attempt + 1}): {llm_result.get('error', 'Unknown error')}")
+                        self._logger.log_warning(f"Manager LLM call failed (attempt {attempt + 1}): {error_msg}")
+                    
                     if attempt == max_retries - 1:
-                        raise RuntimeError(f"LLM call failed after {max_retries} attempts: {llm_result.get('error', 'Unknown error')}")
+                        raise RuntimeError(f"LLM call failed after {max_retries} attempts: {error_msg}")
                     continue
                 
                 response_text = llm_result['content']

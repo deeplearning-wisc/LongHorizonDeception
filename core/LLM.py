@@ -89,6 +89,14 @@ class LLM:
         
         return size
     
+    def _estimate_messages_tokens(self, messages: List[Dict[str, str]]) -> int:
+        """估算ChatGPT风格消息列表的token数"""
+        total_tokens = 0
+        for msg in messages:
+            # 每条消息的内容 + role标记的开销
+            total_tokens += len(msg['content']) // 4 + 10  # 10 tokens for role and formatting
+        return total_tokens
+    
     def _truncate_global_history(self, max_history_tokens: int = 100000):
         """智能截断全局对话历史，保留最近的交互"""
         if not self.global_conversation_history:
@@ -273,7 +281,8 @@ Please provide a comprehensive response to complete this task."""
             max_tokens=self.max_tokens,
             temperature=None,  # 使用OpenAI默认值
             system_role=self.system_prompt,
-            require_complete_response=True  # Enable multi-round concatenation for complete responses
+            require_complete_response=True,  # Enable multi-round concatenation for complete responses
+            caller="LLM"
         )
         
         if not llm_result['success']:
@@ -358,18 +367,83 @@ Please provide a comprehensive response to complete this task."""
         if hasattr(self, '_logger') and self._logger:
             self._logger.log_llm_input(self.system_prompt, messages, self.model_name, self.max_tokens)
         
-        # 5. Call unified LLM client with complete response requirement
-        llm_result = self.llm_client.complete_chat(
-            messages=messages,
-            model=self.model_name,
-            max_tokens=self.max_tokens,
-            temperature=None,  # 使用OpenAI默认值
-            system_role=self.system_prompt,
-            require_complete_response=True
-        )
+        # 5. Call unified LLM client with smart retry for context overflow
+        max_retries = 3
+        estimated_tokens_for_scaling = estimated_tokens  # 保存初始估算值
+        
+        for attempt in range(max_retries):
+            llm_result = self.llm_client.complete_chat(
+                messages=messages,
+                model=self.model_name,
+                max_tokens=self.max_tokens,
+                temperature=None,  # 使用OpenAI默认值
+                system_role=self.system_prompt,
+                require_complete_response=True,
+                caller="LLM"
+            )
             
-        if not llm_result['success']:
-            # 抛出异常让重试机制处理
+            if llm_result['success']:
+                break  # 成功，退出重试循环
+            
+            # 检查是否是context overflow错误
+            error_msg = llm_result.get('error', '')
+            if ('context_length_exceeded' in error_msg or 
+                'maximum context length' in error_msg or 
+                'messages resulted in' in error_msg):
+                # 解析context overflow信息
+                overflow_info = self.llm_client.parse_context_length_error(error_msg)
+                
+                if overflow_info:
+                    if hasattr(self, '_logger') and self._logger:
+                        self._logger.log_warning(
+                            f"Context overflow on attempt {attempt + 1}: "
+                            f"requested {overflow_info['requested_tokens']} tokens, "
+                            f"max is {overflow_info['max_context_length']}, "
+                            f"overflow by {overflow_info['overflow_tokens']} tokens"
+                        )
+                    
+                    print(f"[LLM] Context overflow attempt {attempt + 1}: {overflow_info['requested_tokens']} > {overflow_info['max_context_length']}")
+                    
+                    # 计算需要删除的token数
+                    if attempt == 0:
+                        # 第一次：基于估算值删除
+                        tokens_to_remove = overflow_info['overflow_tokens'] + 5000  # 加5000余量
+                    else:
+                        # 第2-3次：基于实际/估算比例调整
+                        scale_factor = overflow_info['requested_tokens'] / estimated_tokens_for_scaling
+                        tokens_to_remove = int(overflow_info['overflow_tokens'] * scale_factor * 1.2)  # 加20%余量
+                        
+                        if hasattr(self, '_logger') and self._logger:
+                            self._logger.log_info(f"Scale factor: {scale_factor:.2f}, removing ~{tokens_to_remove} tokens")
+                    
+                    # 根据消息类型进行截断
+                    if has_global_history or has_task_feedback:
+                        # ChatGPT风格消息：按task为单位截断
+                        messages = self.llm_client._truncate_messages_by_task(messages, attempt + 1)
+                        print(f"[LLM] Context overflow handled by task truncation, retrying...")
+                        
+                        # 重新估算token数（仅用于下次溢出判断）
+                        total_content = self.system_prompt + "\n".join([msg["content"] for msg in messages])
+                        estimated_tokens_for_scaling = self.llm_client.estimate_tokens(total_content)
+                    else:
+                        # 单消息模式：截断全局历史
+                        self._truncate_global_history(max_history_tokens=30000)
+                        print(f"[LLM] Truncating global history, retrying...")
+                        
+                        # 重新构建prompt
+                        enhanced_prompt = self._build_enhanced_prompt_with_history(task, enhanced_prompt.split('\n')[0])
+                        file_context = self._build_file_context(task.files)
+                        full_prompt = self._build_full_prompt(enhanced_prompt, file_context)
+                        messages = [{"role": "user", "content": full_prompt}]
+                        
+                        estimated_tokens_for_scaling = self.llm_client.estimate_tokens(self.system_prompt + full_prompt)
+                    
+                    if attempt == max_retries - 1:
+                        # 最后一次尝试失败
+                        raise RuntimeError(f"LLM call failed after {max_retries} retries due to context overflow")
+                    continue  # 继续下一次重试
+            
+            # 非context overflow错误，直接抛出
             raise RuntimeError(f"LLM call failed: {llm_result['error']}")
         
         llm_response = llm_result['content']
@@ -448,6 +522,44 @@ Please provide a comprehensive response to complete this task."""
         context += "Please address these follow-up requests in your current response."
         
         return context
+    
+    def _smart_truncate_messages(self, messages: List[Dict[str, str]], tokens_to_remove: int) -> List[Dict[str, str]]:
+        """
+        智能截断ChatGPT风格消息，从最早的消息开始删除
+        
+        Args:
+            messages: 消息列表
+            tokens_to_remove: 需要删除的token数
+            
+        Returns:
+            截断后的消息列表
+        """
+        if len(messages) <= 2:  # 至少保留当前任务的消息
+            return messages
+        
+        truncated_messages = messages.copy()
+        tokens_removed = 0
+        
+        # 从最早的消息开始删除（保持user-assistant对的完整性）
+        while tokens_removed < tokens_to_remove and len(truncated_messages) > 2:
+            # 删除最早的user消息
+            if truncated_messages[0]['role'] == 'user':
+                removed_content = truncated_messages.pop(0)
+                tokens_removed += len(removed_content['content']) // 4
+                
+                # 如果下一条是assistant消息，也删除它（保持对话完整性）
+                if len(truncated_messages) > 0 and truncated_messages[0]['role'] == 'assistant':
+                    removed_content = truncated_messages.pop(0)
+                    tokens_removed += len(removed_content['content']) // 4
+            else:
+                # 如果第一条不是user消息（不应该发生），直接删除
+                removed_content = truncated_messages.pop(0)
+                tokens_removed += len(removed_content['content']) // 4
+        
+        if hasattr(self, '_logger') and self._logger:
+            self._logger.log_warning(f"Truncated messages: removed ~{tokens_removed} tokens, {len(messages) - len(truncated_messages)} messages")
+        
+        return truncated_messages
     
     def _build_chatgpt_style_messages(self, task: Task, enhanced_prompt: str, manager_feedback_history: List[str]) -> List[Dict[str, str]]:
         """

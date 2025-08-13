@@ -3,6 +3,7 @@
 
 import os
 import time
+import re
 from typing import Dict, Any, List, Optional
 from openai import OpenAI
 
@@ -171,21 +172,83 @@ class UniversalLLMClient:
     
     def complete_chat(self, messages: List[Dict[str, str]], model: Optional[str] = None, 
                      max_tokens: Optional[int] = None, temperature: Optional[float] = None,
-                     system_role: Optional[str] = None, require_complete_response: bool = False) -> Dict[str, Any]:
+                     system_role: Optional[str] = None, require_complete_response: bool = False,
+                     caller: str = "UNKNOWN") -> Dict[str, Any]:
         """
         统一的聊天补全接口
         返回格式与Unified_LLM_Handler保持一致
         """
         if self.provider == "openai":
-            return self._openai_complete_chat(messages, model, max_tokens, temperature, system_role, require_complete_response)
+            return self._openai_complete_chat(messages, model, max_tokens, temperature, system_role, require_complete_response, caller)
         elif self.provider == "azure":
-            return self._azure_complete_chat(messages, model, max_tokens, temperature, system_role, require_complete_response)
+            return self._azure_complete_chat(messages, model, max_tokens, temperature, system_role, require_complete_response, caller)
         elif self.provider == "openrouter":
-            return self._openrouter_complete_chat(messages, model, max_tokens, temperature, system_role, require_complete_response)
+            return self._openrouter_complete_chat(messages, model, max_tokens, temperature, system_role, require_complete_response, caller)
+        else:
+            return {'success': False, 'error': f'Unsupported provider: {self.provider}'}
+    
+    def _truncate_messages_by_task(self, messages: List[Dict[str, str]], attempt: int) -> List[Dict[str, str]]:
+        """按task为单位删除messages，每次删除一个完整task的所有消息"""
+        if len(messages) <= 2:  # 至少保留当前任务
+            return messages
+        
+        truncated = messages.copy()
+        original_count = len(messages)
+        
+        if attempt > 2:
+            # 第3次还溢出就直接error
+            raise RuntimeError(f"Context overflow persists after removing 2 tasks, cannot proceed")
+        
+        print(f"[UNIVERSAL_LLM] Attempt {attempt}: Removing 1 complete task from message history")
+        
+        # 查找最早的task开头并删除该task的所有消息
+        task_removed = False
+        removed_count = 0
+        
+        # 从头开始找task标记：如 "[TASK_01 Round 1]"
+        i = 0
+        while i < len(truncated) and len(truncated) > 2:
+            msg_content = truncated[i]['content']
+            
+            # 找到task开头标记
+            if '[TASK_' in msg_content and 'Round 1]' in msg_content:
+                print(f"[UNIVERSAL_LLM] Found task start: {msg_content[:50]}...")
+                
+                # 删除从这个task开始的所有消息，直到下一个task开始或消息结束
+                while i < len(truncated) and len(truncated) > 2:
+                    current_msg = truncated[i]['content']
+                    
+                    # 如果遇到下一个task开头，停止删除
+                    if i > 0 and '[TASK_' in current_msg and 'Round 1]' in current_msg:
+                        break
+                    
+                    truncated.pop(i)
+                    removed_count += 1
+                    # i不需要+1，因为pop后下一个元素会移到当前位置
+                
+                task_removed = True
+                break
+            else:
+                i += 1
+        
+        if not task_removed:
+            # 如果没找到task标记，就简单删除前面一半的消息
+            messages_to_remove = max(5, len(truncated) // 2)
+            for _ in range(messages_to_remove):
+                if len(truncated) > 2:
+                    truncated.pop(0)
+                    removed_count += 1
+            print(f"[UNIVERSAL_LLM] No task markers found, removed {removed_count} messages from start")
+        
+        print(f"[UNIVERSAL_LLM] Removed {removed_count} messages, {len(truncated)} messages remaining")
+        print(f"[UNIVERSAL_LLM] Original: {original_count} messages -> After truncation: {len(truncated)} messages")
+        
+        return truncated
     
     def _openai_complete_chat(self, messages: List[Dict[str, str]], model: Optional[str] = None,
                             max_tokens: Optional[int] = None, temperature: Optional[float] = None,
-                            system_role: Optional[str] = None, require_complete_response: bool = False) -> Dict[str, Any]:
+                            system_role: Optional[str] = None, require_complete_response: bool = False,
+                            caller: str = "UNKNOWN") -> Dict[str, Any]:
         """OpenAI API调用"""
         try:
             # 处理系统消息
@@ -212,7 +275,7 @@ class UniversalLLMClient:
             if temperature is not None:
                 call_params["temperature"] = temperature
             
-            print(f"[UNIVERSAL_LLM] Calling OpenAI API: {call_params['model']}")
+            print(f"[{caller}] Using: {call_params['model']}")
             
             # API调用
             response = self.client.chat.completions.create(**call_params)
@@ -233,7 +296,12 @@ class UniversalLLMClient:
             }
             
         except Exception as e:
-            print(f"[UNIVERSAL_LLM] OpenAI API call failed: {e}")
+            error_str = str(e)
+            print(f"[UNIVERSAL_LLM] OpenAI API call failed: {error_str}")
+            
+            # 检查是否是context length错误
+            context_error_info = self.parse_context_length_error(error_str)
+            
             return {
                 'success': False,
                 'content': '',
@@ -243,12 +311,14 @@ class UniversalLLMClient:
                 'total_rounds': 0,
                 'model_used': model or self.model,
                 'tokens_used': 0,
-                'error': str(e)
+                'error': error_str,
+                'context_overflow': context_error_info  # 添加context溢出信息
             }
     
     def _azure_complete_chat(self, messages: List[Dict[str, str]], model: Optional[str] = None,
                            max_tokens: Optional[int] = None, temperature: Optional[float] = None,
-                           system_role: Optional[str] = None, require_complete_response: bool = False) -> Dict[str, Any]:
+                           system_role: Optional[str] = None, require_complete_response: bool = False,
+                           caller: str = "UNKNOWN") -> Dict[str, Any]:
         """Azure API调用 - 直接实现"""
         try:
             self.stats['total_calls'] += 1
@@ -272,7 +342,7 @@ class UniversalLLMClient:
             
             # 简化打印，只显示模型名字
             model_display = self.config.get('model_name', self.azure_deployment)
-            print(f"[UNIVERSAL_LLM] Using: {model_display}")
+            print(f"[{caller}] Using: {model_display}")
             
             # API调用 - 强制使用正确的API版本
             response = self.client.chat.completions.create(**call_params)
@@ -298,7 +368,12 @@ class UniversalLLMClient:
             }
             
         except Exception as e:
-            print(f"[UNIVERSAL_LLM] Azure API call failed: {e}")
+            error_str = str(e)
+            print(f"[UNIVERSAL_LLM] Azure API call failed: {error_str}")
+            
+            # 检查是否是context length错误
+            context_error_info = self.parse_context_length_error(error_str)
+            
             return {
                 'success': False,
                 'content': '',
@@ -308,12 +383,14 @@ class UniversalLLMClient:
                 'total_rounds': 0,
                 'model_used': model or self.model,
                 'tokens_used': 0,
-                'error': str(e)
+                'error': error_str,
+                'context_overflow': context_error_info  # 添加context溢出信息
             }
     
     def _openrouter_complete_chat(self, messages: List[Dict[str, str]], model: Optional[str] = None,
                                 max_tokens: Optional[int] = None, temperature: Optional[float] = None,
-                                system_role: Optional[str] = None, require_complete_response: bool = False) -> Dict[str, Any]:
+                                system_role: Optional[str] = None, require_complete_response: bool = False,
+                                caller: str = "UNKNOWN") -> Dict[str, Any]:
         """OpenRouter API调用 - 使用requests实现"""
         import requests
         import json
@@ -347,7 +424,7 @@ class UniversalLLMClient:
                 "X-Title": "DeceptioN Research Framework"
             }
             
-            print(f"[UNIVERSAL_LLM] Calling OpenRouter API: {used_model}")
+            print(f"[{caller}] Using: {used_model}")
             
             # 发送请求 - 添加重试机制
             max_retries = 3
@@ -442,3 +519,57 @@ class UniversalLLMClient:
             'model': self.model,
             **self.stats
         }
+    
+    def parse_context_length_error(self, error_msg: str) -> Optional[Dict[str, int]]:
+        """
+        解析context length超限错误，提取最大限制和实际请求的token数
+        
+        错误格式: 'This model's maximum context length is 128000 tokens. However, you requested 129947 tokens (113563 in the messages, 16384 in the completion)'
+        
+        Returns:
+            Dict with:
+            - 'max_context_length': 模型的最大context限制
+            - 'requested_tokens': 实际请求的总token数
+            - 'message_tokens': messages中的token数
+            - 'completion_tokens': completion中的token数
+            None if not a context length error
+        """
+        # 检查是否是context length错误
+        if 'context_length_exceeded' not in error_msg and 'maximum context length' not in error_msg:
+            return None
+        
+        result = {}
+        
+        # 提取最大context限制
+        max_match = re.search(r'maximum context length is (\d+) tokens', error_msg)
+        if max_match:
+            result['max_context_length'] = int(max_match.group(1))
+        else:
+            # 如果没找到，使用默认值
+            result['max_context_length'] = 128000
+        
+        # 提取请求的总token数 - 支持两种格式
+        request_match = re.search(r'requested (\d+) tokens', error_msg)
+        if not request_match:
+            # 尝试另一种格式："messages resulted in 129835 tokens"
+            request_match = re.search(r'messages resulted in (\d+) tokens', error_msg)
+            if not request_match:
+                return None
+        
+        result['requested_tokens'] = int(request_match.group(1))
+        
+        # 尝试提取messages和completion的详细信息
+        detail_match = re.search(r'\((\d+) in the messages, (\d+) in the completion\)', error_msg)
+        if detail_match:
+            result['message_tokens'] = int(detail_match.group(1))
+            result['completion_tokens'] = int(detail_match.group(2))
+        else:
+            # 如果没有详细信息，估算分配
+            # 对于"messages resulted in X tokens"格式，假设completion需要16384
+            result['message_tokens'] = result['requested_tokens'] - 16384
+            result['completion_tokens'] = 16384
+        
+        # 计算超出了多少
+        result['overflow_tokens'] = result['requested_tokens'] - result['max_context_length']
+        
+        return result

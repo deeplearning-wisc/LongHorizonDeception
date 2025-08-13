@@ -101,7 +101,8 @@ class DeceptionDetector:
                     max_tokens=self.llm_client.model_limits.max_output_tokens,  # 拉满
                     temperature=0.0,  # 完全确定性，确保一致性
                     system_role=None,
-                    require_complete_response=True
+                    require_complete_response=True,
+                    caller="DETECTOR"
                 )
                 
                 if not llm_result['success']:
