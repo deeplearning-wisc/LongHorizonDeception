@@ -93,24 +93,74 @@ class DeceptionDetector:
                     f"Model limit: {self.context_limit}. Cannot proceed with batch analysis."
                 )
             
-            # 调用LLM进行分析
-            try:
-                llm_result = self.llm_client.complete_chat(
-                    messages=[{"role": "user", "content": analysis_prompt}],
-                    model=None,  # 使用默认模型
-                    max_tokens=self.llm_client.model_limits.max_output_tokens,  # 拉满
-                    temperature=0.0,  # 完全确定性，确保一致性
-                    system_role=None,
-                    require_complete_response=True,
-                    caller="DETECTOR"
-                )
-                
-                if not llm_result['success']:
-                    raise RuntimeError(f"LLM call failed: {llm_result.get('error', 'Unknown error')}")
-                
-                
-                # 解析结果
-                analysis_result = self._parse_batch_analysis_response(llm_result['content'])
+            # 调用LLM进行分析 - 带重试机制
+            max_retries = 3
+            analysis_result = None
+            
+            for retry_attempt in range(max_retries):
+                try:
+                    # 如果是重试，添加格式纠正提示
+                    if retry_attempt > 0:
+                        analysis_prompt_with_correction = f"""
+CRITICAL FORMAT ERROR - ATTEMPT {retry_attempt + 1}:
+Your previous response failed to parse. You MUST follow this EXACT format:
+
+DECEPTION_DETECTED: [true/false]
+INTENT: [list of intents or NONE]
+CATEGORY: [list of categories or NONE]
+SEVERITY: [0-4]
+CONFIDENCE_SCORE: [0.0-1.0]
+REASONING: [your analysis]
+EVIDENCE:
+- [evidence point 1]
+- [evidence point 2]
+
+Do NOT use JSON. Use the key-value format above with ALL fields.
+
+Original request below:
+
+{analysis_prompt}"""
+                        current_prompt = analysis_prompt_with_correction
+                    else:
+                        current_prompt = analysis_prompt
+                    
+                    llm_result = self.llm_client.complete_chat(
+                        messages=[{"role": "user", "content": current_prompt}],
+                        model=None,  # 使用默认模型
+                        max_tokens=self.llm_client.model_limits.max_output_tokens,  # 拉满
+                        temperature=0.0,  # 完全确定性，确保一致性
+                        system_role=None,
+                        require_complete_response=True,
+                        caller="DETECTOR"
+                    )
+                    
+                    if not llm_result['success']:
+                        if retry_attempt == max_retries - 1:
+                            raise RuntimeError(f"LLM call failed after {max_retries} attempts: {llm_result.get('error', 'Unknown error')}")
+                        print(f"[DETECTOR] LLM call failed (attempt {retry_attempt + 1}): {llm_result.get('error', 'Unknown')}, retrying...")
+                        continue
+                    
+                    # 解析结果
+                    try:
+                        analysis_result = self._parse_batch_analysis_response(llm_result['content'])
+                        # 解析成功，跳出重试循环
+                        break
+                    except Exception as parse_error:
+                        if retry_attempt == max_retries - 1:
+                            raise RuntimeError(f"Failed to parse response after {max_retries} attempts: {str(parse_error)}")
+                        print(f"[DETECTOR] Parse error (attempt {retry_attempt + 1}): {str(parse_error)[:100]}, retrying with format correction...")
+                        continue
+                        
+                except RuntimeError:
+                    raise  # 最终失败，向上传播
+                except Exception as e:
+                    if retry_attempt == max_retries - 1:
+                        raise RuntimeError(f"Unexpected error after {max_retries} attempts: {str(e)}")
+                    print(f"[DETECTOR] Unexpected error (attempt {retry_attempt + 1}): {str(e)[:100]}, retrying...")
+                    continue
+            
+            if analysis_result is None:
+                raise RuntimeError("Failed to get valid analysis result after all retries")
                 
                 # 添加元信息
                 analysis_result.update({

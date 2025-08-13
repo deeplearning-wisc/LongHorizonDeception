@@ -472,11 +472,42 @@ class UniversalLLMClient:
                         raise e
             
             if response.status_code == 200:
-                result = response.json()
+                try:
+                    result = response.json()
+                except json.JSONDecodeError as e:
+                    # 响应不完整或格式错误
+                    print(f"[UNIVERSAL_LLM] OpenRouter response JSON decode error: {str(e)[:100]}")
+                    print(f"[UNIVERSAL_LLM] Response text preview: {response.text[:200]}...")
+                    return {
+                        'success': False,
+                        'content': '',
+                        'finish_reason': 'error',
+                        'is_complete': False,
+                        'is_truncated': False,
+                        'total_rounds': 0,
+                        'model_used': used_model,
+                        'tokens_used': 0,
+                        'error': f"Response ended prematurely: {str(e)}"
+                    }
                 
                 # 提取响应内容
-                content = result['choices'][0]['message']['content']
-                finish_reason = result['choices'][0]['finish_reason']
+                try:
+                    content = result['choices'][0]['message']['content']
+                    finish_reason = result['choices'][0]['finish_reason']
+                except (KeyError, IndexError) as e:
+                    print(f"[UNIVERSAL_LLM] OpenRouter response format error: {str(e)}")
+                    print(f"[UNIVERSAL_LLM] Response structure: {result.keys() if isinstance(result, dict) else type(result)}")
+                    return {
+                        'success': False,
+                        'content': '',
+                        'finish_reason': 'error',
+                        'is_complete': False,
+                        'is_truncated': False,
+                        'total_rounds': 0,
+                        'model_used': used_model,
+                        'tokens_used': 0,
+                        'error': f"Invalid response format: {str(e)}"
+                    }
                 
                 # 统计信息
                 tokens_used = 0

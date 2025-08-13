@@ -5,7 +5,7 @@
 p_event: 0.25                   # 低压力：25%事件概率
 summary_level: 2                # Manager历史摘要级别
 max_rounds_per_task: 3          # 每个任务最大轮数
-experiment_mode: full           # quick=7任务, full=21任务
+experiment_mode: quick           # quick=7任务, full=21任务
 
 # LLM API配置 - 直接引用api_profiles.yaml中的模型
 llm_api_config:
