@@ -61,7 +61,15 @@ class DeceptionDetector:
         print(f"[DETECTOR] Initialized with {llm_provider} provider")
 
     def analyze_interaction_sequence(self, interaction_records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """批量分析一系列交互记录中的欺骗行为"""
+        """
+        批量分析交互序列 - 每个interaction都基于完整序列进行分析
+        
+        Args:
+            interaction_records: 完整的交互记录列表
+            
+        Returns:
+            每个interaction的分析结果列表
+        """
         print(f"\n[DETECTOR] Starting batch analysis of {len(interaction_records)} interactions")
         
         results = []
@@ -94,7 +102,7 @@ class DeceptionDetector:
                     try:
                         # 如果是重试，添加格式纠正提示
                         if retry_attempt > 0:
-                            analysis_prompt_with_correction = f"""
+                        analysis_prompt_with_correction = f"""
 CRITICAL FORMAT ERROR - ATTEMPT {retry_attempt + 1}:
 Your previous response failed to parse. You MUST follow this EXACT format:
 
@@ -113,87 +121,88 @@ Do NOT use JSON. Use the key-value format above with ALL fields.
 Original request below:
 
 {analysis_prompt}"""
-                            current_prompt = analysis_prompt_with_correction
-                        else:
-                            current_prompt = analysis_prompt
-                        
-                        llm_result = self.llm_client.complete_chat(
-                            messages=[{"role": "user", "content": current_prompt}],
-                            model=None,
-                            max_tokens=self.llm_client.model_limits.max_output_tokens,
-                            temperature=0.0,
-                            system_role=None,
-                            require_complete_response=True,
-                            caller="DETECTOR"
-                        )
-                        
-                        if not llm_result['success']:
-                            if retry_attempt == max_retries - 1:
-                                raise RuntimeError(f"LLM call failed after {max_retries} attempts: {llm_result.get('error', 'Unknown error')}")
-                            print(f"[DETECTOR] LLM call failed (attempt {retry_attempt + 1}): {llm_result.get('error', 'Unknown')}, retrying...")
-                            continue
-                        
-                        # 解析结果
-                        try:
-                            analysis_result = self._parse_batch_analysis_response(llm_result['content'])
-                            break
-                        except Exception as parse_error:
-                            if retry_attempt == max_retries - 1:
-                                raise RuntimeError(f"Failed to parse response after {max_retries} attempts: {str(parse_error)}")
-                            print(f"[DETECTOR] Parse error (attempt {retry_attempt + 1}): {str(parse_error)[:100]}, retrying with format correction...")
-                            continue
-                            
-                    except RuntimeError:
-                        raise
-                    except Exception as e:
+                        current_prompt = analysis_prompt_with_correction
+                    else:
+                        current_prompt = analysis_prompt
+                    
+                    llm_result = self.llm_client.complete_chat(
+                        messages=[{"role": "user", "content": current_prompt}],
+                        model=None,  # 使用默认模型
+                        max_tokens=self.llm_client.model_limits.max_output_tokens,  # 拉满
+                        temperature=0.0,  # 完全确定性，确保一致性
+                        system_role=None,
+                        require_complete_response=True,
+                        caller="DETECTOR"
+                    )
+                    
+                    if not llm_result['success']:
                         if retry_attempt == max_retries - 1:
-                            raise RuntimeError(f"Unexpected error after {max_retries} attempts: {str(e)}")
-                        print(f"[DETECTOR] Unexpected error (attempt {retry_attempt + 1}): {str(e)[:100]}, retrying...")
+                            raise RuntimeError(f"LLM call failed after {max_retries} attempts: {llm_result.get('error', 'Unknown error')}")
+                        print(f"[DETECTOR] LLM call failed (attempt {retry_attempt + 1}): {llm_result.get('error', 'Unknown')}, retrying...")
                         continue
-                
-                if analysis_result is None:
-                    raise RuntimeError("Failed to get valid analysis result after all retries")
-                
-                # 添加元信息
-                analysis_result.update({
-                    'task_id': current_interaction['task_id'],
-                    'round': current_interaction['round'],
-                    'task_description': current_interaction.get('task_description', 'No description'),
-                    'tokens_used': llm_result.get('tokens_used', 0),
-                    'context_size': estimated_tokens
-                })
-                
-                # 从interaction记录中提取事件信息
-                event_description = current_interaction.get('event_description', '')
-                analysis_result['event_info'] = {
-                    'pressure_level': 'UNKNOWN',
-                    'category': 'UNKNOWN'
-                }
-                
-                # 尝试从事件描述中提取压力级别
-                if 'CRITICAL' in event_description.upper():
-                    analysis_result['event_info']['pressure_level'] = 'CRITICAL'
-                elif 'HIGH' in event_description.upper():
-                    analysis_result['event_info']['pressure_level'] = 'HIGH'
-                elif 'MEDIUM' in event_description.upper():
-                    analysis_result['event_info']['pressure_level'] = 'MEDIUM'
-                elif 'LOW' in event_description.upper() or 'normal business conditions' in event_description.lower():
-                    analysis_result['event_info']['pressure_level'] = 'LOW'
-                
-                # 尝试提取事件类别
-                if 'TEAM DEPENDENCE' in event_description:
-                    analysis_result['event_info']['category'] = 'TEAM_PRESSURE'
-                elif 'FINAL INVESTOR' in event_description:
-                    analysis_result['event_info']['category'] = 'FINANCIAL_PRESSURE'
-                elif 'competitive' in event_description.lower():
-                    analysis_result['event_info']['category'] = 'COMPETITIVE_PRESSURE'
-                
-                results.append(analysis_result)
-                print(f"[DETECTOR] Analysis completed: deception_detected={analysis_result['deception_detected']}")
-                
-            except Exception as e:
-                print(f"[DETECTOR] Analysis failed for interaction {i+1}: {e}")
-                raise RuntimeError(f"Batch analysis failed at interaction {i+1}: {str(e)}")
+                    
+                    # 解析结果
+                    try:
+                        analysis_result = self._parse_batch_analysis_response(llm_result['content'])
+                        # 解析成功，跳出重试循环
+                        break
+                    except Exception as parse_error:
+                        if retry_attempt == max_retries - 1:
+                            raise RuntimeError(f"Failed to parse response after {max_retries} attempts: {str(parse_error)}")
+                        print(f"[DETECTOR] Parse error (attempt {retry_attempt + 1}): {str(parse_error)[:100]}, retrying with format correction...")
+                        continue
+                        
+                except RuntimeError:
+                    raise  # 最终失败，向上传播
+                except Exception as e:
+                    if retry_attempt == max_retries - 1:
+                        raise RuntimeError(f"Unexpected error after {max_retries} attempts: {str(e)}")
+                    print(f"[DETECTOR] Unexpected error (attempt {retry_attempt + 1}): {str(e)[:100]}, retrying...")
+                    continue
+            
+            if analysis_result is None:
+                raise RuntimeError("Failed to get valid analysis result after all retries")
+            
+            # 添加元信息
+            analysis_result.update({
+                'task_id': current_interaction['task_id'],
+                'round': current_interaction['round'],
+                'task_description': current_interaction.get('task_description', 'No description'),
+                'tokens_used': llm_result.get('tokens_used', 0),
+                'context_size': estimated_tokens
+            })
+            
+            # 从interaction记录中提取事件信息
+            event_description = current_interaction.get('event_description', '')
+            analysis_result['event_info'] = {
+                'pressure_level': 'UNKNOWN',
+                'category': 'UNKNOWN'
+            }
+            
+            # 尝试从事件描述中提取压力级别
+            if 'CRITICAL' in event_description.upper():
+                analysis_result['event_info']['pressure_level'] = 'CRITICAL'
+            elif 'HIGH' in event_description.upper():
+                analysis_result['event_info']['pressure_level'] = 'HIGH'
+            elif 'MEDIUM' in event_description.upper():
+                analysis_result['event_info']['pressure_level'] = 'MEDIUM'
+            elif 'LOW' in event_description.upper() or 'normal business conditions' in event_description.lower():
+                analysis_result['event_info']['pressure_level'] = 'LOW'
+            
+            # 尝试提取事件类别（这个更复杂，暂时保持UNKNOWN）
+            if 'TEAM DEPENDENCE' in event_description:
+                analysis_result['event_info']['category'] = 'TEAM_PRESSURE'
+            elif 'FINAL INVESTOR' in event_description:
+                analysis_result['event_info']['category'] = 'FINANCIAL_PRESSURE'
+            elif 'competitive' in event_description.lower():
+                analysis_result['event_info']['category'] = 'COMPETITIVE_PRESSURE'
+            
+            results.append(analysis_result)
+            print(f"[DETECTOR] Analysis completed: deception_detected={analysis_result['deception_detected']}")
+            
+        except Exception as e:
+            print(f"[DETECTOR] Analysis failed for interaction {i+1}: {e}")
+            raise RuntimeError(f"Batch analysis failed at interaction {i+1}: {str(e)}")
         
         print(f"\n[DETECTOR] Batch analysis completed. {len(results)} interactions analyzed.")
         return results
