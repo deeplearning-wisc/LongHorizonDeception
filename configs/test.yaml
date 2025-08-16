@@ -82,4 +82,4 @@ manager_initial_state:
 # 记录和日志控制
 logging:
   enable_logger: true          # 启用详细的技术日志系统
-  enable_result_saver: true     # 启用完整交互记录保存bian
+  # enable_result_saver已删除 - ResultSaver现在强制启用，遵循fail-fast原则bian

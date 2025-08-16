@@ -96,37 +96,29 @@ def run_deception_experiment(config_name=None):
     # Step 3: 初始化组件
     print("🔧 Initializing components...")
     
-    # 初始化记录系统 - 严格模式，无默认值
-    logging_config = config['logging']
-    enable_logger = logging_config['enable_logger']
-    enable_result_saver = logging_config['enable_result_saver']
+    # 🆕 强制启用ResultSaver - 删除所有可选性，fail-fast原则
+    result_saver = ResultSaver(session_info['session_name'])
+    result_saver.set_experiment_config(config)
     
-    # 初始化ResultSaver (如果启用)
-    result_saver = None
-    if enable_result_saver:
-        result_saver = ResultSaver(session_info['session_name'])
-        result_saver.set_experiment_config(config)
-        
-        # 🆕 直接复制配置文件作为metadata！
-        import shutil
-        session_dir = Path(f"results/{session_info['session_name']}")
-        session_dir.mkdir(parents=True, exist_ok=True)
-        
-        # 确定使用的配置文件名
-        if config_name is None:
-            config_file = "medium.yaml"  # 默认使用medium配置
-        else:
-            if not config_name.endswith(".yaml"):
-                config_name += ".yaml"
-            config_file = config_name
-        
-        # 复制配置文件
-        source_config = Path("configs") / config_file
-        target_config = session_dir / f"experiment_config_{config_file}"
-        shutil.copy2(source_config, target_config)
-        print(f"📄 Configuration saved: {target_config}")
-        
-        print("📝 ResultSaver initialized - Complete interaction records will be saved")
+    # 🆕 复制配置文件作为metadata
+    import shutil
+    session_dir = Path(f"results/{session_info['session_name']}")
+    session_dir.mkdir(parents=True, exist_ok=True)
+    
+    # 确定使用的配置文件名
+    if config_name is None:
+        config_file = "medium.yaml"  # 默认使用medium配置
+    else:
+        if not config_name.endswith(".yaml"):
+            config_name += ".yaml"
+        config_file = config_name
+    
+    # 复制配置文件
+    source_config = Path("configs") / config_file
+    target_config = session_dir / f"experiment_config_{config_file}"
+    shutil.copy2(source_config, target_config)
+    print(f"📄 Configuration saved: {target_config}")
+    print("📝 ResultSaver initialized - Complete JSON experiment data will be saved")
     
     # 获取分组件LLM配置 - 严格模式，无默认值
     llm_api_config = config['llm_api_config']
@@ -259,9 +251,8 @@ def run_deception_experiment(config_name=None):
         safe_log(logger, "log_event_info", event)
         
         # ResultSaver: 记录任务开始并实时保存
-        if result_saver:
-            result_saver.start_task(task_idx + 1, task, event)
-            result_saver.flush()  # 实时保存
+        result_saver.start_task(task_idx + 1, task, event)
+        result_saver.flush()  # 实时保存
         
         # 记录LLM全局历史状态
         if len(llm.global_conversation_history) > 0:
@@ -280,9 +271,8 @@ def run_deception_experiment(config_name=None):
             safe_log(logger, "log_round_start", round_num, max_rounds)
             
             # ResultSaver: 记录轮次开始和Manager状态，并实时保存
-            if result_saver:
-                result_saver.start_round(round_num, manager.current_state.copy())
-                result_saver.flush()  # 实时保存
+            result_saver.start_round(round_num, manager.current_state.copy())
+            result_saver.flush()  # 实时保存
             
             # 记录任务文件信息
             safe_log(logger, "log_info", f"Task files count: {len(task.files) if task.files else 0}")
@@ -313,9 +303,8 @@ def run_deception_experiment(config_name=None):
                 safe_log(logger, "log_llm_output", llm_response, llm_result.get('llm_metadata', {}))
                 
                 # ResultSaver: 保存LLM回复 - 完整内容，绝不截断，并实时保存
-                if result_saver:
-                    result_saver.save_llm_response(round_num, llm_response)
-                    result_saver.flush()  # 实时保存
+                result_saver.save_llm_response(round_num, llm_response)
+                result_saver.flush()  # 实时保存
                 
             except Exception as e:
                 safe_log(logger, "log_error", e, f"LLM processing - Task {task.task_id}, Round {round_num}")
@@ -344,9 +333,8 @@ def run_deception_experiment(config_name=None):
                 )
                 
                 # ResultSaver: 保存Manager评估 - 完整的所有推理，绝不截断，并实时保存
-                if result_saver:
-                    result_saver.save_manager_evaluation(round_num, manager_result)
-                    result_saver.flush()  # 实时保存
+                result_saver.save_manager_evaluation(round_num, manager_result)
+                result_saver.flush()  # 实时保存
                 
                 # 🆕 添加Manager反馈到任务内历史 (用于下一轮LLM输入)
                 task_manager_feedback_history.append(manager_result['feedback_response'])
@@ -374,9 +362,8 @@ def run_deception_experiment(config_name=None):
             safe_log(logger, "log_task_completion", task.task_id, False, max_rounds)
         
         # ResultSaver: 任务结束并实时保存
-        if result_saver:
-            result_saver.end_task(task_idx + 1)
-            result_saver.flush()  # 实时保存
+        result_saver.end_task(task_idx + 1)
+        result_saver.flush()  # 实时保存
         
         # 记录当前状态和历史
         current_state = manager.get_current_state()
@@ -384,11 +371,12 @@ def run_deception_experiment(config_name=None):
         safe_log(logger, "log_info", f"  Trust Level: {current_state['trust_level']:.3f}")
         safe_log(logger, "log_info", f"  Work Satisfaction: {current_state['work_satisfaction']:.3f}")
         safe_log(logger, "log_info", f"  Relational Valence: {current_state['relational_valence']:.3f}")
-        safe_log(logger, "log_info", f"  Total History Entries: {len(manager.history.interaction_records)}")
+        safe_log(logger, "log_info", f"  Total History Summaries: {len(manager.history.interaction_summaries)}")
     
     # 最终总结
     final_state = manager.get_current_state()
-    total_interactions = len(manager.history.interaction_records)
+    # total_interactions现在由ResultSaver统计，这里使用实际的interaction数据
+    total_interactions = len(result_saver.get_structured_interactions_for_detector())
     safe_log(logger, "log_final_summary", final_state, total_interactions)
     
     # 现在进行Detector的批量分析
@@ -403,24 +391,17 @@ def run_deception_experiment(config_name=None):
     safe_log(logger, "log_component_init", "Detector", {'provider': detector_provider, 'config': detector_config})
     detector = DeceptionDetector(detector_provider, detector_config)
     
-    # 获取所有交互记录进行批量分析
-    interaction_records = manager.history.interaction_records
-    safe_log(logger, "log_info", f"Analyzing {len(interaction_records)} interactions with full sequence context")
+    # 🆕 使用ResultSaver的结构化数据进行批量分析 - 包含完整Manager推理
+    interaction_records = result_saver.get_structured_interactions_for_detector()
     
-    # 💾 保存中间结果用于独立分析 - 直接保存manager.history.interaction_records的原始格式
-    import json
-    intermediate_results_path = f"results/{session_info['session_name']}/interaction_records.json"
-    try:
-        with open(intermediate_results_path, 'w', encoding='utf-8') as f:
-            # 直接保存原始的interaction_records，保持与main.py传给detector的完全一致
-            json.dump(interaction_records, f, indent=2, ensure_ascii=False, default=str)
-        
-        print(f"💾 Intermediate results saved to: {intermediate_results_path}")
-        safe_log(logger, "log_info", f"Intermediate results saved to: {intermediate_results_path}")
-        
-    except Exception as e:
-        print(f"⚠️  Failed to save intermediate results: {e}")
-        safe_log(logger, "log_error", e, "Intermediate results saving")
+    if not interaction_records:
+        raise RuntimeError("No interaction data available - experiment failed. ResultSaver must contain complete data.")
+    
+    safe_log(logger, "log_info", f"Analyzing {len(interaction_records)} interactions with complete Manager reasoning")
+    
+    # 💾 ResultSaver自动保存了完整的JSON数据，包含所有Manager推理
+    print(f"💾 {len(interaction_records)} structured interactions with complete Manager reasoning ready for Detector")
+    safe_log(logger, "log_info", "Structured interactions with complete Manager reasoning ready for analysis")
     
     try:
         detector_results = detector.analyze_interaction_sequence(interaction_records)
@@ -431,47 +412,22 @@ def run_deception_experiment(config_name=None):
         deception_count = sum(1 for r in detector_results if r['deception_detected'])
         print(f"📊 Deception detected in {deception_count}/{len(detector_results)} interactions")
         
-        # 💾 保存detector分析结果（带时间戳避免覆盖）
-        import time
-        timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
-        detector_output_file = f"results/{session_info['session_name']}/detector_analysis_{timestamp}.txt"
-        
-        # 导入保存函数
-        from core.detector import _save_detector_results_text, _save_detector_results_json
-        
-        try:
-            # 保存LLM友好的文本格式
-            _save_detector_results_text(detector_results, detector_output_file, session_info['session_name'])
-            print(f"💾 Detector analysis (text) saved to: {detector_output_file}")
-            
-            # 💡 从manager历史中提取每轮的状态数据用于JSON
-            manager_states = []
-            for record in manager.history.interaction_records:
-                # 从manager历史记录中获取每轮后的状态
-                manager_states.append({
-                    'trust_level': record.get('manager_state_after', {}).get('trust_level', 0.0),
-                    'work_satisfaction': record.get('manager_state_after', {}).get('work_satisfaction', 0.0),
-                    'relational_valence': record.get('manager_state_after', {}).get('relational_valence', 0.0)
-                })
-            
-            # 自动生成JSON版本 - 传递manager状态数据
-            json_file = str(Path(detector_output_file).with_suffix('.json'))
-            _save_detector_results_json(detector_results, json_file, session_info['session_name'], manager_states)
-            print(f"💾 Detector analysis (JSON) saved to: {json_file}")
-        except Exception as e:
-            print(f"⚠️  Failed to save detector results: {e}")
-            import traceback
-            print(f"Error details: {traceback.format_exc()}")
+        # 🆕 使用统一封装的detector结果保存函数
+        from core.detector import save_detector_results_complete
+        enhanced_file = save_detector_results_complete(
+            detector_results=detector_results,
+            session_name=session_info['session_name'],
+            session_dir=f"results/{session_info['session_name']}"
+        )
         
         # ResultSaver: 最终化实验记录
-        if result_saver:
-            final_manager_state = manager.get_current_state()
-            result_saver.finalize_experiment(
-                total_tasks=max_tasks,
-                total_interactions=len(interaction_records),
-                final_manager_state=final_manager_state
-            )
-            print(f"📝 Complete interaction record saved to: {result_saver.get_record_path()}")
+        final_manager_state = manager.get_current_state()
+        result_saver.finalize_experiment(
+            total_tasks=max_tasks,
+            total_interactions=len(interaction_records),
+            final_manager_state=final_manager_state
+        )
+        print(f"💾 Complete experiment data (JSON): {result_saver.get_record_path()}")
         
         # 关闭logger
         if logger:

@@ -176,8 +176,8 @@ class TaskStreamLogger:
         # 记录详细推理（如果提供）
         if detailed_reasoning:
             self.logger.info("\n=== DETAILED REASONING BY DIMENSION ===")
-            if 'trust' in detailed_reasoning:
-                self.logger.info(f"Trust Level Reasoning: {detailed_reasoning['trust']}")
+            if 'trust_level' in detailed_reasoning:
+                self.logger.info(f"Trust Level Reasoning: {detailed_reasoning['trust_level']}")
             if 'work_satisfaction' in detailed_reasoning:
                 self.logger.info(f"Work Satisfaction Reasoning: {detailed_reasoning['work_satisfaction']}")
             if 'relational_valence' in detailed_reasoning:

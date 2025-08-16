@@ -6,6 +6,19 @@ import time
 import re
 from typing import Dict, Any, List, Optional
 from openai import OpenAI
+import openai
+try:
+    from tenacity import (
+        retry,
+        stop_after_attempt,
+        wait_random_exponential,
+        retry_if_exception_type
+    )
+    TENACITY_AVAILABLE = True
+except ImportError:
+    TENACITY_AVAILABLE = False
+    print("⚠️  Warning: tenacity library not installed. Rate limit handling disabled.")
+    print("   Install with: pip install tenacity")
 
 class UniversalLLMClient:
     """
@@ -37,9 +50,14 @@ class UniversalLLMClient:
         """初始化OpenAI客户端"""
         from pathlib import Path
         
-        # 严格模式，无默认值
-        api_key_env = self.config['api_key_env']
-        api_key = os.getenv(api_key_env)
+        # 支持两种配置方式：直接api_key或api_key_env环境变量名
+        if 'api_key' in self.config:
+            api_key = self.config['api_key']  # 直接从配置中获取（通常已经是环境变量值）
+        elif 'api_key_env' in self.config:
+            api_key_env = self.config['api_key_env']
+            api_key = os.getenv(api_key_env)
+        else:
+            raise ValueError("OpenAI configuration must include either 'api_key' or 'api_key_env'")
         
         # 如果环境变量中没有，尝试从项目根目录的.env文件读取
         if not api_key:
@@ -78,6 +96,77 @@ class UniversalLLMClient:
         })()
         
         print(f"[UNIVERSAL_LLM] Initialized OpenAI client with model: {self.model}")
+        
+        # 添加rate limit处理
+        if TENACITY_AVAILABLE:
+            self._setup_rate_limit_handling()
+        
+    def _setup_rate_limit_handling(self):
+        """设置OpenAI rate limit处理机制"""
+        
+        # 保存原始方法的引用
+        self._original_chat_create = self.client.chat.completions.create
+        
+        # 创建带重试的包装方法
+        @retry(
+            retry=retry_if_exception_type(openai.RateLimitError),
+            wait=wait_random_exponential(min=1, max=60),
+            stop=stop_after_attempt(6),
+            before_sleep=self._rate_limit_warning
+        )
+        def _chat_completion_with_backoff(**kwargs):
+            # 调用原始方法，避免递归
+            return self._original_chat_create(**kwargs)
+        
+        # 替换方法
+        self.client.chat.completions.create = _chat_completion_with_backoff
+    
+    def _rate_limit_warning(self, retry_state):
+        """Rate limit触发时的警告回调"""
+        attempt = retry_state.attempt_number
+        exception = retry_state.outcome.exception()
+        
+        if isinstance(exception, openai.RateLimitError):
+            wait_time = retry_state.next_action.sleep
+            print(f"🚨 [RATE LIMIT WARNING] OpenAI rate limit hit!")
+            print(f"   📊 Attempt: {attempt}/6")
+            print(f"   ⏱️  Waiting: {wait_time:.1f} seconds before retry")
+            print(f"   💡 Consider upgrading your OpenAI tier or reducing request frequency")
+            
+            # 如果连续多次触发，给出更强烈的警告
+            if attempt >= 3:
+                print(f"⚠️  [CRITICAL] Multiple rate limit hits detected!")
+                print(f"   🔧 Suggestions:")
+                print(f"      - Check your OpenAI usage tier and limits")
+                print(f"      - Reduce experiment frequency")
+                print(f"      - Consider using Azure instead of OpenAI")
+    
+    def _log_rate_limit_headers(self, response):
+        """从OpenAI响应中提取并显示rate limit信息"""
+        if hasattr(response, 'headers') and self.provider == 'openai':
+            headers = response.headers
+            
+            # 提取rate limit信息
+            limit_requests = headers.get('x-ratelimit-limit-requests')
+            remaining_requests = headers.get('x-ratelimit-remaining-requests')
+            limit_tokens = headers.get('x-ratelimit-limit-tokens')
+            remaining_tokens = headers.get('x-ratelimit-remaining-tokens')
+            reset_requests = headers.get('x-ratelimit-reset-requests')
+            reset_tokens = headers.get('x-ratelimit-reset-tokens')
+            
+            if limit_requests and remaining_requests:
+                requests_usage = (int(limit_requests) - int(remaining_requests)) / int(limit_requests) * 100
+                if requests_usage > 80:  # 超过80%使用率时警告
+                    print(f"⚠️  [RATE LIMIT] Request usage: {requests_usage:.1f}% ({remaining_requests}/{limit_requests} remaining)")
+                    if reset_requests:
+                        print(f"   🔄 Resets in: {reset_requests}")
+            
+            if limit_tokens and remaining_tokens:
+                tokens_usage = (int(limit_tokens) - int(remaining_tokens)) / int(limit_tokens) * 100
+                if tokens_usage > 80:  # 超过80%使用率时警告  
+                    print(f"⚠️  [RATE LIMIT] Token usage: {tokens_usage:.1f}% ({remaining_tokens}/{limit_tokens} remaining)")
+                    if reset_tokens:
+                        print(f"   🔄 Resets in: {reset_tokens}")
     
     def _init_azure(self):
         """直接初始化Azure客户端 - 使用配置参数"""
@@ -188,79 +277,84 @@ class UniversalLLMClient:
             return {'success': False, 'error': f'Unsupported provider: {self.provider}'}
     
     def _truncate_messages_by_task(self, messages: List[Dict[str, str]], attempt: int) -> List[Dict[str, str]]:
-        """按task为单位删除messages，每次删除一个完整task的所有消息"""
-        if len(messages) <= 2:  # 至少保留当前任务
-            return messages
+        """平方增长task删除：第1次删1个task，第2次删2个task，第3次删3个task，第4次删4个task，然后error"""
+        if len(messages) == 0:
+            raise RuntimeError("Cannot truncate empty message list")
         
         truncated = messages.copy()
         original_count = len(messages)
         
-        if attempt > 2:
-            # 第3次还溢出就直接error
-            raise RuntimeError(f"Context overflow persists after removing 2 tasks, cannot proceed")
+        # 最多尝试4次，平方增长删除
+        max_attempts = 4
+        if attempt > max_attempts:
+            raise RuntimeError(f"Context overflow persists after {max_attempts} attempts with quadratic task removal, cannot proceed")
         
-        print(f"[UNIVERSAL_LLM] Attempt {attempt}: Removing 1 complete task from message history")
+        # 更激进的累积删除：attempt 1删2个task，attempt 2再删4个task，attempt 3再删6个task，attempt 4再删8个task
+        tasks_to_remove = attempt * 2
         
-        # 查找最早的task开头并删除该task的所有消息
-        task_removed = False
-        removed_count = 0
-        target_task_id = None
+        print(f"[UNIVERSAL_LLM] Attempt {attempt}/{max_attempts}: Removing {tasks_to_remove} complete tasks (quadratic progression)")
         
-        # 从头开始找task标记：如 "[TASK_01 Round 1]"
-        i = 0
-        while i < len(truncated) and len(truncated) > 2:
-            msg_content = truncated[i]['content']
+        # 删除指定数量的完整tasks
+        removed_task_count = 0
+        total_removed_messages = 0
+        
+        for task_num in range(tasks_to_remove):
+            # 查找最早的task开头并删除该task的所有消息
+            task_removed = False
+            target_task_id = None
             
-            # 找到task开头标记 - 匹配 [XXX Round 1] 格式
-            if 'Round 1]' in msg_content and msg_content.startswith('['):
-                # 提取task ID - 格式: [MARKET-SIZE-ANALYSIS Round 1]
-                task_match = re.search(r'\[([A-Z\-]+)\s+Round\s+1\]', msg_content)
-                if task_match:
-                    target_task_id = task_match.group(1)
-                    print(f"[UNIVERSAL_LLM] Found task start: {target_task_id}")
-                    
-                    # 删除该task的所有消息
-                    while i < len(truncated) and len(truncated) > 2:
-                        current_msg = truncated[i]['content']
+            # 从头开始找task标记：如 "[TASK_01 Round 1]"
+            i = 0
+            while i < len(truncated):
+                msg_content = truncated[i]['content']
+                
+                # 找到task开头标记 - 匹配 [XXX Round 1] 格式
+                if 'Round 1]' in msg_content and msg_content.startswith('['):
+                    # 提取task ID - 格式: [MARKET-SIZE-ANALYSIS Round 1]
+                    task_match = re.search(r'\[([A-Z\-]+)\s+Round\s+1\]', msg_content)
+                    if task_match:
+                        target_task_id = task_match.group(1)
+                        print(f"[UNIVERSAL_LLM] Removing task {task_num + 1}/{tasks_to_remove}: {target_task_id}")
                         
-                        # 检查是否还是同一个task - 匹配 [XXX Round N] 格式
-                        current_task_match = re.search(r'\[([A-Z\-]+)\s+Round\s+\d+\]', current_msg)
-                        if current_task_match:
-                            current_task_id = current_task_match.group(1)
-                            # 如果是不同的task，停止删除
-                            if current_task_id != target_task_id:
-                                break
+                        # 删除该task的所有消息
+                        task_message_count = 0
+                        while i < len(truncated):
+                            current_msg = truncated[i]['content']
+                            
+                            # 检查是否还是同一个task - 匹配 [XXX Round N] 格式
+                            current_task_match = re.search(r'\[([A-Z\-]+)\s+Round\s+\d+\]', current_msg)
+                            if current_task_match:
+                                current_task_id = current_task_match.group(1)
+                                # 如果是不同的task，停止删除
+                                if current_task_id != target_task_id:
+                                    break
+                            
+                            # 删除当前消息（属于target task或者是response/feedback）
+                            truncated.pop(i)
+                            task_message_count += 1
+                            total_removed_messages += 1
+                            # i不需要+1，因为pop后下一个元素会移到当前位置
                         
-                        # 删除当前消息（属于target task或者是response/feedback）
-                        truncated.pop(i)
-                        removed_count += 1
-                        # i不需要+1，因为pop后下一个元素会移到当前位置
-                    
-                    task_removed = True
-                    break
-            else:
-                i += 1
+                        print(f"[UNIVERSAL_LLM] Task {target_task_id}: removed {task_message_count} messages")
+                        task_removed = True
+                        removed_task_count += 1
+                        break
+                else:
+                    i += 1
+            
+            if not task_removed:
+                # FAIL-FAST: 如果找不到task标记，说明数据格式错误，立即报错
+                raise RuntimeError(f"Unable to find task marker for removal attempt {task_num + 1}/{tasks_to_remove}. "
+                                 f"Message format may be corrupted or incompatible. "
+                                 f"Current messages: {len(truncated)}, Expected task format: [TASK-ID Round 1]")
         
-        if not task_removed:
-            # 如果没找到task标记，就简单删除前面一半的消息
-            messages_to_remove = max(5, len(truncated) // 2)
-            for _ in range(messages_to_remove):
-                if len(truncated) > 2:
-                    truncated.pop(0)
-                    removed_count += 1
-            print(f"[UNIVERSAL_LLM] No task markers found, removed {removed_count} messages from start")
-        
-        print(f"[UNIVERSAL_LLM] Removed {removed_count} messages, {len(truncated)} messages remaining")
+        print(f"[UNIVERSAL_LLM] Summary: removed {removed_task_count} complete tasks, {total_removed_messages} total messages")
         print(f"[UNIVERSAL_LLM] Original: {original_count} messages -> After truncation: {len(truncated)} messages")
         
         # 显示剩余context的前50个字符
         if len(truncated) > 0:
             first_msg_preview = truncated[0]['content'][:50].replace('\n', ' ')
             print(f"[UNIVERSAL_LLM] Remaining context starts with: '{first_msg_preview}...'")
-        
-        # 统计删除了多少个完整的tasks
-        if target_task_id:
-            print(f"[UNIVERSAL_LLM] Deleted complete task: {target_task_id} (attempt {attempt}/2)")
         
         return truncated
     
@@ -296,8 +390,11 @@ class UniversalLLMClient:
             
             print(f"[{caller}] Using: {call_params['model']}")
             
-            # API调用
+            # API调用 (已经包含rate limit处理)
             response = self.client.chat.completions.create(**call_params)
+            
+            # 监控rate limit状态
+            self._log_rate_limit_headers(response)
             
             # 格式化返回结果，匹配Unified_LLM_Handler格式
             content = response.choices[0].message.content

@@ -25,15 +25,15 @@ class ManagerHistory:
             
         self.summary_level = summary_level
         self.llm_client = llm_client
-        self.interaction_records: List[Dict[str, Any]] = []  # 原始完整记录
+        # interaction_records机制已删除 - Manager只保留summaries用于历史压缩
         self.interaction_summaries: List[str] = []  # 根据level压缩的summary
     
     def add_interaction_summary(self, task_id: str, round_num: int, task_description: str, 
                               event_description: str, llm_response_preview: str, 
                               manager_feedback: str):
-        """添加交互记录 - 存储原始信息，同时生成对应level的summary"""
+        """添加交互记录 - 只生成summary，不再存储原始records"""
         
-        # 1. 存储完整的原始记录
+        # 构建临时记录用于生成summary
         interaction_record = {
             'task_id': task_id,
             'round': round_num,
@@ -43,9 +43,8 @@ class ManagerHistory:
             'manager_feedback': manager_feedback,
             'timestamp': time.time()
         }
-        self.interaction_records.append(interaction_record)
         
-        # 2. 使用LLM根据summary_level生成对应的summary
+        # 使用LLM根据summary_level生成对应的summary
         summary = self._generate_llm_summary(interaction_record)
         self.interaction_summaries.append(summary)
     
@@ -353,9 +352,9 @@ Original context below:
         self.current_state.update(new_state)
         
         # 9. 记录历史
-        # 计算当前task的round数
+        # 计算当前task的round数 - 基于summaries
         task_id = getattr(task, 'task_id', 'unknown')
-        current_round = len([r for r in self.history.interaction_records if r['task_id'] == task_id]) + 1
+        current_round = len([s for s in self.history.interaction_summaries if task_id in s]) + 1
         
         self.history.add_interaction_summary(
             task_id=task_id,
@@ -366,14 +365,7 @@ Original context below:
             manager_feedback=feedback            # 完整存储，不截断
         )
         
-        # 🆕 添加Manager状态到最后一个interaction_record中（用于JSON分析）
-        if self.history.interaction_records:
-            last_record = self.history.interaction_records[-1]
-            last_record['manager_state_after'] = {
-                'trust_level': new_state['trust_level'],
-                'work_satisfaction': new_state['work_satisfaction'], 
-                'relational_valence': new_state['relational_valence']
-            }
+        # Manager状态现在通过ResultSaver记录，不再维护interaction_records
         
         # 10. 返回结果 - 包含详细推理
         detailed_reasoning = new_state.pop('detailed_reasoning', {})
@@ -412,7 +404,7 @@ Original context below:
                     raise RuntimeError(f"Invalid TRUST_LEVEL format: {line}")
             
             elif line.startswith('TRUST_REASONING:'):
-                detailed_reasoning['trust'] = line.split(':', 1)[1].strip()
+                detailed_reasoning['trust_level'] = line.split(':', 1)[1].strip()
             
             # 解析工作满意度相关
             elif line.startswith('WORK_SATISFACTION:'):

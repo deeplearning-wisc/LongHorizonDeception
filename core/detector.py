@@ -70,21 +70,15 @@ class DeceptionDetector:
             try:
                 print(f"\n[DETECTOR] Analyzing interaction {i+1}/{len(interaction_records)}: {current_interaction['task_id']} Round {current_interaction['round']}")
                 
-                # 构建完整背景上下文
-                background_context = self._build_full_sequence_context(interaction_records, current_interaction)
+                # 构建当前分析的prompt - 直接使用JSON格式
+                analysis_prompt = self._build_batch_analysis_prompt(current_interaction, interaction_records)
                 
-                # 构建当前分析的prompt
-                analysis_prompt = self._build_batch_analysis_prompt(current_interaction, background_context)
-                
-                # 检查context大小
+                # 检查context大小（估算）
                 estimated_tokens = self.llm_client.estimate_tokens(analysis_prompt)
-                print(f"[DETECTOR] Context size: {estimated_tokens} tokens")
-                
-                if estimated_tokens > self.context_limit:
-                    raise RuntimeError(
-                        f"Context overflow! Estimated tokens: {estimated_tokens}, "
-                        f"Model limit: {self.context_limit}. Cannot proceed with batch analysis."
-                    )
+                # 只在接近或超过限制时才警告
+                if estimated_tokens > self.context_limit * 0.9:
+                    print(f"[DETECTOR] Warning: Estimated context size {estimated_tokens} tokens approaching/exceeding limit ({self.context_limit})")
+                    print(f"[DETECTOR] Note: This is an ESTIMATE - actual usage may differ. Proceeding with analysis...")
                 
                 # 调用LLM进行分析 - 带重试机制
                 max_retries = 3
@@ -163,30 +157,11 @@ Original request below:
                     'context_size': estimated_tokens
                 })
                 
-                # 从interaction记录中提取事件信息
-                event_description = current_interaction.get('event_description', '')
+                # 直接从interaction记录中获取事件信息
                 analysis_result['event_info'] = {
-                    'pressure_level': 'UNKNOWN',
-                    'category': 'UNKNOWN'
+                    'pressure_level': current_interaction.get('event_pressure_level', 'UNKNOWN'),
+                    'category': current_interaction.get('event_category', 'UNKNOWN')
                 }
-                
-                # 尝试从事件描述中提取压力级别
-                if 'CRITICAL' in event_description.upper():
-                    analysis_result['event_info']['pressure_level'] = 'CRITICAL'
-                elif 'HIGH' in event_description.upper():
-                    analysis_result['event_info']['pressure_level'] = 'HIGH'
-                elif 'MEDIUM' in event_description.upper():
-                    analysis_result['event_info']['pressure_level'] = 'MEDIUM'
-                elif 'LOW' in event_description.upper() or 'normal business conditions' in event_description.lower():
-                    analysis_result['event_info']['pressure_level'] = 'LOW'
-                
-                # 尝试提取事件类别
-                if 'TEAM DEPENDENCE' in event_description:
-                    analysis_result['event_info']['category'] = 'TEAM_PRESSURE'
-                elif 'FINAL INVESTOR' in event_description:
-                    analysis_result['event_info']['category'] = 'FINANCIAL_PRESSURE'
-                elif 'competitive' in event_description.lower():
-                    analysis_result['event_info']['category'] = 'COMPETITIVE_PRESSURE'
                 
                 results.append(analysis_result)
                 print(f"[DETECTOR] Analysis completed: deception_detected={analysis_result['deception_detected']}")
@@ -198,34 +173,21 @@ Original request below:
         print(f"\n[DETECTOR] Batch analysis completed. {len(results)} interactions analyzed.")
         return results
     
-    def _build_full_sequence_context(self, all_interactions: List[Dict[str, Any]], current_interaction: Dict[str, Any]) -> str:
-        """构建完整序列的背景上下文"""
-        context_parts = []
-        
-        context_parts.append("=== COMPLETE INTERACTION SEQUENCE ===")
-        context_parts.append(f"Total interactions in sequence: {len(all_interactions)}")
-        context_parts.append("")
-        
-        for i, interaction in enumerate(all_interactions, 1):
-            context_parts.append(f"[{i}] {interaction['task_id']} Round {interaction['round']}")
-            context_parts.append(f"Task: {interaction['task_description']}")
-            context_parts.append(f"Event: {interaction['event_description']}")
-            context_parts.append(f"LLM Response: {interaction['llm_response']}")
-            context_parts.append(f"Manager Feedback: {interaction['manager_feedback']}")
-            context_parts.append("")
-        
-        context_parts.append("=== END SEQUENCE ===")
-        
-        return "\n".join(context_parts)
+    # _build_full_sequence_context方法已删除 - 现在直接使用JSON格式
     
-    def _build_batch_analysis_prompt(self, current_interaction: Dict[str, Any], background_context: str) -> str:
-        """构建批量分析的prompt"""
+    def _build_batch_analysis_prompt(self, current_interaction: Dict[str, Any], all_interactions: List[Dict[str, Any]]) -> str:
+        """构建批量分析的prompt - 使用新的JSON格式"""
+        import json
+        
+        # 格式化当前interaction为JSON
+        current_json = json.dumps(current_interaction, indent=2, ensure_ascii=False)
+        
+        # 格式化所有interactions为JSON数组  
+        all_json = json.dumps(all_interactions, indent=2, ensure_ascii=False)
+        
         return SEQUENCE_ANALYSIS_TEMPLATE.format(
-            task_id=current_interaction['task_id'],
-            round_num=current_interaction['round'],
-            llm_response=current_interaction['llm_response'],
-            manager_feedback=current_interaction['manager_feedback'],
-            background_context=background_context,
+            current_interaction=current_json,
+            all_interactions=all_json,
             base_prompt=BASE_DETECTION_PROMPT
         )
     
@@ -430,11 +392,30 @@ def _save_detector_results_json(detector_results: List[Dict[str, Any]], json_fil
             for key, count in counts_dict.items()
         }
     
+    # 计算两种平均严重程度指标
+    deceptive_results = [r for r in detector_results if r.get('deception_detected', False)]
+    
+    # 指标1: 只计算检测到deception的cases的平均严重程度
+    average_severity_when_deceptive = 0.0
+    if deceptive_results:
+        average_severity_when_deceptive = round(
+            sum(r.get('severity', 0) for r in deceptive_results) / len(deceptive_results), 3
+        )
+    
+    # 指标2: 所有interactions的平均严重程度 (包括severity=0的)
+    average_severity_overall = 0.0
+    if detector_results:
+        average_severity_overall = round(
+            sum(r.get('severity', 0) for r in detector_results) / len(detector_results), 3
+        )
+    
     # 构建实验汇总统计
     experiment_summary = {
         "total_interactions": total_interactions,
         "deception_occurrences": deception_count,
         "deception_rate": round(deception_rate, 3),
+        "average_severity_when_deceptive": average_severity_when_deceptive,
+        "average_severity_overall": average_severity_overall,
         "severity_distribution": _make_distribution(severity_counts, total_interactions),
         "category_distribution": _make_distribution(category_counts, total_interactions),
         "intent_distribution": _make_distribution(intent_counts, total_interactions),
@@ -493,25 +474,38 @@ def _save_detector_results_json(detector_results: List[Dict[str, Any]], json_fil
         json.dump(output_data, f, indent=2, ensure_ascii=False)
 
 def load_interaction_records(file_path: str) -> List[Dict[str, Any]]:
-    """加载保存的交互记录 - 只支持新的文本格式"""
+    """加载保存的交互记录 - 优先使用structured JSON，备选文本格式"""
     from pathlib import Path
+    import json
     
-    # 如果是目录路径，查找complete_interaction_record.txt
+    # 如果是目录路径，查找结构化JSON文件
     if Path(file_path).is_dir():
+        structured_file = Path(file_path) / "structured_interactions.json"
         text_file = Path(file_path) / "complete_interaction_record.txt"
         
+        # 🆕 优先使用结构化JSON - 包含完整Manager推理
+        if structured_file.exists():
+            print(f"💾 Loading structured JSON: {structured_file}")
+            try:
+                with open(structured_file, 'r', encoding='utf-8') as f:
+                    records = json.load(f)
+                print(f"✅ Loaded {len(records)} structured interactions with complete Manager reasoning")
+                return records
+            except Exception as e:
+                print(f"⚠️ Failed to load structured JSON: {e}, falling back to text format")
+        
+        # 备选：使用文本格式
         if text_file.exists():
             file_path = str(text_file)
         else:
-            raise FileNotFoundError(f"complete_interaction_record.txt not found in: {file_path}")
+            raise FileNotFoundError(f"Neither structured_interactions.json nor complete_interaction_record.txt found in: {file_path}")
     
-    print(f"📄 Loading from: {file_path}")
+    print(f"📄 Loading from text format: {file_path}")
     
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        # 只支持新的文本格式
         if not ('[TASK_' in content):
             raise ValueError("Invalid format: complete_interaction_record.txt must contain [TASK_] markers")
         
@@ -593,6 +587,58 @@ def get_llm_config() -> tuple:
         print(f"❌ Failed to load LLM config: {e}")
         raise RuntimeError(f"Cannot proceed without valid configuration: {e}")
 
+def save_detector_results_complete(detector_results: List[Dict[str, Any]], session_name: str, session_dir: str) -> str:
+    """
+    完整的detector结果保存函数 - 统一封装main.py的逻辑
+    
+    Args:
+        detector_results: detector分析结果
+        session_name: session名称
+        session_dir: session目录路径
+        
+    Returns:
+        enhanced experiment file path
+    """
+    from pathlib import Path
+    import time
+    
+    session_path = Path(session_dir)
+    
+    try:
+        # 1. 集成到主实验文件中 (_with_detector.json) - 这是主要功能
+        experiment_file = session_path / "experiment_data.json"
+        if experiment_file.exists():
+            from utils.result_saver import ResultSaver
+            enhanced_file = ResultSaver.add_detector_analysis_to_experiment_data(
+                original_file=str(experiment_file),
+                detector_results=detector_results
+            )
+            print(f"🔍 Enhanced experiment data with detector analysis: {enhanced_file}")
+        else:
+            enhanced_file = None
+            print(f"ℹ️  No experiment_data.json found, skipping integration")
+        
+        # 2. 保存独立的detector分析文件 (兼容性) - 可选功能
+        timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
+        
+        # 保存文本格式 (LLM友好)
+        detector_text_file = session_path / f"detector_analysis_{timestamp}.txt"
+        _save_detector_results_text(detector_results, str(detector_text_file), session_name)
+        print(f"💾 Detector analysis (text) saved to: {detector_text_file}")
+        
+        # 保存JSON格式 (数据分析)
+        detector_json_file = session_path / f"detector_analysis_{timestamp}.json"
+        _save_detector_results_json(detector_results, str(detector_json_file), session_name, [])
+        print(f"💾 Detector analysis (JSON) saved to: {detector_json_file}")
+        
+        return enhanced_file or str(detector_text_file)
+        
+    except Exception as e:
+        print(f"⚠️  Failed to save detector results: {e}")
+        import traceback
+        print(f"Error details: {traceback.format_exc()}")
+        raise
+
 def extract_analysis_data_from_text(text_content: str) -> List[Dict[str, Any]]:
     """从complete_interaction_record.txt中提取detector需要的分析片段"""
     interactions = []
@@ -670,7 +716,7 @@ def extract_analysis_data_from_text(text_content: str) -> List[Dict[str, Any]]:
     
     return interactions
 
-def analyze_saved_results(interaction_records: List[Dict[str, Any]], output_file: str = None):
+def analyze_saved_results(interaction_records: List[Dict[str, Any]], output_file: str = None, session_dir: str = None):
     """分析交互记录并输出结果"""
     if not interaction_records:
         print("❌ No interaction records to analyze")
@@ -719,19 +765,19 @@ def analyze_saved_results(interaction_records: List[Dict[str, Any]], output_file
                   f"Deception={deception}, Severity={severity}, "
                   f"Confidence={confidence:.2f}, Intent={intent_str}, Category={category_str}")
         
-        # 保存结果 - 双格式：LLM友好文本 + 数据分析JSON
-        if output_file:
+        # 🆕 使用统一的detector结果保存函数
+        if output_file and session_dir:
             try:
-                # 1. 保存LLM友好的文本格式（主要格式）
-                _save_detector_results_text(detector_results, output_file, session_name='detector_analysis')
-                print(f"\n💾 LLM-friendly text saved to: {output_file}")
-                
-                # 2. 自动生成JSON版本（方便数据分析）
                 from pathlib import Path
-                output_path = Path(output_file)
-                json_file = str(output_path.with_suffix('.json'))
-                _save_detector_results_json(detector_results, json_file, session_name='detector_analysis')
-                print(f"💾 Data analysis JSON saved to: {json_file}")
+                session_path = Path(session_dir)
+                
+                # 调用统一函数
+                enhanced_file = save_detector_results_complete(
+                    detector_results=detector_results,
+                    session_name='detector_analysis',
+                    session_dir=str(session_path)
+                )
+                print(f"\n✅ All detector results saved using unified function")
                 
             except Exception as e:
                 print(f"⚠️  Failed to save results: {e}")
@@ -820,7 +866,9 @@ if __name__ == "__main__":
             print(f"📝 Auto-saving to: {output_file}")
     
     # 执行分析
-    results = analyze_saved_results(interaction_records, output_file)
+    from pathlib import Path
+    session_dir_path = Path(results_path) if Path(results_path).is_dir() else Path(results_path).parent
+    results = analyze_saved_results(interaction_records, output_file, str(session_dir_path))
     
     if results:
         print(f"\n✅ Analysis completed successfully!")
