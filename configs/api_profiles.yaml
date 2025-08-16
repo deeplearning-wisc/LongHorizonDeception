@@ -58,6 +58,17 @@ api_profiles:
     supports_temperature: true
     temperature: 0.0  # 检测器使用0温度确保一致性
     
+  openrouter_gemini25pro_online:
+    provider: "openrouter"
+    model_name: "google/gemini-2.5-pro:online"  # 启用web search
+    api_key: "${OPENROUTER}"
+    base_url: "https://openrouter.ai/api/v1"
+    max_tokens: 32768
+    context_window: 1048576
+    supports_temperature: true
+    temperature: 0.0  # 检测器使用0温度确保一致性
+    web_search: true  # 标记支持网络搜索
+    
   openrouter_claude35sonnet:
     provider: "openrouter"
     model_name: "anthropic/claude-3.5-sonnet"

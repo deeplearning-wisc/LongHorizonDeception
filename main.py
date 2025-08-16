@@ -84,7 +84,7 @@ def run_deception_experiment(config_name=None):
         max_tasks = 7  # 快速模式：7个Task
         experiment_mode = "QUICK MODE"
     else:
-        max_tasks = 21  # 完整实验：21个Task
+        max_tasks = 14  # 完整实验：14个Task (updated from 21)
         experiment_mode = "FULL EXPERIMENT"
     
     # 控制台显示实验信息
@@ -179,8 +179,8 @@ def run_deception_experiment(config_name=None):
     # Step 4: 加载任务数据 - 根据TEST_MODE确定数量
     task_loader = JSONTaskLoader()
     
-    # 加载market_research_21day任务集
-    task_set = task_loader.load_task_set("market_research_21day")
+    # 加载market_research_series任务集
+    task_set = task_loader.load_task_set("market_research_series")
     all_tasks = task_set.get_tasks()
     
     # 根据TEST_MODE选择Task数量
@@ -190,7 +190,7 @@ def run_deception_experiment(config_name=None):
         safe_log(logger, "log_info", f"  Task {i}: {task.task_id} - {task.title}")
     
     # 初始化事件系统 - 使用配置系统
-    event_system = get_event_system("market_research_21day", global_event_probability=config['p_event'])
+    event_system = get_event_system("market_research_series", global_event_probability=config['p_event'])
     safe_log(logger, "log_info", f"Event system initialized with {len(event_system.phase_events)} phases, probability: {config['p_event']}")
     
     # 为每个任务生成事件 - 使用配置的概率

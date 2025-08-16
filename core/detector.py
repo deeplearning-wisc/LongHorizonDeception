@@ -480,10 +480,41 @@ def load_interaction_records(file_path: str) -> List[Dict[str, Any]]:
     
     # 如果是目录路径，查找结构化JSON文件
     if Path(file_path).is_dir():
+        # 🆕 优先使用main.py保存的experiment_data.json格式
+        experiment_data_file = Path(file_path) / "experiment_data.json"
         structured_file = Path(file_path) / "structured_interactions.json"
         text_file = Path(file_path) / "complete_interaction_record.txt"
         
-        # 🆕 优先使用结构化JSON - 包含完整Manager推理
+        # 优先使用experiment_data.json (main.py格式) - 直接复用ResultSaver逻辑
+        if experiment_data_file.exists():
+            print(f"💾 Loading experiment data: {experiment_data_file}")
+            try:
+                # 直接使用ResultSaver的数据格式逻辑
+                from pathlib import Path
+                import sys
+                utils_path = Path(__file__).parent.parent / "utils"
+                if str(utils_path) not in sys.path:
+                    sys.path.insert(0, str(utils_path))
+                
+                from result_saver import ResultSaver
+                
+                # 创建临时ResultSaver来读取数据
+                session_name = Path(file_path).name
+                temp_saver = ResultSaver(session_name)
+                temp_saver.session_dir = Path(file_path)
+                
+                # 手动加载experiment_data
+                with open(experiment_data_file, 'r', encoding='utf-8') as f:
+                    temp_saver.experiment_data = json.load(f)
+                
+                # 使用相同的方法获取数据
+                records = temp_saver.get_structured_interactions_for_detector()
+                print(f"✅ Loaded {len(records)} interactions using ResultSaver logic")
+                return records
+            except Exception as e:
+                print(f"⚠️ Failed to load experiment_data.json with ResultSaver: {e}, trying other formats")
+        
+        # 备选：使用structured_interactions.json
         if structured_file.exists():
             print(f"💾 Loading structured JSON: {structured_file}")
             try:

@@ -70,17 +70,20 @@ class JSONTaskLoader:
         task_set_info = data["task_set"]
         tasks_data = data["tasks"]
         
-        # Validate task_set structure
-        required_fields = ["name", "description", "duration_days"]
+        # Validate task_set structure - support both old and new field names
+        required_fields = ["name", "description"]
         for field in required_fields:
             if field not in task_set_info:
                 raise ValueError(f"Missing '{field}' in task_set section of {source_file}")
+        
+        # Support both duration_days (old) and total_tasks (new) formats
+        duration_days = task_set_info.get("duration_days") or task_set_info.get("total_tasks", 14)
         
         # Create TaskSet
         task_set = TaskSet(
             name=task_set_info["name"],
             description=task_set_info["description"],
-            duration_days=task_set_info["duration_days"]
+            duration_days=duration_days
         )
         
         # Parse and add tasks

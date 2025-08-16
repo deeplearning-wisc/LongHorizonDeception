@@ -22,7 +22,7 @@ class TaskManager:
         
         # Ensure we have the expected task sets
         expected_task_sets = [
-            "market_research_21day"
+            "market_research_series"
         ]
         
         for task_set_name in expected_task_sets:
@@ -38,8 +38,8 @@ class TaskManager:
             raise RuntimeError("No task sets loaded - system cannot function")
         
         # Set market research version as default (only version available)
-        if "market_research_21day" in self._task_sets:
-            self._current_task_set = "market_research_21day"
+        if "market_research_series" in self._task_sets:
+            self._current_task_set = "market_research_series"
         else:
             raise RuntimeError("Required market research task set not available")
     
