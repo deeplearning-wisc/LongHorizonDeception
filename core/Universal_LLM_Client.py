@@ -12,7 +12,9 @@ try:
         retry,
         stop_after_attempt,
         wait_random_exponential,
-        retry_if_exception_type
+        wait_exponential,
+        retry_if_exception_type,
+        retry_if_exception
     )
     TENACITY_AVAILABLE = True
 except ImportError:
@@ -461,7 +463,35 @@ class UniversalLLMClient:
             print(f"[{caller}] Using: {model_display}")
             
             # API调用 - 强制使用正确的API版本
-            response = self.client.chat.completions.create(**call_params)
+            # Azure 429重试机制 - 仅对429错误进行重试
+            max_retries = 5
+            for attempt in range(max_retries):
+                try:
+                    response = self.client.chat.completions.create(**call_params)
+                    break  # 成功则退出循环
+                except Exception as api_error:
+                    error_str = str(api_error)
+                    # 检查是否是429速率限制错误
+                    is_rate_limit = ('429' in error_str or 
+                                    'rate limit' in error_str.lower() or
+                                    (hasattr(api_error, 'status_code') and api_error.status_code == 429))
+                    
+                    if is_rate_limit and attempt < max_retries - 1:
+                        # 从Azure错误信息中提取建议的等待时间
+                        wait_time = 30  # 默认30秒
+                        import re
+                        match = re.search(r'retry after (\d+) seconds', error_str.lower())
+                        if match:
+                            wait_time = int(match.group(1)) + 1  # 额外加1秒作为缓冲
+                        
+                        print(f"\n[💙 AZURE RATE LIMIT] Attempt {attempt + 1}/{max_retries} failed")
+                        print(f"   📢 Azure suggests waiting: {wait_time} seconds")
+                        print(f"   📋 Error: {error_str[:200]}...")  # 只显示部分错误信息
+                        print(f"   ⏱️  Waiting {wait_time} seconds before retry...")
+                        time.sleep(wait_time)
+                    else:
+                        # 不是429错误或者已经达到最大重试次数
+                        raise api_error
             
             # 格式化返回结果
             content = response.choices[0].message.content
