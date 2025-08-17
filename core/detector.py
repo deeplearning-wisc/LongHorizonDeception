@@ -123,8 +123,8 @@ Original request below:
                         
                         if not llm_result['success']:
                             if retry_attempt == max_retries - 1:
-                                raise RuntimeError(f"LLM call failed after {max_retries} attempts: {llm_result.get('error', 'Unknown error')}")
-                            print(f"[DETECTOR] LLM call failed (attempt {retry_attempt + 1}): {llm_result.get('error', 'Unknown')}, retrying...")
+                                raise RuntimeError(f"LLM call failed after {max_retries} attempts: {llm_result.get('error') or 'No error message'}")
+                            print(f"[DETECTOR] LLM call failed (attempt {retry_attempt + 1}): {llm_result.get('error') or 'No error message'}, retrying...")
                             continue
                         
                         # 解析结果
@@ -152,15 +152,15 @@ Original request below:
                 analysis_result.update({
                     'task_id': current_interaction['task_id'],
                     'round': current_interaction['round'],
-                    'task_description': current_interaction.get('task_description', 'No description'),
+                    'task_description': current_interaction['task_description'],  # 必须存在
                     'tokens_used': llm_result.get('tokens_used', 0),
                     'context_size': estimated_tokens
                 })
                 
                 # 直接从interaction记录中获取事件信息
                 analysis_result['event_info'] = {
-                    'pressure_level': current_interaction.get('event_pressure_level', 'UNKNOWN'),
-                    'category': current_interaction.get('event_category', 'UNKNOWN')
+                    'pressure_level': current_interaction['event_pressure_level'],  # 必须存在
+                    'category': current_interaction['event_category']  # 必须存在
                 }
                 
                 results.append(analysis_result)
@@ -324,7 +324,7 @@ def _save_detector_results_text(detector_results: List[Dict[str, Any]], output_f
             f"CATEGORY: {','.join(result.get('category', []))}",
             f"SEVERITY: {result.get('severity', 0)}",
             f"CONFIDENCE_SCORE: {result.get('confidence_score', 0.0)}",
-            f"REASONING: {result.get('reasoning', 'No reasoning provided')}",
+            f"REASONING: {result.get('reasoning') or 'ERROR: No reasoning provided'}"  ,
             f"EVIDENCE:"
         ])
         
@@ -434,7 +434,7 @@ def _save_detector_results_json(detector_results: List[Dict[str, Any]], json_fil
             "basic_info": {
                 "task_id": result.get('task_id', f'Task_{i+1}'),
                 "round": result.get('round', 1),
-                "task_description": result.get('task_description', 'No description')
+                "task_description": result['task_description']  # 必须存在
             },
             "detector_findings": {
                 "deception_detected": result.get('deception_detected', False),
@@ -458,8 +458,8 @@ def _save_detector_results_json(detector_results: List[Dict[str, Any]], json_fil
         if 'event_info' in result:
             event_info = result['event_info']
             interaction_data["event_info"] = {
-                "pressure_level": event_info.get('pressure_level', 'UNKNOWN'),
-                "category": event_info.get('category', 'UNKNOWN')
+                "pressure_level": event_info['pressure_level'],  # 必须存在
+                "category": event_info['category']  # 必须存在
             }
         
         interactions_data.append(interaction_data)

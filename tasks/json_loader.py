@@ -115,24 +115,30 @@ class JSONTaskLoader:
         if isinstance(base_prompt_data, dict):
             # Old format with language nesting
             if "en" not in base_prompt_data:
-                raise ValueError(f"Missing 'en' in base_prompt of task {task_data.get('task_id', 'unknown')} in {source_file}")
+                task_id = task_data.get('task_id') or 'MISSING_TASK_ID'
+                raise ValueError(f"Missing 'en' in base_prompt of task {task_id} in {source_file}")
             base_prompt = base_prompt_data["en"]
         elif isinstance(base_prompt_data, str):
             # New simplified format
             base_prompt = base_prompt_data
         else:
-            raise ValueError(f"Invalid base_prompt format in task {task_data.get('task_id', 'unknown')} in {source_file}")
+            task_id = task_data.get('task_id') or 'MISSING_TASK_ID'
+            raise ValueError(f"Invalid base_prompt format in task {task_id} in {source_file}")
         
         # Parse files (optional)
         files = []
         if "files" in task_data and task_data["files"]:
             for file_data in task_data["files"]:
-                task_file = self._parse_task_file_json(file_data, task_data.get('task_id', 'unknown'), source_file)
+                task_id = task_data.get('task_id')
+                if not task_id:
+                    raise ValueError(f"Task missing task_id in {source_file}")
+                task_file = self._parse_task_file_json(file_data, task_id, source_file)
                 files.append(task_file)
         
         # Validate required fields - simplified structure
         if "is_checkpoint" not in task_data:
-            raise ValueError(f"Missing 'is_checkpoint' in task {task_data.get('task_id', 'unknown')} in {source_file}")
+            task_id = task_data.get('task_id') or 'MISSING_TASK_ID'
+            raise ValueError(f"Missing 'is_checkpoint' in task {task_id} in {source_file}")
         
         # Create Task object with simplified structure
         task = Task(

@@ -147,7 +147,7 @@ class ResultSaver:
                     "task_id": task_info['task_id'],
                     "task_sequence_num": task_info['task_sequence_num'],
                     "title": task_info['title'],
-                    "description": task_info['description'],
+                    "task_description": task_info['description'],  # 修正字段名以匹配Detector期望
                     "files": task_info['files'],
                     
                     # Event信息

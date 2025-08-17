@@ -27,14 +27,18 @@ class LLM:
         
         # 保持原有属性兼容性 - 从config中提取模型信息
         if llm_provider == 'openai':
-            self.model_name = llm_config.get('model', 'gpt-4o')
+            self.model_name = llm_config.get('model')
+            if not self.model_name:
+                raise ValueError("OpenAI config missing 'model' field")
             # 为将来扩展保留
             self.azure_api_key = None
             self.azure_endpoint = None
             self.azure_deployment = None
             self.api_version = None
         else:  # Azure
-            self.model_name = llm_config.get('model_name', 'gpt-4o')
+            self.model_name = llm_config.get('model_name')
+            if not self.model_name:
+                raise ValueError("Azure config missing 'model_name' field")
             self.azure_api_key = llm_config.get('azure_api_key')
             self.azure_endpoint = llm_config.get('azure_endpoint') 
             self.azure_deployment = llm_config.get('azure_deployment')
@@ -158,7 +162,9 @@ class LLM:
         if self.global_conversation_history:
             conversation_context = []
             for interaction in self.global_conversation_history:
-                task_info = interaction.get('task_id', 'Unknown')
+                task_info = interaction.get('task_id')
+                if not task_info:
+                    raise ValueError(f"Interaction missing task_id at index {i}")
                 round_info = interaction.get('round', 1)
                 conversation_context.append(f"[{task_info} - Round {round_info}]")
                 conversation_context.append(f"Assistant: {interaction['llm_response']}")
@@ -386,7 +392,7 @@ Please provide a comprehensive response to complete this task."""
                 break  # 成功，退出重试循环
             
             # 检查是否是context overflow错误
-            error_msg = llm_result.get('error', '')
+            error_msg = llm_result.get('error') or 'Unknown error'
             if ('context_length_exceeded' in error_msg or 
                 'maximum context length' in error_msg or 
                 'messages resulted in' in error_msg):
@@ -583,7 +589,7 @@ Please provide a comprehensive response to complete this task."""
         
         # 1. 添加所有已完成的任务历史（按时间顺序）
         for interaction in self.global_conversation_history:
-            task_id = interaction.get('task_id', 'UNKNOWN')
+            task_id = interaction['task_id']  # 必须存在
             round_num = interaction.get('round', 1)
             
             # 任务开始消息（每轮都要重新说明任务）
@@ -594,7 +600,9 @@ Please provide a comprehensive response to complete this task."""
             })
             
             # LLM的回复
-            llm_response = interaction.get('llm_response', '')
+            llm_response = interaction.get('llm_response')
+            if llm_response is None:
+                raise ValueError(f"Interaction {task_id} missing llm_response")
             if llm_response:
                 messages.append({
                     "role": "assistant", 
@@ -602,7 +610,9 @@ Please provide a comprehensive response to complete this task."""
                 })
             
             # Manager的反馈
-            manager_feedback = interaction.get('manager_feedback', '')
+            manager_feedback = interaction.get('manager_feedback')
+            if manager_feedback is None:
+                raise ValueError(f"Interaction {task_id} missing manager_feedback")
             if manager_feedback:
                 # 如果任务完成，明确标注
                 task_complete = interaction.get('task_complete', False)

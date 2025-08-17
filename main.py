@@ -169,6 +169,7 @@ def run_deception_experiment(config_name=None):
     manager = Manager(**manager_params)
     manager._logger = logger  # 传递logger给Manager
     manager.llm_client._logger = logger  # 传递logger给Manager的LLM客户端
+    manager.history._logger = logger  # 传递logger给ManagerHistory
     
     # 显示会话信息
     print(f"- Session: {session_info['session_name']}")

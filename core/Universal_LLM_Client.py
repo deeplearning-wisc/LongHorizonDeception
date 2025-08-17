@@ -89,7 +89,9 @@ class UniversalLLMClient:
             raise ValueError(f"Environment variable {api_key_env} not found in environment or .env file")
         
         self.client = OpenAI(api_key=api_key)
-        self.model = self.config.get('model_name', self.config.get('model', 'unknown'))
+        self.model = self.config.get('model_name') or self.config.get('model')
+        if not self.model:
+            raise ValueError(f"Config missing both 'model_name' and 'model' fields for provider {provider}")
         
         # 模拟Unified_LLM_Handler的属性
         self.model_limits = type('obj', (object,), {
@@ -245,7 +247,9 @@ class UniversalLLMClient:
         # OpenRouter使用requests，不是OpenAI客户端
         self.api_key = api_key
         self.api_base = "https://openrouter.ai/api/v1"
-        self.model = self.config.get('model_name', self.config.get('model', 'unknown'))
+        self.model = self.config.get('model_name') or self.config.get('model')
+        if not self.model:
+            raise ValueError(f"Config missing both 'model_name' and 'model' fields for provider {provider}")
         
         # 设置模型限制 - Gemini-2.5-Pro规格
         from collections import namedtuple
