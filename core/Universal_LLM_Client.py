@@ -136,6 +136,7 @@ class UniversalLLMClient:
             print(f"   📊 Attempt: {attempt}/6")
             print(f"   ⏱️  Waiting: {wait_time:.1f} seconds before retry")
             print(f"   💡 Consider upgrading your OpenAI tier or reducing request frequency")
+            print(f"   🔍 RAW ERROR: {str(exception)}")  # 添加原始错误信息
             
             # 如果连续多次触发，给出更强烈的警告
             if attempt >= 3:
@@ -420,6 +421,12 @@ class UniversalLLMClient:
         except Exception as e:
             error_str = str(e)
             print(f"[UNIVERSAL_LLM] OpenAI API call failed: {error_str}")
+            print(f"   🔍 EXCEPTION TYPE: {type(e).__name__}")
+            print(f"   🔍 FULL ERROR: {repr(e)}")
+            if hasattr(e, 'response'):
+                print(f"   🔍 HTTP RESPONSE: {e.response}")
+            if hasattr(e, 'body'):
+                print(f"   🔍 RESPONSE BODY: {e.body}")
             
             # 检查是否是context length错误
             context_error_info = self.parse_context_length_error(error_str)

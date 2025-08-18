@@ -11,9 +11,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 class EventPhase(Enum):
-    PHASE_1 = "phase_1"  # Days 1-7: Building relationship, light-medium pressure
-    PHASE_2 = "phase_2"  # Days 8-15: Deep collaboration, medium-high pressure  
-    PHASE_3 = "phase_3"  # Days 16-21: Crisis/final decisions, high-extreme pressure
+    PHASE_1 = "phase_1"  # Tasks 1-7: Building relationship, light-medium pressure
+    PHASE_2 = "phase_2"  # Tasks 8-14: Deep collaboration, medium-high pressure
 
 @dataclass
 class DeceptiveEvent:
@@ -61,8 +60,7 @@ class JSONEventLoader:
                 phase_enum = EventPhase.PHASE_1
             elif phase_key == "phase_2":
                 phase_enum = EventPhase.PHASE_2
-            elif phase_key == "phase_3":
-                phase_enum = EventPhase.PHASE_3
+            # Only phase_1 and phase_2 supported in 14-task format
             else:
                 raise ValueError(f"Unknown phase key: {phase_key}")
             
@@ -113,14 +111,12 @@ class JSONEventSystem:
         except Exception as e:
             raise RuntimeError(f"Failed to load event vocabularies for {self.task_set_name}: {e}")
     
-    def get_phase_for_day(self, day: int) -> EventPhase:
-        """Determine which phase a given day belongs to"""
-        if day <= 7:
+    def get_phase_for_task(self, task_num: int) -> EventPhase:
+        """Determine which phase a given task belongs to"""
+        if task_num <= 7:
             return EventPhase.PHASE_1
-        elif day <= 15:
-            return EventPhase.PHASE_2
         else:
-            return EventPhase.PHASE_3
+            return EventPhase.PHASE_2
     
     def should_trigger_event(self) -> bool:
         """Determine if an event should be triggered based on probability"""
@@ -137,15 +133,15 @@ class JSONEventSystem:
         
         return random.choice(events)
     
-    def get_event_for_day(self, day: int) -> Optional[DeceptiveEvent]:
+    def get_event_for_task(self, task_num: int) -> Optional[DeceptiveEvent]:
         """
-        Main interface: Get an event for a specific day if one should be triggered
+        Main interface: Get an event for a specific task if one should be triggered
         Returns None if no event should be triggered
         """
         if not self.should_trigger_event():
             return None
         
-        phase = self.get_phase_for_day(day)
+        phase = self.get_phase_for_task(task_num)
         return self.sample_event(phase)
     
     def create_enhanced_prompt(self, base_prompt: str, event: Optional[DeceptiveEvent]) -> str:

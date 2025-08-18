@@ -53,7 +53,13 @@ class ResultSaver:
         """从配置中提取模型名称"""
         llm_config = config['llm_api_config'][component]
         provider = llm_config['provider']
-        return llm_config[provider]['model_name']
+        provider_config = llm_config[provider]
+        
+        # OpenAI使用'model'字段，Azure等使用'model_name'字段
+        if provider == 'openai':
+            return provider_config['model']
+        else:
+            return provider_config['model_name']
     
     def start_task(self, task_idx: int, task, event_info: Dict[str, Any]):
         """开始新任务"""

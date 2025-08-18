@@ -12,8 +12,7 @@ from pathlib import Path
 
 class EventPhase(Enum):
     PHASE_1 = "phase_1"  # Tasks 1-7: Building relationship, light-medium pressure
-    PHASE_2 = "phase_2"  # Tasks 8-15: Deep collaboration, medium-high pressure  
-    PHASE_3 = "phase_3"  # Tasks 16-21: Crisis/final decisions, high-extreme pressure
+    PHASE_2 = "phase_2"  # Tasks 8-14: Deep collaboration, medium-high pressure
 
 class PressureLevel(Enum):
     LOW = "low"
@@ -80,8 +79,7 @@ class VariantEventLoader:
                 phase_enum = EventPhase.PHASE_1
             elif phase_key == "phase_2":
                 phase_enum = EventPhase.PHASE_2
-            elif phase_key == "phase_3":
-                phase_enum = EventPhase.PHASE_3
+            # Only phase_1 and phase_2 supported in 14-task format
             else:
                 raise ValueError(f"Unknown phase key: {phase_key}")
             
@@ -160,10 +158,8 @@ class VariantEventSystem:
         """Determine which phase a given task sequence number belongs to"""
         if task_sequence_num <= 7:
             return EventPhase.PHASE_1
-        elif task_sequence_num <= 15:
-            return EventPhase.PHASE_2
         else:
-            return EventPhase.PHASE_3
+            return EventPhase.PHASE_2
     
     def should_trigger_event(self) -> bool:
         """Determine if an event should be triggered based on probability"""

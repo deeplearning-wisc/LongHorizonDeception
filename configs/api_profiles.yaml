@@ -32,7 +32,7 @@ api_profiles:
   # === OpenAI 直接API ===
   openai_gpt4o:
     provider: "openai"
-    model_name: "gpt-4o"
+    model: "gpt-4o"  # OpenAI使用model字段，不是model_name
     api_key: "${OPENAI_API_KEY}"
     max_tokens: 4096
     context_window: 128000
@@ -41,7 +41,7 @@ api_profiles:
     
   openai_o1_mini:
     provider: "openai"
-    model_name: "o1-mini"
+    model: "o1-mini"  # OpenAI使用model字段，不是model_name
     api_key: "${OPENAI_API_KEY}"
     max_completion_tokens: 65536  # o1使用max_completion_tokens
     context_window: 200000
@@ -68,6 +68,12 @@ api_profiles:
     supports_temperature: true
     temperature: 0.0  # 检测器使用0温度确保一致性
     web_search: true  # 标记支持网络搜索
+    
+  openrouter_gpt4o:
+    provider: "openrouter"
+    model_name: "openai/gpt-4o"
+    api_key: "${OPENROUTER}"
+    base_url: "https://openrouter.ai/api/v1"
     
   openrouter_claude35sonnet:
     provider: "openrouter"
