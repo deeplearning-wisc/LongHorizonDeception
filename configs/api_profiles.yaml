@@ -47,6 +47,19 @@ api_profiles:
     context_window: 200000
     supports_temperature: false  # o1模型不支持temperature
     
+  gpt4o1120azurenew:
+    provider: "azure"
+    model_name: "gpt-4o"
+    model_version: "2024-11-20"  # 使用最新版本
+    azure_api_key: "${gpt_4o_key}"
+    azure_endpoint: "https://saft.openai.azure.com"
+    azure_deployment: "gpt-4o"
+    azure_api_version: "2025-01-01-preview"
+    max_tokens: 16384
+    context_window: 128000
+    supports_temperature: true
+    temperature: 0.0  # detector需要确定性，使用0
+    
   # === OpenRouter 模型配置 ===
   openrouter_gemini25pro:
     provider: "openrouter"

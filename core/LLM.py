@@ -70,23 +70,40 @@ class LLM:
         self.current_task_id = None
     
     def _estimate_context_size(self, base_prompt: str, event_content: str, files: List[TaskFile]) -> int:
-        """估算当前context大小 (包含全局历史)"""
-        # 粗略估算：4个字符≈1个token
-        size = len(self.system_prompt) // 4  # 系统提示词
-        size += len(base_prompt) // 4
+        """估算当前context大小 (包含全局历史)，使用tiktoken精确计算"""
+        
+        # 使用tiktoken精确计算token数（只对GPT模型）+ 消息格式修正
+        def estimate_tokens_precise(text: str) -> int:
+            if hasattr(self, 'llm_client') and hasattr(self.llm_client, 'provider'):
+                if self.llm_client.provider in ['openai', 'azure', 'openrouter'] and 'gpt' in str(getattr(self.llm_client, 'model', '')).lower():
+                    try:
+                        import tiktoken
+                        encoding = tiktoken.encoding_for_model("gpt-4o")
+                        base_tokens = len(encoding.encode(text))
+                        # 应用消息格式修正系数1.337（根据实际API测试得出）
+                        corrected_tokens = int(base_tokens * 1.337)
+                        return corrected_tokens
+                    except ImportError:
+                        pass  # fallback到粗略估算
+            # 粗略估算作为fallback
+            return len(text) // 4 + 1
+        
+        # 精确计算每个部分
+        size = estimate_tokens_precise(self.system_prompt)  # 系统提示词
+        size += estimate_tokens_precise(base_prompt)
         
         if event_content and event_content != 'Normal business conditions':
-            size += len(event_content) // 4
+            size += estimate_tokens_precise(event_content)
         
         # 计算全局对话历史大小
         for interaction in self.global_conversation_history:
-            size += len(interaction['llm_response']) // 4
-            size += len(interaction['manager_feedback']) // 4
+            size += estimate_tokens_precise(interaction['llm_response'])
+            size += estimate_tokens_precise(interaction['manager_feedback'])
         
         # 计算文件内容大小
         if files:
             for file_obj in files:
-                size += len(file_obj.content) // 4
+                size += estimate_tokens_precise(file_obj.content)
         
         # 加上格式化字符的估算
         size += 1000  # 格式化字符和其他overhead
@@ -102,24 +119,76 @@ class LLM:
         return total_tokens
     
     def _truncate_global_history(self, max_history_tokens: int = 100000):
-        """智能截断全局对话历史，保留最近的交互"""
+        """按task单位截断全局对话历史，使用tiktoken精确计算"""
         if not self.global_conversation_history:
             return
+        
+        # 使用tiktoken精确计算token数（只对GPT模型）
+        def estimate_tokens_precise(text: str) -> int:
+            if hasattr(self, 'llm_client') and hasattr(self.llm_client, 'provider'):
+                if self.llm_client.provider in ['openai', 'azure', 'openrouter'] and 'gpt' in str(getattr(self.llm_client, 'model', '')).lower():
+                    try:
+                        import tiktoken
+                        encoding = tiktoken.encoding_for_model("gpt-4o")
+                        return len(encoding.encode(text))
+                    except ImportError:
+                        if hasattr(self, '_logger') and self._logger:
+                            self._logger.log_warning("tiktoken not installed, using rough estimation")
+                        pass
+            # 粗略估算作为fallback
+            return len(text) // 4 + 1
         
         # 计算当前历史大小
         total_tokens = 0
         for interaction in self.global_conversation_history:
-            total_tokens += len(interaction['llm_response']) // 4
-            total_tokens += len(interaction['manager_feedback']) // 4
+            total_tokens += estimate_tokens_precise(interaction['llm_response'])
+            total_tokens += estimate_tokens_precise(interaction['manager_feedback'])
         
-        # 如果超过限制，从最早的开始删除
-        while total_tokens > max_history_tokens and len(self.global_conversation_history) > 1:
-            # 移除最早的交互
-            removed = self.global_conversation_history.pop(0)
-            total_tokens -= len(removed['llm_response']) // 4
-            total_tokens -= len(removed['manager_feedback']) // 4
+        if hasattr(self, '_logger') and self._logger:
+            self._logger.log_info(f"[LLM_TRUNCATE] Current history: {total_tokens} tokens, limit: {max_history_tokens}")
+        
+        # 如果不超过限制，直接返回
+        if total_tokens <= max_history_tokens:
+            return
+        
+        # 按task单位分组历史记录
+        tasks_dict = {}
+        for interaction in self.global_conversation_history:
+            task_id = interaction['task_id']
+            if task_id not in tasks_dict:
+                tasks_dict[task_id] = []
+            tasks_dict[task_id].append(interaction)
+        
+        # 按task顺序删除（从最早的task开始）
+        task_ids = list(tasks_dict.keys())  # 保持原始顺序
+        removed_tasks = 0
+        
+        for task_id in task_ids:
+            if total_tokens <= max_history_tokens:
+                break
+                
+            # 计算这个task的token数
+            task_tokens = 0
+            for interaction in tasks_dict[task_id]:
+                task_tokens += estimate_tokens_precise(interaction['llm_response'])
+                task_tokens += estimate_tokens_precise(interaction['manager_feedback'])
+            
+            # 从global_conversation_history中删除这个task的所有rounds
+            original_length = len(self.global_conversation_history)
+            self.global_conversation_history = [
+                interaction for interaction in self.global_conversation_history 
+                if interaction['task_id'] != task_id
+            ]
+            removed_count = original_length - len(self.global_conversation_history)
+            
+            total_tokens -= task_tokens
+            removed_tasks += 1
+            
             if hasattr(self, '_logger') and self._logger:
-                self._logger.log_warning(f"Truncated history: removed {removed['task_id']} Round {removed['round']}")
+                self._logger.log_warning(f"[LLM_TRUNCATE] Removed task {task_id}: {removed_count} rounds, {task_tokens} tokens")
+        
+        if hasattr(self, '_logger') and self._logger:
+            self._logger.log_info(f"[LLM_TRUNCATE] Final: {total_tokens} tokens, removed {removed_tasks} tasks")
     
     def add_interaction_to_global_history(self, task_id: str, round_num: int, llm_response: str, manager_feedback: str, task_complete: bool):
         """添加交互到全局历史"""
@@ -136,6 +205,15 @@ class LLM:
         """构建包含全局历史的完整prompt"""
         # 1. 智能截断历史以避免context溢出
         estimated_size = self._estimate_context_size(task.base_prompt, event_content, task.files)
+        
+        # 计算并打印context使用百分比（只在LLM组件中）
+        if not hasattr(self.llm_client, 'model_limits') or not hasattr(self.llm_client.model_limits, 'max_output_tokens'):
+            raise ValueError("LLM client missing model_limits.max_output_tokens attribute")
+        max_output_tokens = self.llm_client.model_limits.max_output_tokens
+        available_context = self.context_limit - max_output_tokens
+        usage_ratio = estimated_size / available_context
+        print(f"[CONTEXT_MGMT] Current usage: {usage_ratio:.1%} ({estimated_size}/{available_context})")
+        
         if hasattr(self, '_logger') and self._logger:
             self._logger.log_info(f"Estimated context size: ~{estimated_size} tokens")
         

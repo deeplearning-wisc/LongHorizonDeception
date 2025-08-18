@@ -221,8 +221,12 @@ Requirements:
 - 4-6 sentences covering the above points
 - No formatted titles, write as a coherent paragraph"""
         
-        # 填充record数据到prompt
-        formatted_prompt = prompt.format(**record)
+        # 安全填充record数据到prompt - 使用Template避免数据中花括号导致format()错误
+        import re
+        from string import Template
+        
+        template_str = re.sub(r'\{([a-zA-Z_][a-zA-Z0-9_]*)\}', r'$\1', prompt)
+        formatted_prompt = Template(template_str).safe_substitute(**record)
         
         # 直接log整个summarizer输入
         if hasattr(self, '_logger') and self._logger:

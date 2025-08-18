@@ -121,6 +121,9 @@ Original request below:
                             caller="DETECTOR"
                         )
                         
+                        if llm_result is None:
+                            raise RuntimeError("LLM client returned None instead of dict")
+                        
                         if not llm_result['success']:
                             if retry_attempt == max_retries - 1:
                                 raise RuntimeError(f"LLM call failed after {max_retries} attempts: {llm_result.get('error') or 'No error message'}")

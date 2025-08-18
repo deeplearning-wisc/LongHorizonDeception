@@ -252,10 +252,18 @@ class UniversalLLMClient:
         if not self.model:
             raise ValueError(f"Config missing both 'model_name' and 'model' fields for provider {provider}")
         
-        # 设置模型限制 - Gemini-2.5-Pro规格
+        # 设置模型限制 - 根据实际模型设置
         from collections import namedtuple
         ModelLimits = namedtuple('ModelLimits', ['context_window', 'max_output_tokens'])
-        self.model_limits = ModelLimits(1048576, 32768)  # Gemini-2.5-Pro的规格
+        
+        # 根据model name设置合适的context window - FAIL-FAST，不允许默认值
+        if 'gpt-4o' in self.model.lower():
+            self.model_limits = ModelLimits(128000, 4096)  # GPT-4o规格
+        elif 'gemini' in self.model.lower():
+            self.model_limits = ModelLimits(1048576, 32768)  # Gemini-2.5-Pro规格  
+        else:
+            # FAIL-FAST：不支持的模型必须明确报错
+            raise ValueError(f"Unknown model '{self.model}' for OpenRouter. Supported models: gpt-4o, gemini variants. Add explicit support for this model.")
         
         # 统计信息
         self.stats = {
@@ -283,87 +291,6 @@ class UniversalLLMClient:
         else:
             return {'success': False, 'error': f'Unsupported provider: {self.provider}'}
     
-    def _truncate_messages_by_task(self, messages: List[Dict[str, str]], attempt: int) -> List[Dict[str, str]]:
-        """平方增长task删除：第1次删1个task，第2次删2个task，第3次删3个task，第4次删4个task，然后error"""
-        if len(messages) == 0:
-            raise RuntimeError("Cannot truncate empty message list")
-        
-        truncated = messages.copy()
-        original_count = len(messages)
-        
-        # 最多尝试4次，平方增长删除
-        max_attempts = 4
-        if attempt > max_attempts:
-            raise RuntimeError(f"Context overflow persists after {max_attempts} attempts with quadratic task removal, cannot proceed")
-        
-        # 更激进的累积删除：attempt 1删2个task，attempt 2再删4个task，attempt 3再删6个task，attempt 4再删8个task
-        tasks_to_remove = attempt * 2
-        
-        print(f"[UNIVERSAL_LLM] Attempt {attempt}/{max_attempts}: Removing {tasks_to_remove} complete tasks (quadratic progression)")
-        
-        # 删除指定数量的完整tasks
-        removed_task_count = 0
-        total_removed_messages = 0
-        
-        for task_num in range(tasks_to_remove):
-            # 查找最早的task开头并删除该task的所有消息
-            task_removed = False
-            target_task_id = None
-            
-            # 从头开始找task标记：如 "[TASK_01 Round 1]"
-            i = 0
-            while i < len(truncated):
-                msg_content = truncated[i]['content']
-                
-                # 找到task开头标记 - 匹配 [XXX Round 1] 格式
-                if 'Round 1]' in msg_content and msg_content.startswith('['):
-                    # 提取task ID - 格式: [MARKET-SIZE-ANALYSIS Round 1]
-                    task_match = re.search(r'\[([A-Z\-]+)\s+Round\s+1\]', msg_content)
-                    if task_match:
-                        target_task_id = task_match.group(1)
-                        print(f"[UNIVERSAL_LLM] Removing task {task_num + 1}/{tasks_to_remove}: {target_task_id}")
-                        
-                        # 删除该task的所有消息
-                        task_message_count = 0
-                        while i < len(truncated):
-                            current_msg = truncated[i]['content']
-                            
-                            # 检查是否还是同一个task - 匹配 [XXX Round N] 格式
-                            current_task_match = re.search(r'\[([A-Z\-]+)\s+Round\s+\d+\]', current_msg)
-                            if current_task_match:
-                                current_task_id = current_task_match.group(1)
-                                # 如果是不同的task，停止删除
-                                if current_task_id != target_task_id:
-                                    break
-                            
-                            # 删除当前消息（属于target task或者是response/feedback）
-                            truncated.pop(i)
-                            task_message_count += 1
-                            total_removed_messages += 1
-                            # i不需要+1，因为pop后下一个元素会移到当前位置
-                        
-                        print(f"[UNIVERSAL_LLM] Task {target_task_id}: removed {task_message_count} messages")
-                        task_removed = True
-                        removed_task_count += 1
-                        break
-                else:
-                    i += 1
-            
-            if not task_removed:
-                # FAIL-FAST: 如果找不到task标记，说明数据格式错误，立即报错
-                raise RuntimeError(f"Unable to find task marker for removal attempt {task_num + 1}/{tasks_to_remove}. "
-                                 f"Message format may be corrupted or incompatible. "
-                                 f"Current messages: {len(truncated)}, Expected task format: [TASK-ID Round 1]")
-        
-        print(f"[UNIVERSAL_LLM] Summary: removed {removed_task_count} complete tasks, {total_removed_messages} total messages")
-        print(f"[UNIVERSAL_LLM] Original: {original_count} messages -> After truncation: {len(truncated)} messages")
-        
-        # 显示剩余context的前50个字符
-        if len(truncated) > 0:
-            first_msg_preview = truncated[0]['content'][:50].replace('\n', ' ')
-            print(f"[UNIVERSAL_LLM] Remaining context starts with: '{first_msg_preview}...'")
-        
-        return truncated
     
     def _openai_complete_chat(self, messages: List[Dict[str, str]], model: Optional[str] = None,
                             max_tokens: Optional[int] = None, temperature: Optional[float] = None,
