@@ -108,3 +108,16 @@ api_profiles:
     supports_temperature: true
     temperature: 0.4
     
+  # === GPT-5 配置 (新增) ===
+  gpt5_azure:
+    provider: "azure"
+    model_name: "gpt-5"
+    model_version: "2025-04-01-preview"
+    azure_api_key: "${gpt_5_key}"
+    azure_endpoint: "https://deceptionn1.openai.azure.com"
+    azure_deployment: "gpt-5"
+    azure_api_version: "2025-04-01-preview"
+    max_completion_tokens: 16384  # GPT-5 使用 max_completion_tokens，类似 o1
+    context_window: 200000  # GPT-5 预计有更大的上下文窗口
+    supports_temperature: false  # GPT-5 不支持自定义 temperature，只能用默认值1
+    

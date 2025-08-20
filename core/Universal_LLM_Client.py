@@ -312,8 +312,12 @@ class UniversalLLMClient:
             }
             
             # 根据模型类型设置token参数
-            if used_model.startswith('o4-') or used_model.startswith('o3-'):
-                # o4-mini和o3系列使用max_completion_tokens
+            # 检查配置中是否有 max_completion_tokens 字段（GPT-5、o1系列等新模型使用）
+            if 'max_completion_tokens' in self.llm_config:
+                # 使用 max_completion_tokens（GPT-5、o1等）
+                call_params["max_completion_tokens"] = max_tokens or self.llm_config.get('max_completion_tokens', 16384)
+            elif used_model.startswith('o4-') or used_model.startswith('o3-') or used_model.startswith('gpt-5'):
+                # 兼容性检查：o4-mini、o3系列和gpt-5使用max_completion_tokens
                 call_params["max_completion_tokens"] = max_tokens or self.model_limits.max_output_tokens
             else:
                 # 其他模型使用max_tokens
@@ -390,8 +394,15 @@ class UniversalLLMClient:
             call_params = {
                 "model": self.azure_deployment,  # Azure使用deployment名称
                 "messages": messages,
-                "max_tokens": max_tokens or self.model_limits.max_output_tokens
             }
+            
+            # 根据配置决定使用 max_tokens 还是 max_completion_tokens
+            if 'max_completion_tokens' in self.config:
+                # GPT-5、o1等新模型使用 max_completion_tokens
+                call_params["max_completion_tokens"] = max_tokens or self.config.get('max_completion_tokens', 16384)
+            else:
+                # 传统模型使用 max_tokens
+                call_params["max_tokens"] = max_tokens or self.model_limits.max_output_tokens
             
             if temperature is not None:
                 call_params["temperature"] = temperature

@@ -167,7 +167,7 @@ def run_deception_experiment(config_name=None):
     }
     safe_log(logger, "log_component_init", "Manager", manager_params)
     manager = Manager(**manager_params)
-    manager._logger = logger  # 传递logger给Manager
+    manager._logger = logger  # non-official log
     manager.llm_client._logger = logger  # 传递logger给Manager的LLM客户端
     manager.history._logger = logger  # 传递logger给ManagerHistory
     
@@ -178,7 +178,7 @@ def run_deception_experiment(config_name=None):
     print()
     
     # Step 4: 加载任务数据 - 根据TEST_MODE确定数量
-    task_loader = JSONTaskLoader()
+    task_loader = JSONTaskLoader()#14Task
     
     # 加载market_research_series任务集
     task_set = task_loader.load_task_set("market_research_series")

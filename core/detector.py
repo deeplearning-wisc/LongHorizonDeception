@@ -7,7 +7,18 @@ from typing import Dict, Any, List
 try:
     # 当作为模块导入时使用相对导入
     from .Universal_LLM_Client import UniversalLLMClient
-    from .detector_rubrics import SEQUENCE_ANALYSIS_TEMPLATE, BASE_DETECTION_PROMPT
+    
+    # 根据环境变量选择严格模式
+    import os
+    use_strict_mode = os.getenv('DETECTOR_STRICT_MODE', 'false').lower() == 'true'
+    
+    if use_strict_mode:
+        from .detector_rubrics_strict import STRICT_SEQUENCE_ANALYSIS_TEMPLATE as SEQUENCE_ANALYSIS_TEMPLATE
+        from .detector_rubrics_strict import STRICT_BASE_DETECTION_PROMPT as BASE_DETECTION_PROMPT
+        print("[DETECTOR] Using STRICT detection mode")
+    else:
+        from .detector_rubrics import SEQUENCE_ANALYSIS_TEMPLATE, BASE_DETECTION_PROMPT
+        print("[DETECTOR] Using normal detection mode")
 except ImportError:
     # 当作为主程序运行时使用直接导入
     import sys
@@ -33,13 +44,26 @@ except ImportError:
     spec.loader.exec_module(client_module)
     UniversalLLMClient = client_module.UniversalLLMClient
     
-    # 导入detector_rubrics
-    rubrics_path = os.path.join(current_dir, 'detector_rubrics.py')
+    # 导入detector_rubrics - 可以选择严格模式
+    use_strict_mode = os.getenv('DETECTOR_STRICT_MODE', 'false').lower() == 'true'
+    
+    if use_strict_mode:
+        rubrics_path = os.path.join(current_dir, 'detector_rubrics_strict.py')
+        print("[DETECTOR] Using STRICT detection mode")
+    else:
+        rubrics_path = os.path.join(current_dir, 'detector_rubrics.py')
+        print("[DETECTOR] Using normal detection mode")
+        
     spec = importlib.util.spec_from_file_location("detector_rubrics", rubrics_path)
     rubrics_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(rubrics_module)
-    SEQUENCE_ANALYSIS_TEMPLATE = rubrics_module.SEQUENCE_ANALYSIS_TEMPLATE
-    BASE_DETECTION_PROMPT = rubrics_module.BASE_DETECTION_PROMPT
+    
+    if use_strict_mode:
+        SEQUENCE_ANALYSIS_TEMPLATE = rubrics_module.STRICT_SEQUENCE_ANALYSIS_TEMPLATE
+        BASE_DETECTION_PROMPT = rubrics_module.STRICT_BASE_DETECTION_PROMPT
+    else:
+        SEQUENCE_ANALYSIS_TEMPLATE = rubrics_module.SEQUENCE_ANALYSIS_TEMPLATE
+        BASE_DETECTION_PROMPT = rubrics_module.BASE_DETECTION_PROMPT
 
 class DeceptionDetector:
     """
@@ -111,11 +135,16 @@ Original request below:
                         else:
                             current_prompt = analysis_prompt
                         
+                        # 检查是否支持 temperature
+                        temp_value = None
+                        if self.llm_config.get('supports_temperature', True):
+                            temp_value = 0.0  # detector 需要确定性
+                        
                         llm_result = self.llm_client.complete_chat(
                             messages=[{"role": "user", "content": current_prompt}],
                             model=None,
                             max_tokens=self.llm_client.model_limits.max_output_tokens,
-                            temperature=0.0,
+                            temperature=temp_value,
                             system_role=None,
                             require_complete_response=True,
                             caller="DETECTOR"
@@ -585,8 +614,8 @@ def find_latest_session() -> str:
     print(f"📁 Found latest session: {latest_session.name}")
     return str(latest_session)
 
-def get_llm_config() -> tuple:
-    """从配置文件获取Detector的LLM配置"""
+def get_llm_config(model_override: str = None) -> tuple:
+    """从配置文件获取Detector的LLM配置，支持模型覆盖"""
     import sys
     import os
     from pathlib import Path
@@ -604,6 +633,26 @@ def get_llm_config() -> tuple:
         sys.path.insert(0, str(project_root))
     
     try:
+        # 如果指定了模型覆盖，直接从api_profiles.yaml加载
+        if model_override:
+            print(f"🔄 Using model override: {model_override}")
+            from config_manager import ConfigManager
+            config_manager = ConfigManager()
+            
+            # 加载api_profiles
+            api_profiles = config_manager._load_api_profiles()
+            if model_override not in api_profiles['api_profiles']:
+                available_models = list(api_profiles['api_profiles'].keys())
+                raise ValueError(f"Model '{model_override}' not found in api_profiles.yaml. Available models: {available_models}")
+            
+            # 获取模型配置
+            model_config = api_profiles['api_profiles'][model_override]
+            llm_provider = model_config['provider']
+            
+            # 返回完整配置
+            return llm_provider, model_config
+        
+        # 否则使用默认配置
         from config_manager import load_config
         config = load_config()  # 使用默认配置
         llm_api_config = config['llm_api_config']
@@ -750,15 +799,18 @@ def extract_analysis_data_from_text(text_content: str) -> List[Dict[str, Any]]:
     
     return interactions
 
-def analyze_saved_results(interaction_records: List[Dict[str, Any]], output_file: str = None, session_dir: str = None):
+def analyze_saved_results(interaction_records: List[Dict[str, Any]], output_file: str = None, session_dir: str = None, model_override: str = None):
     """分析交互记录并输出结果"""
     if not interaction_records:
         print("❌ No interaction records to analyze")
         return
     
     # 获取LLM配置
-    llm_provider, llm_config = get_llm_config()
-    print(f"🤖 Using {llm_provider} for detection analysis")
+    llm_provider, llm_config = get_llm_config(model_override)
+    if model_override:
+        print(f"🤖 Using {llm_provider} ({model_override}) for detection analysis")
+    else:
+        print(f"🤖 Using {llm_provider} for detection analysis")
     
     # 初始化Detector
     try:
@@ -847,6 +899,8 @@ if __name__ == "__main__":
                        help='Analyze the latest session automatically')
     parser.add_argument('--output', '-o', type=str,
                        help='Output file for detector results (JSON format)')
+    parser.add_argument('--model', '-m', type=str,
+                       help='Override detector model (e.g., gpt4o1120azurenew, openrouter_gemini25pro)')
     
     args = parser.parse_args()
     
@@ -902,7 +956,7 @@ if __name__ == "__main__":
     # 执行分析
     from pathlib import Path
     session_dir_path = Path(results_path) if Path(results_path).is_dir() else Path(results_path).parent
-    results = analyze_saved_results(interaction_records, output_file, str(session_dir_path))
+    results = analyze_saved_results(interaction_records, output_file, str(session_dir_path), args.model)
     
     if results:
         print(f"\n✅ Analysis completed successfully!")
