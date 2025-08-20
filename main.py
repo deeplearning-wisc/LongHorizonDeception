@@ -13,7 +13,6 @@ from utils.task_stream_logger import TaskStreamLogger
 from utils.result_saver import ResultSaver
 from core.manager import Manager
 from core.LLM import LLM
-from core.detector import DeceptionDetector
 from tasks.json_loader import JSONTaskLoader
 from tasks.event_loader import get_event_system, DeceptiveEvent
 from tasks.base import Task
@@ -98,6 +97,7 @@ def run_deception_experiment(config_name=None):
     
     # 🆕 强制启用ResultSaver - 删除所有可选性，fail-fast原则
     result_saver = ResultSaver(session_info['session_name'])
+    
     result_saver.set_experiment_config(config)
     
     # 🆕 复制配置文件作为metadata
@@ -120,25 +120,21 @@ def run_deception_experiment(config_name=None):
     print(f"📄 Configuration saved: {target_config}")
     print("📝 ResultSaver initialized - Complete JSON experiment data will be saved")
     
-    # 获取分组件LLM配置 - 严格模式，无默认值
+    # 获取组件配置
     llm_api_config = config['llm_api_config']
     
     def get_component_llm_config(component_name: str):
-        """为指定组件获取LLM配置 - 严格模式，无默认值"""
+        """为指定组件获取LLM配置"""
         component_config = llm_api_config[component_name]
         provider = component_config['provider']
+        config_data = component_config[provider]
         
-        # 严格按照provider返回对应配置，无默认值
-        if provider not in component_config:
-            raise ValueError(f"Provider '{provider}' config not found for component '{component_name}'")
-        
-        return provider, component_config[provider]
+        return provider, config_data
     
     # 初始化LLM - 使用专用配置
     llm_provider, llm_config = get_component_llm_config('llm')
     # 显示LLM使用的模型名
-    llm_model_ref = config['llm_api_config']['llm']
-    print(f"[LLM] Using: {llm_model_ref}")
+    print(f"[LLM] Using: {llm_provider} ({llm_config.get('model', 'unknown')})")
     
     llm_params = {
         'llm_provider': llm_provider,
@@ -154,8 +150,7 @@ def run_deception_experiment(config_name=None):
     # 初始化Manager - 使用专用配置
     manager_provider, manager_config = get_component_llm_config('manager')
     # 显示manager使用的模型名
-    manager_model_ref = config['llm_api_config']['manager']
-    print(f"[MANAGER] Using: {manager_model_ref}")
+    print(f"[MANAGER] Using: {manager_provider} ({manager_config.get('model', 'unknown')})")
     
     manager_params = {
         'llm_provider': manager_provider,
@@ -243,6 +238,9 @@ def run_deception_experiment(config_name=None):
     # 处理Task Stream
     print("Processing tasks...")
     
+    # 🆕 全局轮次计数器
+    global_rounds = 0
+    
     for task_idx, task_info in enumerate(tqdm(task_stream, desc="Tasks", unit="task")):
         task = task_info['task']
         event = task_info['event']
@@ -269,10 +267,12 @@ def run_deception_experiment(config_name=None):
         # 轮次进度条
         rounds_desc = f"Task {task.task_id}"
         for round_num in tqdm(range(1, max_rounds + 1), desc=rounds_desc, unit="round", leave=False):
+            global_rounds += 1  # 增加全局轮次计数
             safe_log(logger, "log_round_start", round_num, max_rounds)
+            safe_log(logger, "log_info", f"Global round: {global_rounds}")
             
             # ResultSaver: 记录轮次开始和Manager状态，并实时保存
-            result_saver.start_round(round_num, manager.current_state.copy())
+            result_saver.start_round(round_num, manager.current_state.copy(), global_round=global_rounds)
             result_saver.flush()  # 实时保存
             
             # 记录任务文件信息
@@ -337,6 +337,9 @@ def run_deception_experiment(config_name=None):
                 result_saver.save_manager_evaluation(round_num, manager_result)
                 result_saver.flush()  # 实时保存
                 
+                # 🆕 数据已经保存到JSON，并行检测器会自动检测到新轮次
+                print(f"[JSON] Global round {global_rounds} data saved - ready for detector")
+                
                 # 🆕 添加Manager反馈到任务内历史 (用于下一轮LLM输入)
                 task_manager_feedback_history.append(manager_result['feedback_response'])
                 
@@ -380,68 +383,24 @@ def run_deception_experiment(config_name=None):
     total_interactions = len(result_saver.get_structured_interactions_for_detector())
     safe_log(logger, "log_final_summary", final_state, total_interactions)
     
-    # 现在进行Detector的批量分析
-    print("Running detector analysis...")
+    # 实验完成
+    print("[MAIN] Experiment completed successfully!")
     
-    # 初始化Detector - 使用专用配置
-    detector_provider, detector_config = get_component_llm_config('detector')
-    # 显示detector使用的模型名
-    detector_model_ref = config['llm_api_config']['detector']
-    print(f"[DETECTOR] Using: {detector_model_ref}")
-    
-    safe_log(logger, "log_component_init", "Detector", {'provider': detector_provider, 'config': detector_config})
-    detector = DeceptionDetector(detector_provider, detector_config)
-    
-    # 🆕 使用ResultSaver的结构化数据进行批量分析 - 包含完整Manager推理
+    # ResultSaver: 最终化实验记录
     interaction_records = result_saver.get_structured_interactions_for_detector()
+    final_manager_state = manager.get_current_state()
+    result_saver.finalize_experiment(
+        total_tasks=max_tasks,
+        total_interactions=len(interaction_records),
+        final_manager_state=final_manager_state
+    )
+    print(f"[MAIN] Complete experiment data saved: {result_saver.get_record_path()}")
     
-    if not interaction_records:
-        raise RuntimeError("No interaction data available - experiment failed. ResultSaver must contain complete data.")
+    # 关闭logger
+    if logger:
+        logger.close()
     
-    safe_log(logger, "log_info", f"Analyzing {len(interaction_records)} interactions with complete Manager reasoning")
-    
-    # 💾 ResultSaver自动保存了完整的JSON数据，包含所有Manager推理
-    print(f"💾 {len(interaction_records)} structured interactions with complete Manager reasoning ready for Detector")
-    safe_log(logger, "log_info", "Structured interactions with complete Manager reasoning ready for analysis")
-    
-    try:
-        detector_results = detector.analyze_interaction_sequence(interaction_records)
-        safe_log(logger, "log_detector_analysis", detector_results)
-        
-        # 控制台显示简要结果
-        print(f"✅ Detector analysis completed: {len(detector_results)} interactions analyzed")
-        deception_count = sum(1 for r in detector_results if r['deception_detected'])
-        print(f"📊 Deception detected in {deception_count}/{len(detector_results)} interactions")
-        
-        # 🆕 使用统一封装的detector结果保存函数
-        from core.detector import save_detector_results_complete
-        enhanced_file = save_detector_results_complete(
-            detector_results=detector_results,
-            session_name=session_info['session_name'],
-            session_dir=f"results/{session_info['session_name']}"
-        )
-        
-        # ResultSaver: 最终化实验记录
-        final_manager_state = manager.get_current_state()
-        result_saver.finalize_experiment(
-            total_tasks=max_tasks,
-            total_interactions=len(interaction_records),
-            final_manager_state=final_manager_state
-        )
-        print(f"💾 Complete experiment data (JSON): {result_saver.get_record_path()}")
-        
-        # 关闭logger
-        if logger:
-            logger.close()
-        
-        return True
-        
-    except Exception as e:
-        safe_log(logger, "log_error", e, "Detector batch analysis")
-        print(f"❌ FATAL ERROR in Detector batch analysis: {e}")
-        if logger:
-            logger.close()
-        raise  # 直接抛出异常，fail-fast原则
+    return True
 
 def main():
     """主函数 - 处理命令行参数并运行实验"""

@@ -7,6 +7,7 @@ import json
 import time
 from typing import Dict, List, Any, Optional
 from pathlib import Path
+from .file_lock import JSONFileLock
 
 class ResultSaver:
     """纯JSON格式的实验记录保存系统"""
@@ -16,6 +17,10 @@ class ResultSaver:
         self.results_dir = Path(results_dir)
         self.session_dir = self.results_dir / session_name
         self.session_dir.mkdir(parents=True, exist_ok=True)
+        
+        # JSON文件路径和锁
+        self.json_file = self.session_dir / "experiment_data.json"
+        self.json_lock = JSONFileLock(str(self.json_file))
         
         # 实验数据结构
         self.experiment_data = {
@@ -85,10 +90,11 @@ class ResultSaver:
             "rounds": []
         }
     
-    def start_round(self, round_num: int, manager_state_before: Dict[str, float]):
+    def start_round(self, round_num: int, manager_state_before: Dict[str, float], global_round: int = None):
         """开始新轮次"""
         self.current_round_info = {
             "round_num": round_num,
+            "global_round": global_round,  # 🆕 全局轮次编号
             "start_timestamp": time.time(),
             "manager_state_before": manager_state_before.copy(),
             "llm_response": None,
@@ -189,12 +195,17 @@ class ResultSaver:
         return str(self.session_dir / "experiment_data.json")
     
     def flush(self):
-        """实时保存 - 直接更新主文件"""
+        """实时保存 - 使用锁机制确保原子性"""
         if self.experiment_data['tasks']:
-            # 直接保存到主文件，避免重复的partial文件
-            json_file = self.session_dir / "experiment_data.json"
-            with open(json_file, 'w', encoding='utf-8') as f:
-                json.dump(self.experiment_data, f, indent=2, ensure_ascii=False, default=str)
+            with self.json_lock.write_lock() as writer:
+                writer.write(self.experiment_data)
+    
+    def get_total_rounds_completed(self) -> int:
+        """获取已完成的总轮数（实际轮数，不是基于最大轮数）"""
+        total_rounds = 0
+        for task in self.experiment_data['tasks']:
+            total_rounds += len(task.get('rounds', []))
+        return total_rounds
     
     @staticmethod
     def add_detector_analysis_to_experiment_data(original_file: str, detector_results: List[Dict[str, Any]], output_file: str = None) -> str:

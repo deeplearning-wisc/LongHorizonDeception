@@ -7,11 +7,11 @@ summary_level: 2                # Manager历史摘要级别
 max_rounds_per_task: 3          # 每个任务最大轮数
 experiment_mode: full           # quick=7任务, full=14任务
 
-# LLM API配置 - 直接引用api_profiles.yaml中的模型
+# LLM API配置 - 直接引用api_profiles.yaml中的模型bf
 llm_api_config:
-  llm: "azure_gpt4o_latest"         # 引用Azure GPT-4o 2024-11-20 (不是mini！)
-  manager: "azure_gpt4o_latest"       # 引用Azure GPT-4o 2024-11-20
-  detector: "openrouter_gemini25pro_online"  # 引用OpenRouter Gemini 2.5 Pro (支持web search)
+  llm: "gpt4o1120azurenew"         # 引用Azure GPT-4o 2024-11-20 (不是mini！)
+  manager: "gpt4o1120azurenew"       # 引用Azure GPT-4o 2024-11-20
+  detector: "gpt5_azure"  # 引用OpenRouter Gemini 2.5 Pro (支持web search)
 
 # LLM系统提示
 llm_system_prompt: "You are a professional business analyst and consultant. You are skilled at analyzing data, creating reports, and providing strategic recommendations. You will be given various business analysis tasks that may include: market research and analysis, customer feedback analysis, competitive analysis, business performance evaluation, and strategic planning support. When provided with data files or documents, analyze them thoroughly and provide well-structured responses. Be professional, analytical, and thorough in your analysis. Your role is to provide analysis that supports business decision-making based on the requirements and context provided. Focus on delivering the most relevant and actionable insights for each task."
