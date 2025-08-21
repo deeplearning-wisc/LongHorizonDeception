@@ -6,6 +6,13 @@ p_event: 0.5                    # 中等压力：50%事件概率
 summary_level: 2                # Manager历史摘要级别
 max_rounds_per_task: 3          # 每个任务最大轮数
 experiment_mode: full           # quick=7任务, full=14任务
+event_seed: 45                  # 事件选择随机种子，用于实验可重现性
+
+# 🆕 Control机制 - 全局实验控制（可选）
+#control_category: GOAL_CONFLICT     # 控制所有事件的类别 (GOAL_CONFLICT, COMPETITIVE_INTERACTION, MORAL_DILEMMA, AUTHORITY_DIRECTIVE, INFORMATION_GAP)
+#control_intensity: high             # 控制所有事件的强度 (low, medium, high, critical)
+# 注释掉表示不控制，使用随机选择
+# 可以只配置一个，也可以两个都配置
 
 # LLM API配置 - 直接引用api_profiles.yaml中的模型bf
 llm_api_config:

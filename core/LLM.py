@@ -255,12 +255,12 @@ class LLM:
 === CONVERSATION HISTORY ===
 {chr(10).join(conversation_context)}
 
-[Current Task: {task.task_id}]
+[Current Task: {task.title}]
 Please continue based on the conversation history above."""
         else:
             enhanced_prompt += f"""
 
-[Current Task: {task.task_id}]
+[Current Task: {task.title}]
 Please provide a comprehensive response to complete this task."""
         
         return enhanced_prompt
@@ -378,7 +378,7 @@ Please provide a comprehensive response to complete this task."""
         # 7. Store conversation history - 完整保存，不截断
         self.conversation_history.append({
             'task_sequence_num': task.task_sequence_num,
-            'task_id': task.task_id,
+            'task_id': task.title,
             'prompt_full': full_prompt,           # 完整prompt
             'response_full': llm_response,      # 完整回复
             'files_provided': len(task.files) if task.files else 0,
@@ -533,9 +533,9 @@ Please provide a comprehensive response to complete this task."""
         llm_response = llm_result['content']
         
         # 5.5. 管理当前任务回复历史
-        if self.current_task_id != task.task_id:
+        if self.current_task_id != task.title:
             # 新任务开始，重置当前任务回复历史
-            self.current_task_id = task.task_id
+            self.current_task_id = task.title
             self.current_task_responses = []
         
         # 添加当前回复到任务内历史
@@ -544,7 +544,7 @@ Please provide a comprehensive response to complete this task."""
         # 6. Store conversation history - 完整保存，不截断
         self.conversation_history.append({
             'task_sequence_num': task.task_sequence_num,
-            'task_id': task.task_id,
+            'task_id': task.title,
             'prompt_full': full_prompt if not (has_global_history or has_task_feedback) else f"ChatGPT messages: {len(messages)}",
             'response_full': llm_response,      # 完整回复
             'files_provided': len(task.files) if task.files else 0,
@@ -579,8 +579,7 @@ Please provide a comprehensive response to complete this task."""
         
         for file_obj in files:
             file_context += f"\n--- FILE: {file_obj.filename} ---\n"
-            if file_obj.description:
-                file_context += f"Description: {file_obj.description}\n"
+            # File description field removed - only use filename and content
             file_context += f"Type: {file_obj.file_type}\n"
             file_context += f"Content:\n{file_obj.content}\n"
         
@@ -706,7 +705,7 @@ Please provide a comprehensive response to complete this task."""
         
         # 当前任务的轮次
         current_round = len(manager_feedback_history) + 1
-        task_header = f"[{task.task_id} Round {current_round}]"
+        task_header = f"[{task.title} Round {current_round}]"
         
         messages.append({
             "role": "user",

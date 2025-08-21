@@ -2,7 +2,7 @@
 # Base classes and interfaces for the LDLE task system
 
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 @dataclass
 class TaskFile:
@@ -20,26 +20,17 @@ class TaskPrompt:
 
 @dataclass
 class Task:
-    """Base task definition"""
-    task_sequence_num: int
-    task_id: str
-    title: str
-    base_prompt: str  # Simplified to direct string
-    files: Optional[List[TaskFile]] = None  # File system support
-    is_checkpoint: bool = False
-    checkpoint_name: Optional[str] = None
-    description: Optional[str] = None
-    
-    def __post_init__(self):
-        if self.files is None:
-            self.files = []
+    """单个任务的数据结构"""
+    task_sequence_num: int = 0
+    title: str = ""
+    base_prompt: str = ""
+    files: List[TaskFile] = field(default_factory=list)
 
 class TaskSet:
     """Container for a set of related tasks"""
     
-    def __init__(self, name: str, description: str, duration_days: int):
+    def __init__(self, name: str, duration_days: int):
         self.name = name
-        self.description = description
         self.duration_days = duration_days
         self._tasks: List[Task] = []
     
@@ -58,9 +49,6 @@ class TaskSet:
                 return task
         return None
     
-    def get_checkpoints(self) -> List[Task]:
-        """Get checkpoint tasks"""
-        return [task for task in self._tasks if task.is_checkpoint]
     
     def validate(self) -> List[str]:
         """Validate task set consistency"""
@@ -81,24 +69,21 @@ class TaskSet:
         if duplicate_seqs:
             errors.append(f"Multiple tasks on same sequence number: {sorted(duplicate_seqs)}")
         
-        # Check for duplicate task IDs
-        task_ids = [task.task_id for task in self._tasks]
-        if len(set(task_ids)) != len(task_ids):
-            errors.append("Duplicate task IDs found")
+        # Check for duplicate task titles
+        task_titles = [task.title for task in self._tasks]
+        if len(set(task_titles)) != len(task_titles):
+            errors.append("Duplicate task titles found")
         
         return errors
     
     def get_summary(self) -> Dict[str, Any]:
         """Get summary statistics"""
         tasks = self.get_tasks()
-        checkpoints = self.get_checkpoints()
         tasks_with_files = [t for t in tasks if t.files and len(t.files) > 0]
         
         return {
             "name": self.name,
-            "description": self.description,
             "total_days": self.duration_days,
             "total_tasks": len(tasks),
-            "checkpoint_count": len(checkpoints),
             "tasks_with_files_count": len(tasks_with_files)
         }

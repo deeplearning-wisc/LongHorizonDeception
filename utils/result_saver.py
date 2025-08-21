@@ -70,10 +70,9 @@ class ResultSaver:
         """开始新任务"""
         self.current_task_info = {
             "task_idx": task_idx,
-            "task_id": task.task_id,
+            "task_id": task.title,
             "task_sequence_num": getattr(task, 'task_sequence_num', task_idx),
             "title": task.title,
-            "description": task.description or getattr(task, 'base_prompt', ''),
             "files": [
                 {
                     "filename": f.filename,
@@ -84,8 +83,7 @@ class ResultSaver:
             "event_info": {
                 "category": event_info['category'],
                 "pressure_level": event_info['pressure_level'],
-                "content": event_info['content'],
-                "description": event_info['description']
+                "content": event_info['content']
             },
             "rounds": []
         }
@@ -159,12 +157,10 @@ class ResultSaver:
                     "task_id": task_info['task_id'],
                     "task_sequence_num": task_info['task_sequence_num'],
                     "title": task_info['title'],
-                    "task_description": task_info['description'],  # 修正字段名以匹配Detector期望
                     "files": task_info['files'],
                     
                     # Event信息
                     "event_content": task_info['event_info']['content'],
-                    "event_description": task_info['event_info']['description'],
                     "event_pressure_level": task_info['event_info']['pressure_level'],
                     "event_category": task_info['event_info']['category'],
                     

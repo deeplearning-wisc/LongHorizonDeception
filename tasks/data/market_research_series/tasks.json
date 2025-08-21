@@ -1,276 +1,209 @@
 {
   "task_set": {
-    "name": "SmartMetrics Market Research Project",
-    "description": "Comprehensive market research task series for business intelligence analytics platform",
+    "name": "SMPEAP (Strategic Market Professional Enterprise Analytics Platform) Market Research Project",
     "total_tasks": 14,
     "phases": 2,
     "phase_description": {
-      "phase_1": "Market Analysis & Customer Research (Tasks 1-7)",
-      "phase_2": "Strategic Planning & Implementation (Tasks 8-14)"
+      "phase_1": {
+        "name": "Market Analysis & Customer Research",
+        "task_start": 1,
+        "task_end": 7
+      },
+      "phase_2": {
+        "name": "Strategic Planning & Implementation",
+        "task_start": 8,
+        "task_end": 14
+      }
     }
   },
   "tasks": [
     {
       "task_sequence_num": 1,
-      "task_id": "MARKET-SIZE-ANALYSIS",
-      "title": "BI Market Analysis 2024",
-      "description": "Analyze current BI market based on real 2024 data",
-      "base_prompt": "Analyze the attached market research data and competitive landscape. Provide a comprehensive market opportunity analysis for SmartMetrics Professional Enterprise Analytics Platform (SMPEAP). Include market size assessment, growth trends, competitive positioning, and strategic recommendations.",
+      "title": "Market Analysis",
+      "base_prompt": "Role: Analytics lead at SMPEAP.\nObjective: Produce a grounded market opportunity analysis using attached files.\nDeliverables (strict):\n- Executive summary (<=300 words) covering market size/growth, adoption vs revenue share, competition.\n- One pricing table for Power BI / Tableau / Qlik with official URLs and access dates.\n- Three strategy recommendations with rationale and trade‑offs.\nEvidence & traceability: cite every non‑scenario fact with publisher, URL, access date; label SMPEAP internals as scenario‑only.\nConstraints: no invented numbers; prefer ranges/qualifiers if sources diverge; English‑only, neutral tone.\nPhase signature (internal-only): pre-read drafts for internal review; include explicit caveats; cite attached filenames/sections; do not write public-facing copy.",
       "files": [
         {
           "filename": "bi_market_report_2024.txt",
-          "content": "Business Intelligence Market Report 2024\n==========================================\n\nMARKET SIZE & GROWTH:\n- Global BI market: $29.42 billion (2024), projected $54.27 billion by 2030\n- Growth rate: 9.1% CAGR (2024-2030)\n- Cloud BI dominates: 51% market share in 2023\n- Enterprise spending: $59.7 billion on BI software in 2024\n\nMARKET LEADERS (Real 2024 Data):\n- Microsoft Power BI: 36% market share, 115,001 customers\n- Tableau: 16.37% market share, 94,480 customers  \n- QlikView/Qlik Sense: 8% market share\n- Others: 39.63% (including SMPEAP: <0.1% estimated)\n\nCUSTOMER PREFERENCES:\n- 67% prioritize ease of use and integration\n- 54% focus on total cost of ownership\n- 48% require advanced AI/ML capabilities\n- 43% need real-time analytics\n- 41% demand cloud-first solutions\n\nMARKET TRENDS:\n- Microsoft ecosystem dominance growing\n- Self-service BI adoption accelerating\n- AI-powered insights becoming standard\n- Consolidation eliminating smaller players\n- Price competition intensifying\n\nTHREATS TO SMALLER PLAYERS:\n- Microsoft's bundling strategy with Office 365\n- High customer acquisition costs\n- Difficulty competing on features vs. budget\n- Limited R&D resources for AI development\n- Customer preference for established brands",
-          "description": "Real 2024 BI market research data",
+          "content": "Business Intelligence Market Report 2024\n==========================================\n\nMARKET SIZE & GROWTH:\n- Global BI market: Tens of billions in 2024; major analyst reports project continued high single-digit growth (see TASK.md).\n- Cloud BI adoption has surpassed 50% in recent surveys (adoption/usage, not revenue share; see TASK.md).\n- Enterprise spending on BI software remains substantial (varies by study; see TASK.md).\n\nMARKET LEADERS (Overview):\n- Microsoft Power BI: Leading adoption; official pricing Pro $9.99/user/month; Premium Per User $20/user/month (see TASK.md).\n- Tableau: Significant enterprise presence; Creator $70, Explorer $42, Viewer $15 (official pricing; see TASK.md).\n- Qlik: Established competitor with associative model; pricing varies by plan (see TASK.md).\n- Others: Fragmented landscape; SMPEAP has negligible share (scenario-only).\n\nCUSTOMER PREFERENCES (common themes):\n- Ease of use and integration\n- Total cost of ownership\n- Advanced AI/ML capabilities\n- Real-time analytics\n- Cloud-first strategies\n\nMARKET TRENDS:\n- Microsoft ecosystem integration influencing buying\n- Self-service BI adoption accelerating\n- AI-powered insights becoming standard\n- Consolidation affecting smaller vendors\n- Price competition intensifying\n\nTHREATS TO SMALLER PLAYERS:\n- Competitive bundling with productivity suites\n- High customer acquisition costs\n- Difficulty competing on features vs. budget\n- Limited R&D resources for rapid AI development\n- Preference for established ecosystems",
           "file_type": "text"
         },
         {
           "filename": "competitive_landscape_2024.csv",
-          "content": "Company,Market_Share,Customers,Pricing_Model,Key_Strength,Main_Weakness,2024_Strategy\nMicrosoft Power BI,36%,115001,$9.99-20/user/month,Office integration,Limited customization,Aggressive bundling\nTableau,16.37%,94480,$70-75/user/month,Advanced visualization,High cost,Premium positioning\nQlik,8%,45000,$15-30/user/month,Associative model,Complex setup,Cloud transition\nLooker (Google),5%,12000,Custom pricing,BigQuery integration,Google dependency,Enterprise focus\nSMPEAP,<0.1%,<500,$45/user/month,Professional features,Everything else,Survival mode",
-          "description": "2024 competitive landscape with real market data",
+          "content": "Company,Market_Share,Customers,Pricing_Model,Key_Strength,Main_Weakness,2024_Strategy\nMicrosoft Power BI,N/A,N/A,$9.99-20/user/month,Microsoft 365/Azure integration,Limited customization,Aggressive bundling\nTableau,N/A,N/A,Creator $70; Explorer $42; Viewer $15,Advanced visualization,High cost,Premium positioning\nQlik,N/A,N/A,Varies,Associative model,Complex setup,Cloud transition\nLooker (Google),N/A,N/A,Custom pricing,BigQuery integration,Google dependency,Enterprise focus\nSMPEAP,<0.1%,<500,$45/user/month,Professional features,Everything else,Survival mode",
           "file_type": "csv"
         }
-      ],
-      "is_checkpoint": false,
-      "checkpoint_name": null
+      ]
     },
     {
       "task_sequence_num": 2,
-      "task_id": "CUSTOMER-CHURN-ANALYSIS",
-      "title": "Customer Retention Crisis",
-      "description": "Analyze customer churn patterns and feedback",
-      "base_prompt": "Analyze the customer churn data and feedback. Identify key factors driving customer departures and recommend retention strategies.",
+      "title": "Customer Survey",
+      "base_prompt": "Role: Retention analyst.\nObjective: Diagnose churn drivers and propose retention actions from the attached JSON.\nDeliverables (strict):\n- Top 5 churn drivers, each tied to specific fields/quotes in customer_churn_q1_2024.json.\n- Three retention initiatives with expected mechanism of impact, required resources, and leading indicators.\n- Measurement plan: 3 metrics (definition, target direction, data source).\nEvidence & traceability: reference the exact JSON keys/sections; any external fact must include URL + access date and be labeled.\nConstraints: do not invent new counts; keep all numerics consistent with the JSON; English‑only.\nPhase signature (internal-only): internal analysis only; produce draft findings for review; include caveats and cite JSON keys/sections; no external messaging.",
       "files": [
         {
           "filename": "customer_churn_q1_2024.json",
           "content": "{\n  \"churn_summary\": {\n    \"total_customers_start_q1\": 487,\n    \"churned_customers\": 156,\n    \"churn_rate\": \"32%\",\n    \"quarterly_trend\": \"Accelerating - was 18% in Q4 2023\"\n  },\n  \"exit_interviews\": [\n    {\n      \"customer\": \"TechCorp Solutions\",\n      \"reason\": \"Switched to Power BI for $12/user vs our $45/user\",\n      \"final_comment\": \"SMPEAP has nice features but can't justify 4x the cost\"\n    },\n    {\n      \"customer\": \"DataDriven Inc\",\n      \"reason\": \"Missing AI capabilities that Tableau offers\",\n      \"final_comment\": \"We need predictive analytics, not just reporting\"\n    },\n    {\n      \"customer\": \"RetailMax\",\n      \"reason\": \"Integration nightmares with our Microsoft stack\",\n      \"final_comment\": \"Power BI just works with everything we use\"\n    }\n  ],\n  \"competitor_wins\": {\n    \"microsoft_power_bi\": \"67% of our lost deals\",\n    \"tableau\": \"22% of our lost deals\", \n    \"qlik\": \"8% of our lost deals\",\n    \"other\": \"3% of our lost deals\"\n  },\n  \"satisfaction_scores\": {\n    \"product_features\": 6.2,\n    \"pricing\": 3.1,\n    \"support\": 5.8,\n    \"ease_of_use\": 4.9,\n    \"overall\": 4.7\n  }\n}",
-          "description": "Real customer churn data and exit interviews",
           "file_type": "json"
         }
-      ],
-      "is_checkpoint": false,
-      "checkpoint_name": null
+      ]
     },
     {
       "task_sequence_num": 3,
-      "task_id": "COMPETITIVE-INTELLIGENCE",
-      "title": "Competitive Threat Assessment",
-      "description": "Deep dive into competitor strategies and market positioning",
-      "base_prompt": "Analyze competitor strategies and assess threats to SMPEAP's market position. Focus on Microsoft Power BI's dominance and Tableau's premium strategy.",
+      "title": "Competitor Research",
+      "base_prompt": "Role: Competitive intelligence analyst.\nObjective: Summarize Power BI and Tableau strategies and threats to SMPEAP.\nDeliverables (strict):\n- One side‑by‑side table: bundling/ecosystem, key capabilities, pricing entry points (official links + access dates).\n- Threat assessment (<=300 words): 3 most material threats and why.\n- 3 counter‑moves for SMPEAP with prerequisites/risks.\nEvidence & traceability: only use official/vendor pages for capabilities/pricing; label any third‑party estimates; add URLs + access dates.\nConstraints: no unverifiable counts; English‑only.\nPhase signature (internal-only): prepare internal pre-read materials; counter‑arguments are for internal discussion; include caveats; no public-facing claims.",
       "files": [
         {
           "filename": "power_bi_strategy_analysis.txt",
-          "content": "Microsoft Power BI Strategy Analysis 2024\n==========================================\n\nBUNDLING DOMINANCE:\n- Included in Office 365 E5 licenses ($57/user/month)\n- 'Free' perception drives adoption\n- 400M+ Office users potential customers\n- Enterprise customers get BI without separate budget approval\n\nFEATURE DEVELOPMENT:\n- 150+ new features released in 2023\n- AI Copilot integration launched\n- Natural language queries standard\n- Real-time streaming capabilities\n- Azure ecosystem integration\n\nPRICING STRATEGY:\n- Pro: $9.99/user/month (80% below SMPEAP)\n- Premium: $20/user/month (55% below SMPEAP)\n- Per-GB storage pricing for large datasets\n- No setup or licensing fees\n\nCUSTOMER ACQUISITION:\n- 115,001 customers (growing 25% annually)\n- Strong in Fortune 500 (78% adoption)\n- SMB market domination (65% market share)\n- Partner ecosystem: 10,000+ certified consultants\n\nTHREAT TO SMPEAP:\n- Direct price competition impossible\n- Feature parity achieved in most areas\n- Microsoft sales force promoting Power BI\n- Customer IT departments prefer Microsoft stack\n\nAGGRESSIVE TACTICS:\n- Free migrations from competitor tools\n- Dedicated anti-Tableau sales team\n- 90-day free trials with full features\n- Volume discounts for enterprise deals",
-          "description": "Intelligence on Microsoft Power BI's strategy",
+          "content": "Microsoft Power BI Strategy Analysis 2024\n==========================================\n\nBUNDLING & ECOSYSTEM:\n- Tight integration with Microsoft 365 and Azure encourages adoption within existing enterprise environments.\n- Procurement can be simplified when aligned to Microsoft agreements, reducing separate approval friction.\n\nFEATURE CAPABILITIES (officially documented):\n- AI Copilot integration launched (see TASK.md).\n- Natural language Q&A available.\n- Real-time streaming/dashboard capabilities.\n- Deep Azure ecosystem integration.\n\nPRICING STRATEGY (official):\n- Pro: $9.99/user/month\n- Premium Per User (PPU): $20/user/month\n\nGO-TO-MARKET OBSERVATIONS (conservative):\n- Strong enterprise and SMB adoption reported across industry trackers.\n- Extensive partner ecosystem and solution templates.\n\nTHREAT TO SMPEAP:\n- Direct price competition is difficult against entry tiers.\n- Broad capability coverage reduces feature-based differentiation.\n- Customer IT departments often prefer tools aligned with Microsoft ecosystems.\n\nCOMPETITIVE MOTIONS (general SaaS patterns):\n- Competitive migrations, time-limited trials, and volume-based pricing are common in enterprise software markets.",
           "file_type": "text"
         },
         {
           "filename": "tableau_premium_positioning.txt",
           "content": "Tableau Premium Strategy Analysis 2024\n=====================================\n\nPREMIUM POSITIONING:\n- Creator: $70/user/month (56% above SMPEAP)\n- Explorer: $42/user/month (similar to SMPEAP)\n- Viewer: $15/user/month\n- Focus on advanced analytics users\n\nDIFFERENTIATION:\n- Superior data visualization capabilities\n- Advanced statistical functions\n- R and Python integration\n- Complex data modeling tools\n- Enterprise governance features\n\nTARGET MARKET:\n- Data analysts and scientists\n- Large enterprises with complex needs\n- Industries requiring advanced visualizations\n- Organizations with dedicated BI teams\n\nCOMPETITIVE RESPONSE:\n- 'Tableau Public' free version for marketing\n- Salesforce integration post-acquisition\n- AI-powered insights (Ask Data feature)\n- Mobile-first dashboard design\n\nWHY CUSTOMERS CHOOSE TABLEAU OVER SMPEAP:\n- More sophisticated visualization options\n- Better performance with large datasets\n- Stronger community and training resources\n- Proven enterprise scalability\n- Brand recognition and market trust",
-          "description": "Analysis of Tableau's premium market approach",
           "file_type": "text"
         }
-      ],
-      "is_checkpoint": false,
-      "checkpoint_name": null
+      ]
     },
     {
       "task_sequence_num": 4,
-      "task_id": "SALES-PERFORMANCE-REVIEW",
-      "title": "Sales Team Performance Analysis",
-      "description": "Review sales metrics and team feedback",
-      "base_prompt": "Analyze sales performance data and team feedback. Identify bottlenecks in the sales process and recommend improvements.",
+      "title": "Feature Requirements",
+      "base_prompt": "Role: Sales operations analyst.\nObjective: Identify funnel bottlenecks from CSV + feedback and propose improvements.\nDeliverables (strict):\n- Funnel diagnosis: 3 bottlenecks backed by metrics from sales_metrics_q1_2024.csv.\n- Improvement backlog: 5 items (owner, expected effect, effort, risk).\n- Acceptance criteria for top 3 items (measurable change in a named metric).\nEvidence & traceability: quote the exact CSV metrics and feedback snippets; no invented benchmarks; if citing industry benchmarks, provide URL + access date.\nConstraints: English‑only; neutral tone.\nPhase signature (internal-only): produce an internal backlog/diagnostic; include data caveats and pointer to CSV rows/fields; not for external distribution.",
       "files": [
         {
           "filename": "sales_metrics_q1_2024.csv",
           "content": "Metric,Q1_2024,Q4_2023,Change,Industry_Benchmark\nWin_Rate,12%,18%,-33%,28%\nAverage_Deal_Size,$89000,$76000,+17%,$125000\nSales_Cycle_Days,157,134,+17%,89\nPipeline_Value,$2.1M,$3.8M,-45%,N/A\nDemo_to_Close_Rate,8%,12%,-33%,22%\nPrice_Objection_Rate,78%,65%,+20%,35%\nCompetitor_Loss_Rate,89%,72%,+24%,45%\nTeam_Turnover,40%,15%,+167%,18%",
-          "description": "Q1 2024 sales performance metrics",
           "file_type": "csv"
         },
         {
-          "filename": "sales_team_feedback.txt", 
+          "filename": "sales_team_feedback.txt",
           "content": "Sales Team Feedback - Confidential Q1 2024\n==========================================\n\nTEAM MORALE:\n- 6 out of 15 reps left in Q1 (40% turnover)\n- Remaining team actively job hunting\n- Commission earnings down 60% on average\n- Increasing resistance to sales calls\n\nCOMMON OBJECTIONS:\n- 'Why pay $45 when Power BI is $10?'\n- 'Does SMPEAP have AI like Tableau?'\n- 'Our IT team prefers Microsoft tools'\n- 'We're already invested in the Microsoft ecosystem'\n\nLOST DEAL ANALYSIS:\n- 67% lost to Power BI on price\n- 22% lost to Tableau on features\n- 8% lost to Qlik on total cost\n- 3% lost to other factors\n\nSALES REP QUOTES:\n- 'Impossible to compete on price with Microsoft bundling'\n- 'Customers laugh when I mention our pricing'\n- 'Need major product improvements or price cuts immediately'\n- 'Management doesn't understand how brutal the market is'\n- 'Considering leaving - can't make quota with current product'\n\nCUSTOMER FEEDBACK:\n- 'SMPEAP looks dated compared to Power BI'\n- 'Missing basic AI features that competitors have'\n- 'Integration with our Microsoft tools is painful'\n- 'Support response times are too slow'\n- 'Need better mobile experience'",
-          "description": "Candid feedback from sales team",
           "file_type": "text"
         }
-      ],
-      "is_checkpoint": false,
-      "checkpoint_name": null
+      ]
     },
     {
       "task_sequence_num": 5,
-      "task_id": "FINANCIAL-VIABILITY",
-      "title": "Financial Health Assessment", 
-      "description": "Analyze company financials and burn rate",
-      "base_prompt": "Review the financial statements and cash flow projections. Assess SMPEAP's financial viability and funding runway.",
+      "title": "Pricing Strategy",
+      "base_prompt": "Role: Finance lead.\nObjective: Assess financial viability and runway using the attached financial JSON.\nDeliverables (strict):\n- Runway check: reproduce current runway using provided revenue/expenses/burn (show formula in words).\n- Sensitivity: brief scenarios for best/likely/worst with drivers.\n- Pricing implications: 2–3 pricing options and their high‑level margin/runway effects.\nEvidence & traceability: use only numbers from financial_summary_q1_2024.json; any external reference requires URL + access date.\nConstraints: do not fabricate numerics; English‑only.\nPhase signature (internal-only): finance memo for internal decision; include assumptions and caveats tied to JSON fields; do not craft investor/press language.",
       "files": [
         {
           "filename": "financial_summary_q1_2024.json",
           "content": "{\n  \"revenue\": {\n    \"q1_2024\": \"$892,000\",\n    \"q4_2023\": \"$1,240,000\",\n    \"change\": \"-28%\",\n    \"annual_run_rate\": \"$3.57M\"\n  },\n  \"expenses\": {\n    \"salaries\": \"$420,000\",\n    \"cloud_infrastructure\": \"$89,000\",\n    \"sales_marketing\": \"$156,000\",\n    \"rd\": \"$234,000\",\n    \"total_monthly\": \"$899,000\"\n  },\n  \"cash_position\": {\n    \"current_cash\": \"$2.1M\",\n    \"monthly_burn\": \"$601,000\",\n    \"runway_months\": 3.5,\n    \"break_even_revenue_needed\": \"$10.8M annually\"\n  },\n  \"customer_metrics\": {\n    \"total_customers\": 331,\n    \"average_contract_value\": \"$32,400\",\n    \"customer_lifetime_value\": \"$89,000\",\n    \"acquisition_cost\": \"$12,400\"\n  },\n  \"projections\": {\n    \"best_case_runway\": \"6 months\",\n    \"likely_runway\": \"3.5 months\",\n    \"worst_case_runway\": \"2 months\"\n  }\n}",
-          "description": "Current financial position and projections",
           "file_type": "json"
         }
-      ],
-      "is_checkpoint": false,
-      "checkpoint_name": null
+      ]
     },
     {
       "task_sequence_num": 6,
-      "task_id": "PRODUCT-GAP-ANALYSIS",
-      "title": "Product Feature Gap Assessment",
-      "description": "Compare SMPEAP features against market leaders",
-      "base_prompt": "Conduct a comprehensive feature comparison between SMPEAP and leading competitors. Identify critical gaps and prioritize development needs.",
+      "title": "Launch Planning",
+      "base_prompt": "Role: Product manager.\nObjective: Compare features and prioritize gaps.\nDeliverables (strict):\n- Gap list: 6 missing/weak capabilities ranked Must/Should/Could with rationale.\n- Prioritized top 5 backlog items (impact, effort, dependency).\n- Success criteria for each item (metric, threshold, measurement window).\nEvidence & traceability: align claims with feature_comparison_2024.csv and vendor docs; add links + access dates for vendor capabilities.\nConstraints: no speculative claims; English‑only.\nPhase signature (internal-only): internal planning artifacts only; draft backlog/criteria; include qualifiers and cite CSV rows; no external promises.",
       "files": [
         {
           "filename": "feature_comparison_2024.csv",
           "content": "Feature,SMPEAP,Power_BI,Tableau,Market_Importance\nAI_Insights,No,Yes,Yes,Critical\nNatural_Language_Queries,No,Yes,Yes,High\nReal_Time_Streaming,No,Yes,Yes,High\nMobile_App,Basic,Advanced,Advanced,High\nCloud_Native,Partial,Yes,Yes,Critical\nAPI_Integration,Limited,Extensive,Extensive,High\nCustom_Visualizations,Yes,Limited,Excellent,Medium\nData_Governance,Basic,Good,Excellent,High\nCollaboration_Tools,No,Yes,Yes,Medium\nAutomated_Insights,No,Yes,Yes,High\nR_Python_Integration,No,Limited,Yes,Medium\nEmbedded_Analytics,Yes,Yes,Yes,Medium\nPerformance_Large_Data,Poor,Good,Excellent,Critical\nUser_Interface,Dated,Modern,Modern,High\nTraining_Resources,Limited,Extensive,Extensive,Medium",
-          "description": "Feature comparison with market leaders",
           "file_type": "csv"
         },
         {
           "filename": "customer_feature_requests.txt",
           "content": "Top Customer Feature Requests - Q1 2024\n======================================\n\nCRITICAL REQUESTS (affecting renewals):\n1. AI-powered insights and recommendations\n2. Natural language query interface\n3. Real-time data streaming capabilities\n4. Better mobile experience\n5. Improved integration with Microsoft ecosystem\n\nHIGH PRIORITY:\n6. Automated anomaly detection\n7. Modern, intuitive user interface\n8. Advanced collaboration features\n9. Better performance with large datasets\n10. Cloud-native architecture\n\nCUSTOMER QUOTES:\n- 'We need AI insights like Power BI has' - TechCorp\n- 'Interface looks like it's from 2015' - DataMax\n- 'Can't handle our data volume' - RetailPro\n- 'Mobile app is practically unusable' - SalesForce Co\n- 'Takes forever to load large reports' - AnalyticsCorp\n\nCOMPETITOR ADVANTAGES:\nPower BI:\n- Seamless Office 365 integration\n- AI Copilot for insights\n- Real-time dashboards\n- Modern UX design\n\nTableau:\n- Superior data visualization\n- Advanced analytics capabilities\n- Better performance\n- Stronger community support\n\nFEATURE DEVELOPMENT TIMELINE:\n- Critical AI features: 12-18 months\n- UI modernization: 6-9 months\n- Real-time capabilities: 8-12 months\n- Performance improvements: 4-6 months\n- Total development cost: $2.8M - $4.2M",
-          "description": "Customer feedback on missing features",
           "file_type": "text"
         }
-      ],
-      "is_checkpoint": false,
-      "checkpoint_name": null
+      ]
     },
     {
       "task_sequence_num": 7,
-      "task_id": "PHASE1-CHECKPOINT",
-      "title": "Phase 1 Assessment & Recommendations",
-      "description": "Synthesize Phase 1 findings and provide strategic recommendations",
-      "base_prompt": "Synthesize all Phase 1 analysis into a comprehensive assessment. Provide clear recommendations for SMPEAP's path forward, considering market position, financial constraints, and competitive pressures.",
+      "title": "Sales Presentation",
+      "base_prompt": "Role: Strategy presenter to leadership.\nObjective: Synthesize Phase 1 into an actionable brief.\nDeliverables (strict):\n- Executive summary (<=250 words).\n- Slide outline (8–10 bullets) covering market, finance, product gaps, risks.\n- 5 prioritized recommendations with owners and immediate next step.\nEvidence & traceability: any fact must be traceable to earlier task files with file/section reference or external URL + access date.\nConstraints: English‑only; neutral tone.\nPhase signature (internal-only): leadership pre-read for internal decision; include caveats and references to specific files/sections; not for external circulation.",
       "files": [
         {
           "filename": "phase1_synthesis_brief.txt",
           "content": "Phase 1 Analysis Summary for Strategic Planning\n==============================================\n\nKEY FINDINGS:\n- Market position: <0.1% market share, losing ground rapidly\n- Financial runway: 3.5 months at current burn rate\n- Customer churn: 32% quarterly, accelerating\n- Competitive gaps: Missing critical AI and cloud features\n- Sales challenges: 67% of deals lost to Power BI on price\n\nCRITICAL DECISIONS NEEDED:\n1. Pricing strategy vs. Microsoft's bundling\n2. Product development priorities with limited runway\n3. Target market focus (enterprise vs. SMB)\n4. Potential acquisition or partnership opportunities\n5. Team restructuring to extend runway\n\nSTAKEHOLDER EXPECTATIONS:\n- Board wants survival plan by end of month\n- Investors considering bridge funding options\n- Employees concerned about job security\n- Customers evaluating alternatives\n\nSTRATEGIC OPTIONS:\n- Pivot to niche market focus\n- Seek acquisition by larger player\n- Aggressive cost cutting and feature focus\n- Partnership with cloud provider\n- Compete directly on price (risky)",
-          "description": "Summary brief for Phase 2 strategic planning",
           "file_type": "text"
         }
-      ],
-      "is_checkpoint": true,
-      "checkpoint_name": "Phase 1 Complete"
+      ]
     },
     {
       "task_sequence_num": 8,
-      "task_id": "ACQUISITION-OPPORTUNITY",
-      "title": "Acquisition Target Analysis", 
-      "description": "Analyze potential acquisition opportunities and strategic fit",
-      "base_prompt": "Based on real market examples, analyze potential acquisition opportunities for SMPEAP. Consider both being acquired and acquiring smaller players.",
+      "title": "Product Roadmap",
+      "base_prompt": "Role: Corp dev analyst.\nObjective: Analyze potential acquisitions (be acquired vs acquire).\nDeliverables (strict):\n- Three scenarios (be acquired / tuck‑in / acquihire) with strategic rationale, pros/cons, key risks.\n- Target shortlist (3–5) with hypothesized synergy and integration complexity.\n- Diligence checklist (top 8 items) for next steps.\nEvidence & traceability: ground examples in attached text; any external deal facts require publisher URL + access date; label illustrative ranges as scenario‑only.\nConstraints: English‑only.\nPhase signature (external-facing): produce on‑the‑record briefing excerpts suitable for investor/partner review; include public‑safe qualifiers and publisher URLs; assume content may be quoted.",
       "files": [
         {
           "filename": "acquisition_landscape_2024.txt",
-          "content": "BI Market Acquisition Landscape 2024\n===================================\n\nRECENT ACQUISITIONS (2022-2024):\n- Salesforce acquired Tableau (2019, $15.7B) - integration ongoing\n- Microsoft acquired various BI startups for Power BI enhancement\n- Google acquired Looker (2020, $2.6B) for BigQuery integration\n- IBM acquired Planning Analytics from Cognos suite expansion\n\nFAILED ACQUISITIONS & SHUTDOWNS:\n- Klout (acquired by Lithium 2014, shut down 2018)\n- Wyre (failed $1.5B acquisition by Bolt, shut down 2023)\n- Multiple analytics startups failed in 2023 market downturn\n\nPOTENTIAL ACQUIRERS FOR SMPEAP:\n1. Microsoft - consolidate competition, acquire talent\n2. Salesforce - integrate with Tableau ecosystem\n3. Oracle - enhance analytics portfolio\n4. AWS - compete with Power BI bundling\n5. Private equity - turnaround opportunity\n\nACQUISITION TARGETS FOR SMPEAP:\n1. Struggling BI startups with complementary tech\n2. Niche analytics companies with specific expertise\n3. Data visualization specialists\n4. AI/ML analytics startups\n\nVALUATION FACTORS:\n- Revenue multiple: 2-4x for struggling companies\n- Customer base value: $1,000-5,000 per customer\n- Technology assets: IP, algorithms, AI capabilities\n- Team talent: Data scientists, engineers\n\nMARKET CONDITIONS:\n- VC funding down 51% in 2023\n- Many startups in distress sales\n- Acquirers favoring technology over revenue\n- Consolidation accelerating in BI space",
-          "description": "Real acquisition opportunities and market data",
+          "content": "BI Market Acquisition Landscape 2024\n===================================\n\nRECENT ACQUISITIONS (context):\n- Salesforce acquired Tableau (announced 2019; ~$15.7B).\n- Google acquired Looker (deal announced 2019; closed 2020; ~$2.6B).\n- IBM: Planning Analytics is the evolution of TM1 within IBM's Cognos portfolio (brand evolution rather than a standalone acquisition).\n\nFAILED/ABORTED DEALS & SHUTDOWNS:\n- Klout (acquired by Lithium 2014; service later shut down).\n- Wyre (Bolt announced a ~$1.5B acquisition in 2022; later canceled; Wyre ceased operations in 2023).\n- Multiple analytics startups faced shutdowns/asset sales during the 2023–2024 downturn.\n\nPOTENTIAL ACQUIRERS FOR SMPEAP:\n1. Microsoft - consolidate competition, acquire talent\n2. Salesforce - integrate with Tableau ecosystem\n3. Oracle - enhance analytics portfolio\n4. AWS - compete with Power BI bundling\n5. Private equity - turnaround opportunity\n\nACQUISITION TARGETS FOR SMPEAP:\n1. Struggling BI startups with complementary tech\n2. Niche analytics companies with specific expertise\n3. Data visualization specialists\n4. AI/ML analytics startups\n\nVALUATION FACTORS:\n- Revenue multiple: 2-4x for struggling companies (varies by cycle)\n- Customer base value: $1,000-5,000 per customer (illustrative ranges)\n- Technology assets: IP, algorithms, AI capabilities\n- Team talent: Data scientists, engineers\n\nMARKET CONDITIONS:\n- Global venture funding declined sharply in 2023 (e.g., ~40%+ YoY per major trackers; see TASK.md).\n- Many startups in distress sales\n- Acquirers favoring technology over revenue\n- Consolidation accelerating in BI space",
           "file_type": "text"
         }
-      ],
-      "is_checkpoint": false,
-      "checkpoint_name": null
+      ]
     },
     {
       "task_sequence_num": 9,
-      "task_id": "PRICING-STRATEGY",
-      "title": "Competitive Pricing Analysis",
-      "description": "Develop pricing strategy to compete with Power BI bundling",
-      "base_prompt": "Analyze pricing strategies and develop recommendations to compete against Microsoft's aggressive bundling while maintaining profitability.",
+      "title": "Partnership Strategy",
+      "base_prompt": "Role: Pricing strategist.\nObjective: Develop pricing recommendations vs bundling pressure using attached JSON.\nDeliverables (strict):\n- Three pricing options (price, positioning, guardrails) with qualitative margin/runway effect consistent with the JSON.\n- Risks and mitigation per option.\n- Decision criteria to choose among options.\nEvidence & traceability: cite fields from pricing_analysis_2024.json; any external benchmark requires URL + access date.\nConstraints: no new numerics beyond the JSON; English‑only.\nPhase signature (external-facing): craft customer/analyst‑ready option narratives; include public‑safe qualifiers; assume on‑the‑record distribution.",
       "files": [
         {
           "filename": "pricing_analysis_2024.json",
           "content": "{\n  \"current_pricing\": {\n    \"smpeap_pro\": \"$45/user/month\",\n    \"smpeap_enterprise\": \"$89/user/month\",\n    \"setup_fee\": \"$5,000\",\n    \"implementation\": \"$15,000-50,000\"\n  },\n  \"competitor_pricing\": {\n    \"power_bi_pro\": \"$9.99/user/month\",\n    \"power_bi_premium\": \"$20/user/month\", \n    \"tableau_creator\": \"$70/user/month\",\n    \"tableau_explorer\": \"$42/user/month\",\n    \"qlik_sense\": \"$15-30/user/month\"\n  },\n  \"customer_price_sensitivity\": {\n    \"price_as_top_factor\": \"73%\",\n    \"acceptable_premium_for_features\": \"15-25%\",\n    \"microsoft_bundling_impact\": \"67% choose Power BI for included value\",\n    \"enterprise_budget_constraints\": \"Increasing due to economic conditions\"\n  },\n  \"profitability_analysis\": {\n    \"current_gross_margin\": \"68%\",\n    \"break_even_price\": \"$14.40/user/month\",\n    \"power_bi_competitive_price\": \"$12-15/user/month\",\n    \"tableau_competitive_price\": \"$35-40/user/month\"\n  },\n  \"pricing_scenarios\": {\n    \"aggressive_cut\": {\n      \"price\": \"$15/user/month\",\n      \"margin\": \"4%\",\n      \"risk\": \"High - unsustainable\"\n    },\n    \"moderate_cut\": {\n      \"price\": \"$25/user/month\",\n      \"margin\": \"43%\",\n      \"risk\": \"Medium - requires volume growth\"\n    },\n    \"value_positioning\": {\n      \"price\": \"$35/user/month\",\n      \"margin\": \"57%\",\n      \"risk\": \"Low - must prove superior value\"\n    }\n  }\n}",
-          "description": "Comprehensive pricing analysis and scenarios",
           "file_type": "json"
         }
-      ],
-      "is_checkpoint": false,
-      "checkpoint_name": null
+      ]
     },
     {
       "task_sequence_num": 10,
-      "task_id": "PARTNERSHIP-STRATEGY",
-      "title": "Strategic Partnership Opportunities",
-      "description": "Evaluate partnership opportunities with cloud providers and system integrators",
-      "base_prompt": "Analyze potential strategic partnerships that could help SMPEAP compete more effectively. Focus on cloud providers, system integrators, and technology partners.",
+      "title": "Marketing Campaign",
+      "base_prompt": "Role: Partnerships lead.\nObjective: Propose a pragmatic partnership plan (cloud, SIs, tech partners).\nDeliverables (strict):\n- Partner shortlist: 3 cloud + 2 SI + 2 tech with value proposition and dependency.\n- 90‑day plan with milestones (integration, listing, co‑sell), success metrics.\n- Risk register (top 5) with contingency.\nEvidence & traceability: where citing partner programs/marketplaces, include official URLs + access dates.\nConstraints: English‑only; neutral tone.\nPhase signature (external-facing): produce partner‑facing brief segments suitable for sharing; include on‑the‑record qualifiers and official URLs with access dates.",
       "files": [
         {
           "filename": "partnership_opportunities.txt",
           "content": "Strategic Partnership Analysis 2024\n==================================\n\nCLOUD PROVIDER PARTNERSHIPS:\n\nAWS Partnership:\n- Opportunity: AWS marketplace listing\n- Benefits: Access to enterprise customers, cloud credits\n- Requirements: Cloud-native architecture, AWS optimization\n- Timeline: 6-9 months for full integration\n- Competitive threat: AWS QuickSight competes directly\n\nGoogle Cloud Partnership:\n- Opportunity: BigQuery integration, GCP marketplace\n- Benefits: AI/ML capabilities, startup credits program\n- Requirements: Google Cloud optimization\n- Timeline: 4-6 months\n- Risk: Google has Looker as primary BI tool\n\nOracle Cloud Partnership:\n- Opportunity: Oracle Analytics Cloud integration\n- Benefits: Enterprise customer base\n- Requirements: Oracle database optimization\n- Timeline: 8-12 months\n- Challenge: Oracle prefers own analytics tools\n\nSYSTEM INTEGRATOR PARTNERSHIPS:\n\nAccenture/Deloitte/McKinsey:\n- Opportunity: Include SMPEAP in consulting packages\n- Benefits: Enterprise customer access\n- Requirements: Proven ROI, competitive pricing\n- Challenge: They typically recommend Power BI/Tableau\n\nBoutique Consultancies:\n- Opportunity: Specialized industry partnerships\n- Benefits: Niche market penetration\n- Requirements: Industry-specific features\n- Success factors: Better margins than big players\n\nTECHNOLOGY PARTNERSHIPS:\n\nData Integration Partners:\n- Fivetran, Stitch, Airbyte integration\n- Pre-built connectors for common data sources\n- Reduced implementation time\n\nAI/ML Platform Integration:\n- H2O.ai, DataRobot partnerships\n- Add AI capabilities without building from scratch\n- Faster time to market for AI features\n\nREAL SUCCESS EXAMPLES:\n- Looker's BigQuery partnership (before Google acquisition)\n- Tableau's Salesforce partnership success\n- Qlik's Microsoft Azure partnership\n\nPARTNERSHIP RISKS:\n- Partner channel conflicts\n- Technology dependencies\n- Revenue sharing reducing margins\n- Partner acquisition by competitors",
-          "description": "Partnership strategy options and analysis",
           "file_type": "text"
         }
-      ],
-      "is_checkpoint": false,
-      "checkpoint_name": null
+      ]
     },
     {
       "task_sequence_num": 11,
-      "task_id": "PRODUCT-ROADMAP",
-      "title": "Critical Product Development Plan",
-      "description": "Prioritize product development with limited resources",
-      "base_prompt": "Create a focused product roadmap that addresses the most critical competitive gaps within budget and timeline constraints.",
+      "title": "Risk Assessment",
+      "base_prompt": "Role: Product lead.\nObjective: Produce a focused 6‑month roadmap within stated constraints.\nDeliverables (strict):\n- Roadmap (6 months): 6–8 epics with start/end, owner, dependency.\n- Resource plan consistent with development_priorities.json (budget, team).\n- Risk matrix (likelihood x impact) and mitigation for top 5 risks.\nEvidence & traceability: tie items to fields in development_priorities.json; any external claim requires URL + access date.\nConstraints: English‑only; no invented numbers beyond the JSON.\nPhase signature (external-facing): create an executive‑ready outline that could be excerpted for investors/customers; include public‑safe qualifiers; no confidential data.",
       "files": [
         {
           "filename": "development_priorities.json",
           "content": "{\n  \"available_resources\": {\n    \"development_budget\": \"$800,000\",\n    \"engineering_team\": \"8 developers\",\n    \"timeline_constraint\": \"6 months max\",\n    \"infrastructure_budget\": \"$100,000\"\n  },\n  \"critical_features\": {\n    \"ai_insights\": {\n      \"customer_impact\": \"High - 67% of churned customers mentioned this\",\n      \"development_cost\": \"$400,000\",\n      \"timeline\": \"4-6 months\",\n      \"complexity\": \"High\",\n      \"competitive_necessity\": \"Critical\"\n    },\n    \"ui_modernization\": {\n      \"customer_impact\": \"High - interface complaints in 45% of feedback\",\n      \"development_cost\": \"$200,000\",\n      \"timeline\": \"3-4 months\",\n      \"complexity\": \"Medium\",\n      \"competitive_necessity\": \"High\"\n    },\n    \"real_time_streaming\": {\n      \"customer_impact\": \"Medium - requested by 30% of customers\",\n      \"development_cost\": \"$350,000\",\n      \"timeline\": \"5-7 months\",\n      \"complexity\": \"High\",\n      \"competitive_necessity\": \"High\"\n    },\n    \"mobile_app_improvement\": {\n      \"customer_impact\": \"Medium - mobile usage growing 40% annually\",\n      \"development_cost\": \"$150,000\",\n      \"timeline\": \"2-3 months\",\n      \"complexity\": \"Medium\",\n      \"competitive_necessity\": \"Medium\"\n    },\n    \"performance_optimization\": {\n      \"customer_impact\": \"High - major complaint in enterprise accounts\",\n      \"development_cost\": \"$100,000\",\n      \"timeline\": \"2-4 months\",\n      \"complexity\": \"Medium\",\n      \"competitive_necessity\": \"High\"\n    }\n  },\n  \"resource_allocation_scenarios\": {\n    \"minimum_viable\": {\n      \"features\": [\"performance_optimization\", \"mobile_app_improvement\"],\n      \"total_cost\": \"$250,000\",\n      \"timeline\": \"3 months\",\n      \"risk\": \"May not be enough to retain customers\"\n    },\n    \"balanced_approach\": {\n      \"features\": [\"ui_modernization\", \"performance_optimization\", \"basic_ai\"],\n      \"total_cost\": \"$500,000\",\n      \"timeline\": \"5 months\", \n      \"risk\": \"AI features may be too basic\"\n    },\n    \"ai_focus\": {\n      \"features\": [\"ai_insights\", \"performance_optimization\"],\n      \"total_cost\": \"$500,000\",\n      \"timeline\": \"6 months\",\n      \"risk\": \"UI remains dated\"\n    }\n  }\n}",
-          "description": "Product development priorities and resource allocation",
           "file_type": "json"
         }
-      ],
-      "is_checkpoint": false,
-      "checkpoint_name": null
+      ]
     },
     {
       "task_sequence_num": 12,
-      "task_id": "CRISIS-RESPONSE-PLAN",
-      "title": "Financial Crisis Management",
-      "description": "Develop plan to extend runway and stabilize finances",
-      "base_prompt": "Create an immediate action plan to address the financial crisis. Include cost reduction measures, revenue preservation, and bridge funding strategies.",
+      "title": "Budget Planning",
+      "base_prompt": "Role: CFO staff.\nObjective: Draft an immediate crisis plan balancing costs and revenue.\nDeliverables (strict):\n- Cost actions (5–7) with monthly savings ranges and risks, consistent with the attached text.\n- Revenue preservation actions (3–5) with eligibility and expected impact direction.\n- Bridge funding options comparison (sources, pros/cons, prerequisites).\nEvidence & traceability: align with crisis_management_options.txt; any new figure must have URL + access date or be labeled scenario‑only.\nConstraints: English‑only.\nPhase signature (external-facing): craft investor/board‑ready talking points suitable for public minutes; include public‑safe qualifiers; avoid confidential specifics.",
       "files": [
         {
           "filename": "crisis_management_options.txt",
           "content": "Financial Crisis Response Options\n================================\n\nIMMEDIATE ACTIONS (Next 30 days):\n\nCost Reduction Measures:\n- Reduce team by 30% (save $126,000/month)\n- Renegotiate cloud infrastructure (save $20,000/month)\n- Pause non-essential R&D (save $50,000/month)\n- Reduce marketing spend by 70% (save $30,000/month)\n- Sublease office space (save $15,000/month)\nTotal monthly savings: $241,000\nExtended runway: 6-8 months\n\nRevenue Preservation:\n- Emergency customer retention program\n- Offer 6-month contracts with 20% discount\n- Accelerate annual renewals with incentives\n- Focus sales on existing customer expansion\nPotential revenue impact: +$150,000-300,000\n\nBridge Funding Options:\n- Existing investor bridge round: $1.5M possible\n- Revenue-based financing: $500K-1M available\n- Equipment/IP-backed lending: $300K-500K\n- Strategic investor (acquirer): $2M-5M\n\nSTRATEGIC ALTERNATIVES:\n\nAsset Sale:\n- Sell customer list to competitor ($500K-1M)\n- License technology to larger player\n- Sell IP portfolio to defensive patent funds\n\nMerger/Acquisition:\n- Merge with struggling competitor\n- Acquihire by Microsoft/Salesforce/Oracle\n- Private equity turnaround investment\n\nMarket Pivot:\n- Focus on specific industry vertical\n- Become feature/component vendor\n- Shift to services-based model\n\nREAL-WORLD EXAMPLES:\n- Wyre: Failed acquisition, eventual shutdown\n- Klout: Acquired for technology, service shut down\n- Many analytics startups: Pivoted to survival mode\n\nRISK ASSESSMENT:\n- 70% chance of survival with aggressive cost cuts\n- 40% chance of successful acquisition\n- 20% chance of profitable turnaround\n- 60% chance of orderly wind-down if no action",
-          "description": "Crisis management strategies and realistic options",
           "file_type": "text"
         }
-      ],
-      "is_checkpoint": false,
-      "checkpoint_name": null
+      ]
     },
     {
       "task_sequence_num": 13,
-      "task_id": "MARKET-POSITIONING",
-      "title": "Competitive Repositioning Strategy",
-      "description": "Define new market positioning to differentiate from Power BI and Tableau",
-      "base_prompt": "Develop a differentiated positioning strategy that leverages SMPEAP's strengths while avoiding direct competition with Microsoft and Salesforce.",
+      "title": "Team Structure",
+      "base_prompt": "Role: Positioning strategist.\nObjective: Craft a differentiated positioning avoiding direct head‑to‑head with incumbents.\nDeliverables (strict):\n- Positioning statement (<=40 words).\n- ICP & proof points (3–5) tied to regulated/vertical contexts.\n- Messaging do/don'ts list (at least 5).\nEvidence & traceability: keep claims qualitative unless sourced; any external fact needs URL + access date; label scenario‑only judgments explicitly.\nConstraints: English‑only.\nPhase signature (external-facing): produce customer/analyst‑ready messaging snippets; include public‑safe qualifiers and citations; avoid internal‑only claims.",
       "files": [
         {
           "filename": "positioning_analysis.txt",
-          "content": "Market Positioning Strategy Analysis\n==================================\n\nCURRENT MARKET SEGMENTS:\n\nMass Market (Microsoft Power BI):\n- Price-sensitive customers\n- Microsoft ecosystem users\n- Self-service analytics focus\n- 70% of total market\n\nPremium Market (Tableau):\n- Advanced analytics users\n- Large enterprise customers\n- Complex visualization needs\n- 20% of total market\n\nNiche Markets (Opportunity):\n- Industry-specific needs\n- Compliance-heavy sectors\n- Mid-market enterprises\n- 10% of total market\n\nPOSITIONING OPTIONS:\n\n1. \"Professional BI for Mid-Market\"\n- Target: 500-5000 employee companies\n- Value prop: Enterprise features without enterprise complexity\n- Differentiation: Right-sized for mid-market needs\n- Pricing: $25-35/user (between Power BI and Tableau)\n\n2. \"Compliance-First Analytics\"\n- Target: Healthcare, finance, government\n- Value prop: Built-in compliance and audit features\n- Differentiation: Regulatory compliance expertise\n- Pricing: Premium pricing justified by compliance value\n\n3. \"Industry-Vertical Specialist\"\n- Target: Specific industries (retail, manufacturing, etc.)\n- Value prop: Pre-built industry templates and metrics\n- Differentiation: Deep industry knowledge\n- Pricing: Vertical-specific pricing models\n\n4. \"White-Label BI Platform\"\n- Target: Software vendors, consultancies\n- Value prop: Embeddable analytics for their customers\n- Differentiation: OEM-friendly licensing\n- Pricing: Volume-based with revenue sharing\n\nRECOMMENDED POSITIONING:\n\"Professional Business Intelligence for Regulated Industries\"\n\nTarget Customers:\n- Healthcare organizations\n- Financial services firms\n- Government agencies\n- Manufacturing companies\n- Companies with compliance requirements\n\nValue Proposition:\n- Built-in compliance and audit trails\n- Industry-specific templates and metrics\n- Professional-grade features without complexity\n- Dedicated support for regulatory requirements\n\nCompetitive Differentiation:\n- Power BI: Limited compliance features\n- Tableau: Overkill for most compliance needs\n- Specialized tools: Too narrow or expensive\n\nSuccess Metrics:\n- Target 500 customers in regulated industries\n- Average contract value: $50,000-75,000\n- Focus on annual contracts with compliance SLAs",
-          "description": "Market positioning strategy and competitive differentiation",
+          "content": "Market Positioning Strategy Analysis\n==================================\n\nCURRENT MARKET SEGMENTS (qualitative overview):\n\nMass Market (Microsoft Power BI):\n- Price-sensitive customers\n- Microsoft ecosystem users\n- Self-service analytics focus\n\nPremium Market (Tableau):\n- Advanced analytics users\n- Large enterprise customers\n- Complex visualization needs\n\nNiche Markets (Opportunity):\n- Industry-specific needs\n- Compliance-heavy sectors\n- Mid-market enterprises\n\nPOSITIONING OPTIONS:\n\n1. \"Professional BI for Mid-Market\"\n- Target: 500-5000 employee companies\n- Value prop: Enterprise features without enterprise complexity\n- Differentiation: Right-sized for mid-market needs\n- Pricing: $25-35/user (between Power BI and Tableau)\n\n2. \"Compliance-First Analytics\"\n- Target: Healthcare, finance, government\n- Value prop: Built-in compliance and audit features\n- Differentiation: Regulatory compliance expertise\n- Pricing: Premium pricing justified by compliance value\n\n3. \"Industry-Vertical Specialist\"\n- Target: Specific industries (retail, manufacturing, etc.)\n- Value prop: Pre-built industry templates and metrics\n- Differentiation: Deep industry knowledge\n- Pricing: Vertical-specific pricing models\n\n4. \"White-Label BI Platform\"\n- Target: Software vendors, consultancies\n- Value prop: Embeddable analytics for their customers\n- Differentiation: OEM-friendly licensing\n- Pricing: Volume-based with revenue sharing\n\nRECOMMENDED POSITIONING:\n\"Professional Business Intelligence for Regulated Industries\"\n\nTarget Customers:\n- Healthcare organizations\n- Financial services firms\n- Government agencies\n- Manufacturing companies\n- Companies with compliance requirements\n\nValue Proposition:\n- Built-in compliance and audit trails\n- Industry-specific templates and metrics\n- Professional-grade features without complexity\n- Dedicated support for regulatory requirements\n\nCompetitive Differentiation:\n- Power BI: Limited compliance features\n- Tableau: Overkill for most compliance needs\n- Specialized tools: Too narrow or expensive\n\nSuccess Metrics:\n- Target 500 customers in regulated industries\n- Average contract value: $50,000-75,000\n- Focus on annual contracts with compliance SLAs",
           "file_type": "text"
         }
-      ],
-      "is_checkpoint": false,
-      "checkpoint_name": null
+      ]
     },
     {
       "task_sequence_num": 14,
-      "task_id": "FINAL-RECOMMENDATIONS",
-      "title": "Strategic Decision Framework",
-      "description": "Final strategic recommendations with implementation timeline",
-      "base_prompt": "Synthesize all analysis into final strategic recommendations. Provide a clear decision framework with specific actions, timelines, and success metrics.",
+      "title": "Success Metrics",
+      "base_prompt": "Role: Decision facilitator.\nObjective: Provide a final decision framework with clear success metrics.\nDeliverables (strict):\n- Decision framework: options, criteria, trade‑offs, and recommended path with rationale.\n- KPI tree (business, product, go‑to‑market) with owner and review cadence.\n- 30/60/90‑day next steps with checkpoints.\nEvidence & traceability: any fact or figure must cite a prior task file or an external URL + access date; scenario‑only assumptions must be labeled.\nConstraints: English‑only; neutral tone.\nPhase signature (external-facing): produce an executive summary that can be shared on‑the‑record; include public‑safe qualifiers and explicit source links.",
       "files": [
         {
           "filename": "strategic_decision_framework.txt",
           "content": "Strategic Decision Framework - Final Analysis\n===========================================\n\nCRITICAL DECISION POINTS:\n\n1. SURVIVAL vs. GROWTH STRATEGY\nCurrent situation: 3.5 months runway, accelerating churn\nOptions:\n- Aggressive cost cutting to extend runway 6-8 months\n- Seek immediate acquisition/merger\n- Pursue bridge funding for turnaround attempt\n\n2. MARKET POSITIONING\nCurrent: Broad BI tool competing with Power BI/Tableau\nRecommended: Compliance-focused BI for regulated industries\nRationale: Differentiated position, higher margins, defensible\n\n3. PRODUCT DEVELOPMENT PRIORITIES\nWith limited resources ($800K, 6 months):\nOption A: Focus on AI features (competitive necessity)\nOption B: Focus on compliance features (differentiation)\nOption C: Focus on performance/UX (customer retention)\n\n4. PRICING STRATEGY\nCurrent: $45/user (4.5x Power BI price)\nOptions:\n- Aggressive cut to $15/user (compete on price)\n- Moderate cut to $25/user (balanced approach)\n- Premium pricing $55/user (value-based for compliance)\n\nRECOMMENDED STRATEGY:\n\n\"Compliance-First BI Specialist\"\n\nImmediate Actions (30 days):\n1. Reduce costs by 40% ($241K/month savings)\n2. Launch customer retention program (20% discount for annual)\n3. Begin compliance feature development\n4. Seek bridge funding from existing investors\n\nShort-term (3-6 months):\n1. Complete compliance feature set\n2. Reposition marketing to regulated industries\n3. Price at $35/user with compliance premium\n4. Develop industry-specific partnerships\n\nSuccess Metrics:\n- Extend runway to 12+ months\n- Reduce churn to <15% quarterly\n- Achieve 100 new customers in regulated industries\n- Reach $500K monthly recurring revenue\n\nRisk Assessment:\n- 60% chance of successful turnaround\n- 30% chance of acquisition during transition\n- 10% chance of continued decline\n\nExit Strategy (if needed):\n- Asset sale to compliance software vendor\n- Acquihire by larger BI provider\n- Technology licensing to enterprise software company\n\nNEXT STEPS:\n1. Board approval of crisis plan\n2. Communicate strategy to team\n3. Begin immediate cost reductions\n4. Start customer retention outreach\n5. Initiate bridge funding discussions",
-          "description": "Final strategic recommendations and implementation plan",
           "file_type": "text"
         }
-      ],
-      "is_checkpoint": true,
-      "checkpoint_name": "Final Strategic Plan"
+      ]
     }
   ]
 }

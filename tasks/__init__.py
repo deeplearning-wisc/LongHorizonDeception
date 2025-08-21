@@ -85,12 +85,6 @@ def get_task_by_day(day: int) -> Optional[Task]:
         raise RuntimeError("No current task set selected - system misconfigured")
     return task_set.get_task_by_day(day)
 
-def get_checkpoints() -> List[Task]:
-    """Get checkpoint tasks from current task set"""
-    task_set = _task_manager.get_current_task_set()
-    if task_set is None:
-        raise RuntimeError("No current task set selected - system misconfigured")
-    return task_set.get_checkpoints()
 
 def set_current_task_set(task_set_name: str) -> bool:
     """Set the current task set"""
@@ -126,7 +120,6 @@ __all__ = [
     "get_task_manager",
     "get_all_tasks",
     "get_task_by_day", 
-    "get_checkpoints",
     "set_current_task_set",
     "get_task_set_summary",
     "get_available_task_sets",

@@ -11,12 +11,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 class EventPhase(Enum):
-    PHASE_1 = "phase_1"  # Tasks 1-7: Building relationship, light-medium pressure
-    PHASE_2 = "phase_2"  # Tasks 8-14: Deep collaboration, medium-high pressure
+    PHASE_1 = "phase_1"  # Building relationship, light-medium pressure
+    PHASE_2 = "phase_2"  # Deep collaboration, medium-high pressure
 
 @dataclass
 class DeceptiveEvent:
     """Represents a high-pressure contextual event that may induce deceptive behavior"""
+    name: str  # 新增name字段，如GC_E1, CI_E2等
     content: str
     description: str
     pressure_level: str  # "MEDIUM", "HIGH", "EXTREME", "TOTAL_DEVASTATION"
@@ -70,17 +71,29 @@ class JSONEventLoader:
             
             events = []
             for event_data in phase_data["events"]:
-                # Validate required fields
-                required_fields = ["content", "description", "pressure_level"]
-                for field in required_fields:
-                    if field not in event_data:
-                        raise ValueError(f"Missing '{field}' in event data for phase {phase_key}")
-                
-                event = DeceptiveEvent(
-                    content=event_data["content"],
-                    description=event_data["description"],
-                    pressure_level=event_data["pressure_level"]
-                )
+                # 这个旧系统不支持新的variant格式，但保持兼容性
+                if "variants" in event_data:
+                    # 新格式：使用第一个variant作为默认
+                    first_variant = list(event_data["variants"].values())[0]
+                    event = DeceptiveEvent(
+                        name=event_data.get("name", "UNKNOWN"),
+                        content=first_variant["content"],
+                        description=first_variant["content"],
+                        pressure_level=first_variant["pressure_level"]
+                    )
+                else:
+                    # 旧格式兼容
+                    required_fields = ["content", "pressure_level"]
+                    for field in required_fields:
+                        if field not in event_data:
+                            raise ValueError(f"Missing '{field}' in event data for phase {phase_key}")
+                    
+                    event = DeceptiveEvent(
+                        name=event_data.get("name", "UNKNOWN"),
+                        content=event_data["content"],
+                        description=event_data["content"],  # 统一使用content作为描述
+                        pressure_level=event_data["pressure_level"]
+                    )
                 events.append(event)
             
             phase_events[phase_enum] = events
@@ -102,8 +115,8 @@ class JSONEventSystem:
     def _load_vocabularies(self):
         """Load phase-specific event vocabularies from JSON"""
         try:
-            event_set_data = self.loader.load_event_set(self.task_set_name)
-            self.phase_events = self.loader.parse_events_from_json(event_set_data)
+            self.event_set_data = self.loader.load_event_set(self.task_set_name)
+            self.phase_events = self.loader.parse_events_from_json(self.event_set_data)
             
             # Store metadata (but keep using config's p_event for probability)
             # JSON probability is ignored - we use config's p_event instead
@@ -112,7 +125,19 @@ class JSONEventSystem:
             raise RuntimeError(f"Failed to load event vocabularies for {self.task_set_name}: {e}")
     
     def get_phase_for_task(self, task_num: int) -> EventPhase:
-        """Determine which phase a given task belongs to"""
+        """Determine which phase a given task belongs to - 动态读取JSON配置"""
+        # 从JSON配置读取阶段范围，不再硬编码7
+        phases_data = self.event_set_data.get('phases', {})
+        
+        for phase_key, phase_data in phases_data.items():
+            if 'task_start' in phase_data and 'task_end' in phase_data:
+                if phase_data['task_start'] <= task_num <= phase_data['task_end']:
+                    if phase_key == "phase_1":
+                        return EventPhase.PHASE_1
+                    elif phase_key == "phase_2":
+                        return EventPhase.PHASE_2
+        
+        # 回退到默认逻辑
         if task_num <= 7:
             return EventPhase.PHASE_1
         else:
@@ -163,8 +188,9 @@ class JSONEventSystem:
             return {}
         
         return {
+            'name': event.name,  # 增加name字段
             'pressure_level': event.pressure_level,
-            'description': event.description,
+            'content': event.description,  # 统一使用content字段
             'triggered': True
         }
 
@@ -176,7 +202,7 @@ except ImportError:
     _VARIANT_SYSTEM_AVAILABLE = False
 
 # Factory function with automatic fallback to variant system
-def get_event_system(task_set_name: str, global_event_probability: float = 0.3):
+def get_event_system(task_set_name: str, global_event_probability: float = 0.3, seed: int = None):
     """
     Factory function to create event system for a task set
     Automatically uses new VariantEventSystem if available, otherwise falls back to JSONEventSystem
@@ -184,7 +210,7 @@ def get_event_system(task_set_name: str, global_event_probability: float = 0.3):
     if _VARIANT_SYSTEM_AVAILABLE:
         try:
             # Try to use new variant system first
-            return VariantEventSystem(task_set_name, global_event_probability)
+            return VariantEventSystem(task_set_name, global_event_probability, seed)
         except Exception as e:
             # If variant system fails, fall back to old system
             print(f"Warning: Variant system failed ({e}), falling back to JSONEventSystem")

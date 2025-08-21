@@ -71,7 +71,7 @@ class JSONTaskLoader:
         tasks_data = data["tasks"]
         
         # Validate task_set structure - support both old and new field names
-        required_fields = ["name", "description"]
+        required_fields = ["name"]
         for field in required_fields:
             if field not in task_set_info:
                 raise ValueError(f"Missing '{field}' in task_set section of {source_file}")
@@ -82,7 +82,6 @@ class JSONTaskLoader:
         # Create TaskSet
         task_set = TaskSet(
             name=task_set_info["name"],
-            description=task_set_info["description"],
             duration_days=duration_days
         )
         
@@ -105,7 +104,7 @@ class JSONTaskLoader:
             Task: Parsed task object
         """
         # Validate required fields
-        required_fields = ["task_sequence_num", "task_id", "title", "base_prompt"]
+        required_fields = ["task_sequence_num", "title", "base_prompt"]
         for field in required_fields:
             if field not in task_data:
                 raise ValueError(f"Missing '{field}' in task data of {source_file}")
@@ -115,52 +114,43 @@ class JSONTaskLoader:
         if isinstance(base_prompt_data, dict):
             # Old format with language nesting
             if "en" not in base_prompt_data:
-                task_id = task_data.get('task_id') or 'MISSING_TASK_ID'
-                raise ValueError(f"Missing 'en' in base_prompt of task {task_id} in {source_file}")
+                task_title = task_data.get('title') or 'MISSING_TITLE'
+                raise ValueError(f"Missing 'en' in base_prompt of task {task_title} in {source_file}")
             base_prompt = base_prompt_data["en"]
         elif isinstance(base_prompt_data, str):
             # New simplified format
             base_prompt = base_prompt_data
         else:
-            task_id = task_data.get('task_id') or 'MISSING_TASK_ID'
-            raise ValueError(f"Invalid base_prompt format in task {task_id} in {source_file}")
+            task_title = task_data.get('title') or 'MISSING_TITLE'
+            raise ValueError(f"Invalid base_prompt format in task {task_title} in {source_file}")
         
         # Parse files (optional)
         files = []
         if "files" in task_data and task_data["files"]:
             for file_data in task_data["files"]:
-                task_id = task_data.get('task_id')
-                if not task_id:
-                    raise ValueError(f"Task missing task_id in {source_file}")
-                task_file = self._parse_task_file_json(file_data, task_id, source_file)
+                task_title = task_data.get('title')
+                if not task_title:
+                    raise ValueError(f"Task missing title in {source_file}")
+                task_file = self._parse_task_file_json(file_data, task_title, source_file)
                 files.append(task_file)
-        
-        # Validate required fields - simplified structure
-        if "is_checkpoint" not in task_data:
-            task_id = task_data.get('task_id') or 'MISSING_TASK_ID'
-            raise ValueError(f"Missing 'is_checkpoint' in task {task_id} in {source_file}")
         
         # Create Task object with simplified structure
         task = Task(
             task_sequence_num=task_data["task_sequence_num"],
-            task_id=task_data["task_id"],
             title=task_data["title"],
             base_prompt=base_prompt,
-            files=files,
-            is_checkpoint=task_data["is_checkpoint"],
-            checkpoint_name=task_data["checkpoint_name"] if task_data["checkpoint_name"] is not None else None,
-            description=task_data["description"] if "description" in task_data and task_data["description"] is not None else None
+            files=files
         )
         
         return task
     
-    def _parse_task_file_json(self, file_data: Dict[str, Any], task_id: str, source_file: str) -> TaskFile:
+    def _parse_task_file_json(self, file_data: Dict[str, Any], task_title: str, source_file: str) -> TaskFile:
         """
         Parse JSON file data into TaskFile object
         
         Args:
             file_data: File JSON data
-            task_id: Task ID for error reporting
+            task_title: Task title for error reporting
             source_file: Source file for error reporting
             
         Returns:
@@ -170,11 +160,11 @@ class JSONTaskLoader:
         required_fields = ["filename", "content"]
         for field in required_fields:
             if field not in file_data:
-                raise ValueError(f"Missing '{field}' in file data of task {task_id} in {source_file}")
+                raise ValueError(f"Missing '{field}' in file data of task {task_title} in {source_file}")
         
         # Validate all file fields - NO DEFAULTS ALLOWED
         if "file_type" not in file_data:
-            raise ValueError(f"Missing 'file_type' in file data of task {task_id} in {source_file}")
+            raise ValueError(f"Missing 'file_type' in file data of task {task_title} in {source_file}")
         
         return TaskFile(
             filename=file_data["filename"],

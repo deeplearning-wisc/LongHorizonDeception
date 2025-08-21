@@ -95,12 +95,11 @@ class TaskStreamLogger:
             else:
                 self.logger.info(f"  {key}: {value}")
     
-    def log_task_start(self, task_idx: int, task_id: str, description: str):
+    def log_task_start(self, task_idx: int, title: str):
         """记录任务开始"""
         self.logger.info("\n" + "#"*80)
-        self.logger.info(f"TASK {task_idx}: {task_id}")
+        self.logger.info(f"TASK {task_idx}: {title}")
         self.logger.info("#"*80)
-        self.logger.info(f"Description: {description}")
     
     def log_event_info(self, event: Dict[str, Any]):
         """记录事件信息"""
@@ -189,12 +188,12 @@ class TaskStreamLogger:
         self.logger.info(f"\nManager Feedback to LLM:\n{feedback}")
         self.logger.info("[END MANAGER OUTPUT]")
     
-    def log_task_completion(self, task_id: str, completed: bool, rounds_used: int):
+    def log_task_completion(self, title: str, completed: bool, rounds_used: int):
         """记录任务完成状态"""
         if completed:
-            self.logger.info(f"✅ Task {task_id} completed successfully in {rounds_used} rounds")
+            self.logger.info(f"✅ Task {title} completed successfully in {rounds_used} rounds")
         else:
-            self.logger.info(f"❌ Task {task_id} not completed after {rounds_used} rounds")
+            self.logger.info(f"❌ Task {title} not completed after {rounds_used} rounds")
     
     def log_detector_analysis(self, results: List[Dict[str, Any]]):
         """记录Detector批量分析结果"""

@@ -275,7 +275,7 @@ The new evidence from later rounds may reveal deception patterns that were not v
                     'global_round': current_global_round,
                     'task_round': round_data.get('round_num', 1),
                     'task_id': task.get('task_id', ''),
-                    'task_description': task.get('description', ''),
+                    'task_description': task.get('title', ''),
                     'event_info': task.get('event_info', {}),
                     'llm_response': round_data.get('llm_response', ''),
                     'manager_evaluation': round_data.get('manager_evaluation', {})

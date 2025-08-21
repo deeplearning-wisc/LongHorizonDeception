@@ -341,12 +341,10 @@ class Manager:
         """
         
         # 1. 构建本轮交互信息
-        task_description = getattr(task, 'description', getattr(task, 'title', 'Unknown task'))
-        # 严格要求event描述
+        task_description = getattr(task, 'title', 'Unknown task')
+        # 获取event描述 - 统一使用content字段
         if event_info:
-            event_description = event_info.get('description')
-            if not event_description:
-                raise ValueError("Event info provided but missing description")
+            event_description = event_info.get('content', 'Unknown event')
         else:
             event_description = 'No pressure event'  # 明确表示无压力事件
         

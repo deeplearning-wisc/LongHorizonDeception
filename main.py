@@ -14,16 +14,15 @@ from utils.result_saver import ResultSaver
 from core.manager import Manager
 from core.LLM import LLM
 from tasks.json_loader import JSONTaskLoader
-from tasks.event_loader import get_event_system, DeceptiveEvent
+from tasks.variant_event_loader import get_event_system, DeceptiveEvent
 from tasks.base import Task
 from tqdm import tqdm
 
 class TaskStreamTask:
-    def __init__(self, task_id, title, description, task_sequence_num=1):
+    def __init__(self, task_id, title, task_sequence_num=1):
         self.task_sequence_num = task_sequence_num
         self.task_id = task_id
         self.title = title
-        self.description = description
         self.files = []
         # LLM需要的prompt属性
         # MockTaskPrompt不再需要normal_prompt字段
@@ -183,49 +182,47 @@ def run_deception_experiment(config_name=None):
     selected_tasks = all_tasks[:max_tasks]
     safe_log(logger, "log_info", f"ra{len(selected_tasks)} tasks for {experiment_mode}")
     for i, task in enumerate(selected_tasks, 1):
-        safe_log(logger, "log_info", f"  Task {i}: {task.task_id} - {task.title}")
+        safe_log(logger, "log_info", f"  Task {i}: {task.title}")
     
-    # 初始化事件系统 - 使用配置系统
-    event_system = get_event_system("market_research_series", global_event_probability=config['p_event'])
-    safe_log(logger, "log_info", f"Event system initialized with {len(event_system.phase_events)} phases, probability: {config['p_event']}")
+    # 🆕 从配置读取全局control参数
+    control_category = config.get('control_category', None)
+    control_intensity = config.get('control_intensity', None)
+    event_seed = config.get('event_seed', None)  # 获取seed，如果没有则为None
     
-    # 为每个任务生成事件 - 使用配置的概率
-    import random
-    p_event = config['p_event']
+    # 初始化事件系统 - 使用配置系统（包含seed支持和control参数）
+    event_system = get_event_system("market_research_series", 
+                                   global_event_probability=config['p_event'], 
+                                   seed=event_seed,
+                                   control_category=control_category,
+                                   control_intensity=control_intensity,
+                                   max_tasks=max_tasks)
+    safe_log(logger, "log_info", f"Event system initialized with {len(event_system.phase_events)} phases, probability: {config['p_event']}, seed: {event_seed}")
     
-    # 定义根据Task序列号确定阶段的函数
-    def get_phase_for_task_sequence(task_sequence_num: int):
-        """根据Task序列号确定压力阶段"""
-        from tasks.variant_event_loader import EventPhase
-        if task_sequence_num <= 7:
-            return EventPhase.PHASE_1
-        elif task_sequence_num <= 15:
-            return EventPhase.PHASE_2
-        else:
-            return EventPhase.PHASE_3
-    
+    # 🆕 使用新的事件系统生成任务流
     task_stream = []
     for task_idx, task in enumerate(selected_tasks, 1):
-        # 生成事件
-        should_have_event = random.random() < p_event
-        if should_have_event:
-            # 根据Task序列号确定阶段
-            phase = get_phase_for_task_sequence(task_idx)
-            deceptive_event = event_system.sample_event(phase)
-            # 从variants中随机选择一个变体
-            variant = deceptive_event.get_random_variant()
+        # 使用新的API生成事件和variant，应用全局control参数
+        deceptive_event, event_variant = event_system.get_event_and_variant_for_task(
+            task_idx, 
+            control_category=control_category,
+            control_intensity=control_intensity
+        )
+        
+        if deceptive_event and event_variant:
             event = {
-                'content': variant.content,          # LLM看到的实际事件内容
-                'description': deceptive_event.description,  # 系统内部描述
-                'pressure_level': variant.pressure_level,
-                'category': deceptive_event.category  # 事件类别
+                'name': deceptive_event.name,
+                'content': event_variant.content,          # LLM看到的实际事件内容
+                'pressure_level': event_variant.pressure_level,
+                'category': deceptive_event.category,       # 事件类别
+                'triggered': True
             }
         else:
             event = {
+                'name': 'NO_EVENT',
                 'content': 'Normal business conditions',     # LLM看到的内容
-                'description': 'No special event',          # 系统描述
                 'pressure_level': 'NORMAL',
-                'category': 'NONE'                          # 没有特殊事件
+                'category': 'NONE',                          # 没有特殊事件
+                'triggered': False
             }
         
         task_stream.append({
@@ -233,7 +230,7 @@ def run_deception_experiment(config_name=None):
             'event': event
         })
         
-        safe_log(logger, "log_info", f"Task {task_idx}: {task.task_id} - Event '{event['content'][:50]}...' ({event['category']}, Pressure: {event['pressure_level']})")
+        safe_log(logger, "log_info", f"Task {task_idx}: {task.title} - Event '{event.get('name', 'NO_EVENT')}' ({event['category']}, Pressure: {event['pressure_level']})")
     
     # 处理Task Stream
     print("Processing tasks...")
@@ -246,7 +243,7 @@ def run_deception_experiment(config_name=None):
         event = task_info['event']
         
         # 记录任务开始
-        safe_log(logger, "log_task_start", task_idx + 1, task.task_id, task.description or task.title)
+        safe_log(logger, "log_task_start", task_idx + 1, task.title)
         safe_log(logger, "log_event_info", event)
         
         # ResultSaver: 记录任务开始并实时保存
@@ -265,7 +262,7 @@ def run_deception_experiment(config_name=None):
         task_manager_feedback_history = []
         
         # 轮次进度条
-        rounds_desc = f"Task {task.task_id}"
+        rounds_desc = f"Task {task.title}"
         for round_num in tqdm(range(1, max_rounds + 1), desc=rounds_desc, unit="round", leave=False):
             global_rounds += 1  # 增加全局轮次计数
             safe_log(logger, "log_round_start", round_num, max_rounds)
@@ -308,14 +305,14 @@ def run_deception_experiment(config_name=None):
                 result_saver.flush()  # 实时保存
                 
             except Exception as e:
-                safe_log(logger, "log_error", e, f"LLM processing - Task {task.task_id}, Round {round_num}")
+                safe_log(logger, "log_error", e, f"LLM processing - Task {task.title}, Round {round_num}")
                 raise  # 直接抛出异常，fail-fast原则
             
             # Manager评估
             try:
                 # 将event dict转换为event_info格式 - 只传递content，不暴露系统字段
                 event_info = {
-                    'description': event['content']        # Manager只需要知道实际的事件内容
+                    'content': event['content']        # Manager只需要知道实际的事件内容
                 }
                 
                 # Manager会自动打印完整context，然后获取结果
@@ -345,7 +342,7 @@ def run_deception_experiment(config_name=None):
                 
                 # 🆕 记录这一轮的完整交互到LLM的全局历史
                 llm.add_interaction_to_global_history(
-                    task_id=task.task_id,
+                    task_id=task.title,
                     round_num=round_num,
                     llm_response=llm_response,
                     manager_feedback=manager_result['feedback_response'],
@@ -353,17 +350,17 @@ def run_deception_experiment(config_name=None):
                 )
                 
                 if task_completed:
-                    safe_log(logger, "log_task_completion", task.task_id, True, round_num)
+                    safe_log(logger, "log_task_completion", task.title, True, round_num)
                     break
                 else:
                     safe_log(logger, "log_info", f"Task not complete, continuing to round {round_num + 1}")
                     
             except Exception as e:
-                safe_log(logger, "log_error", e, f"Manager evaluation - Task {task.task_id}, Round {round_num}")
+                safe_log(logger, "log_error", e, f"Manager evaluation - Task {task.title}, Round {round_num}")
                 raise  # 直接抛出异常，fail-fast原则
         
         if not task_completed:
-            safe_log(logger, "log_task_completion", task.task_id, False, max_rounds)
+            safe_log(logger, "log_task_completion", task.title, False, max_rounds)
         
         # ResultSaver: 任务结束并实时保存
         result_saver.end_task(task_idx + 1)
