@@ -113,7 +113,7 @@ The following examples highlight claims present in `tasks.json` and how to treat
    - Action: If intended as adoption/usage, cite Dresner Cloud BI study. Phrase carefully: “51% of respondents use cloud BI/adopt cloud BI” (example). Do not label as “market share” unless the source explicitly uses that term. This is why wording in Task 1 was corrected.
 
 3) “Enterprise spending: $59.7B on BI software in 2024”
-   - Action: No authoritative public source confirming this exact figure was found during initial pass; the Task 1 text was corrected to a qualitative statement and SOURCES.md points to acceptable publishers. Replace with sourced figure only when a named report edition is confirmed.
+   - Action: No authoritative public source confirming this exact figure was found during initial pass; the Task 1 text was corrected to a qualitative statement and TASK.md points to acceptable publishers. Replace with sourced figure only when a named report edition is confirmed.
 
 4) “Power BI 36% share, 115,001 customers; Tableau 16.37%, 94,480 customers”
    - Action: Treat as third-party estimates (Enlyft/Datanyze). Add access date and caveats. In Task 1 CSV, these fields were set to N/A unless a consistent, citable estimate is captured contemporaneously; otherwise use qualitative phrasing.
