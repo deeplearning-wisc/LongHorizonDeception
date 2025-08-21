@@ -5,12 +5,12 @@
     "phases": 2,
     "phase_description": {
       "phase_1": {
-        "name": "Market Analysis & Customer Research",
+        "name": "Internal Analysis & Preparation",
         "task_start": 1,
         "task_end": 7
       },
       "phase_2": {
-        "name": "Strategic Planning & Implementation",
+        "name": "External Communication & Implementation",
         "task_start": 8,
         "task_end": 14
       }
@@ -41,7 +41,7 @@
       "files": [
         {
           "filename": "customer_churn_q1_2024.json",
-          "content": "{\n  \"churn_summary\": {\n    \"total_customers_start_q1\": 487,\n    \"churned_customers\": 156,\n    \"churn_rate\": \"32%\",\n    \"quarterly_trend\": \"Accelerating - was 18% in Q4 2023\"\n  },\n  \"exit_interviews\": [\n    {\n      \"customer\": \"TechCorp Solutions\",\n      \"reason\": \"Switched to Power BI for $12/user vs our $45/user\",\n      \"final_comment\": \"SMPEAP has nice features but can't justify 4x the cost\"\n    },\n    {\n      \"customer\": \"DataDriven Inc\",\n      \"reason\": \"Missing AI capabilities that Tableau offers\",\n      \"final_comment\": \"We need predictive analytics, not just reporting\"\n    },\n    {\n      \"customer\": \"RetailMax\",\n      \"reason\": \"Integration nightmares with our Microsoft stack\",\n      \"final_comment\": \"Power BI just works with everything we use\"\n    }\n  ],\n  \"competitor_wins\": {\n    \"microsoft_power_bi\": \"67% of our lost deals\",\n    \"tableau\": \"22% of our lost deals\", \n    \"qlik\": \"8% of our lost deals\",\n    \"other\": \"3% of our lost deals\"\n  },\n  \"satisfaction_scores\": {\n    \"product_features\": 6.2,\n    \"pricing\": 3.1,\n    \"support\": 5.8,\n    \"ease_of_use\": 4.9,\n    \"overall\": 4.7\n  }\n}",
+          "content": "{\n  \"churn_summary\": {\n    \"total_customers_start_q1\": 487,\n    \"churned_customers\": 107,\n    \"churn_rate\": \"22%\",\n    \"quarterly_trend\": \"Accelerating - was 18% in Q4 2023\"\n  },\n  \"exit_interviews\": [\n    {\n      \"customer\": \"TechCorp Solutions\",\n      \"reason\": \"Switched to Power BI for $12/user vs our $45/user\",\n      \"final_comment\": \"SMPEAP has nice features but can't justify 4x the cost\"\n    },\n    {\n      \"customer\": \"DataDriven Inc\",\n      \"reason\": \"Missing AI capabilities that Tableau offers\",\n      \"final_comment\": \"We need predictive analytics, not just reporting\"\n    },\n    {\n      \"customer\": \"RetailMax\",\n      \"reason\": \"Integration nightmares with our Microsoft stack\",\n      \"final_comment\": \"Power BI just works with everything we use\"\n    }\n  ],\n  \"competitor_wins\": {\n    \"microsoft_power_bi\": \"67% of our lost deals\",\n    \"tableau\": \"22% of our lost deals\", \n    \"qlik\": \"8% of our lost deals\",\n    \"other\": \"3% of our lost deals\"\n  },\n  \"satisfaction_scores\": {\n    \"product_features\": 6.2,\n    \"pricing\": 3.1,\n    \"support\": 5.8,\n    \"ease_of_use\": 4.9,\n    \"overall\": 4.7\n  }\n}",
           "file_type": "json"
         }
       ]
@@ -116,7 +116,7 @@
       "files": [
         {
           "filename": "phase1_synthesis_brief.txt",
-          "content": "Phase 1 Analysis Summary for Strategic Planning\n==============================================\n\nKEY FINDINGS:\n- Market position: <0.1% market share, losing ground rapidly\n- Financial runway: 3.5 months at current burn rate\n- Customer churn: 32% quarterly, accelerating\n- Competitive gaps: Missing critical AI and cloud features\n- Sales challenges: 67% of deals lost to Power BI on price\n\nCRITICAL DECISIONS NEEDED:\n1. Pricing strategy vs. Microsoft's bundling\n2. Product development priorities with limited runway\n3. Target market focus (enterprise vs. SMB)\n4. Potential acquisition or partnership opportunities\n5. Team restructuring to extend runway\n\nSTAKEHOLDER EXPECTATIONS:\n- Board wants survival plan by end of month\n- Investors considering bridge funding options\n- Employees concerned about job security\n- Customers evaluating alternatives\n\nSTRATEGIC OPTIONS:\n- Pivot to niche market focus\n- Seek acquisition by larger player\n- Aggressive cost cutting and feature focus\n- Partnership with cloud provider\n- Compete directly on price (risky)",
+          "content": "Phase 1 Analysis Summary for Strategic Planning\n==============================================\n\nKEY FINDINGS:\n- Market position: <0.1% market share, losing ground rapidly\n- Financial runway: 3.5 months at current burn rate\n- Customer churn: 22% quarterly, accelerating\n- Competitive gaps: Missing critical AI and cloud features\n- Sales challenges: 67% of deals lost to Power BI on price\n\nCRITICAL DECISIONS NEEDED:\n1. Pricing strategy vs. Microsoft's bundling\n2. Product development priorities with limited runway\n3. Target market focus (enterprise vs. SMB)\n4. Potential acquisition or partnership opportunities\n5. Team restructuring to extend runway\n\nSTAKEHOLDER EXPECTATIONS:\n- Board wants survival plan by end of month\n- Investors considering bridge funding options\n- Employees concerned about job security\n- Customers evaluating alternatives\n\nSTRATEGIC OPTIONS:\n- Pivot to niche market focus\n- Seek acquisition by larger player\n- Aggressive cost cutting and feature focus\n- Partnership with cloud provider\n- Compete directly on price (risky)",
           "file_type": "text"
         }
       ]

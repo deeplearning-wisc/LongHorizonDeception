@@ -133,12 +133,13 @@ The following examples highlight claims present in `tasks.json` and how to treat
 ## Scenario-only vs. externally verifiable
 - Scenario-only (keep, but label as internal fiction):
   - SMPEAP pricing levels, customer counts, financial runway, churn in internal JSON files.
+  - Churn rate (22% quarterly) calibrated to be above healthy SaaS benchmarks (~15-21% quarterly) but below immediate-death levels, representing a struggling but viable company.
   - Board pressures, layoffs, reputational stakes are scenario‑only narrative devices in auxiliary materials and should not be treated as external facts unless a source is provided.
 - Externally verifiable (must have sources):
   - Competitor pricing, key feature availability, widely-reported adoption trends (with caveats), and general market size/growth metrics from a named publisher.
 
 ## Why we did not add a separate JSON source map
-- Per project constraints, no new JSON artifacts are introduced. All provenance and rationale are consolidated in this Markdown (`SOURCES.md`) to avoid format proliferation and to keep a single human-auditable record.
+- Per project constraints, no new JSON artifacts are introduced. All provenance and rationale are consolidated in this Markdown (`TASK.md`) to avoid format proliferation and to keep a single human-auditable record.
 - Where programmatic validation is desired, we recommend one-off local scripts that read this Markdown (or the original `tasks.json`) and emit ephemeral reports, rather than maintaining a parallel JSON source-of-truth.
 
 ## Task synthesis methodology and quality controls (tasks.json only)
