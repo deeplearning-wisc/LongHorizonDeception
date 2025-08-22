@@ -114,10 +114,11 @@ def test_detector_config_compatibility():
     print("=" * 80)
     
     try:
-        from utils.yaml_config_loader import load_yaml_config
+        from config_manager import ConfigManager
         
         # 加载配置
-        config = load_yaml_config('task_stream_config.yaml')
+        config_manager = ConfigManager()
+        config = config_manager.load_config('default')
         detector_config = config['llm_api_config']['detector']
         
         print("📋 Detector Configuration:")

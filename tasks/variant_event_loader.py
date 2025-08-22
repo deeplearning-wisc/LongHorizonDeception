@@ -138,7 +138,7 @@ class VariantEventSystem:
         self._load_event_sets()
         
         # 🆕 集成的EVENT序列预览
-        if show_preview and seed is not None:
+        if show_preview:
             self._print_event_sequence_preview(max_tasks)
     
     def _load_event_sets(self):
@@ -169,7 +169,7 @@ class VariantEventSystem:
     
     def _print_event_sequence_preview(self, max_tasks: int):
         """打印EVENT序列预览，应用全局控制参数"""
-        print(f"🎲 Event Seed: {self.seed}")
+        print(f"🎲 Event Seed: {self.seed if self.seed is not None else 'Random'}")
         
         # 显示控制信息
         if self.control_category or self.control_intensity:

@@ -7,7 +7,6 @@ import json
 import time
 from typing import Dict, List, Any, Optional
 from pathlib import Path
-from .file_lock import JSONFileLock
 
 class ResultSaver:
     """纯JSON格式的实验记录保存系统"""
@@ -18,23 +17,25 @@ class ResultSaver:
         self.session_dir = self.results_dir / session_name
         self.session_dir.mkdir(parents=True, exist_ok=True)
         
-        # JSON文件路径和锁
-        self.json_file = self.session_dir / "experiment_data.json"
-        self.json_lock = JSONFileLock(str(self.json_file))
+        # 创建global_rounds子目录 - 每个global round一个JSON文件
+        self.rounds_dir = self.session_dir / "global_rounds"
+        self.rounds_dir.mkdir(exist_ok=True)
         
-        # 实验数据结构
-        self.experiment_data = {
-            "session_metadata": {
-                "session_name": session_name,
-                "start_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()),
-                "end_time": None,
-                "experiment_mode": None,
-                "total_tasks": 0,
-                "total_interactions": 0
-            },
-            "experiment_config": {},
-            "tasks": []
+        # 全局轮次计数器
+        self.global_round_counter = 0
+        
+        # 会话元数据（保存在主目录）
+        self.session_metadata = {
+            "session_name": session_name,
+            "start_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()),
+            "end_time": None,
+            "experiment_mode": None,
+            "total_tasks": 0,
+            "total_global_rounds": 0
         }
+        
+        # 实验配置（保存在主目录）
+        self.experiment_config = {}
         
         # 当前任务和轮次状态
         self.current_task_info = None
@@ -42,17 +43,65 @@ class ResultSaver:
     
     def set_experiment_config(self, config: Dict[str, Any]):
         """设置实验配置"""
-        self.experiment_data["experiment_config"] = {
+        self.experiment_config = {
             "max_rounds_per_task": config['max_rounds_per_task'],
             "p_event": config['p_event'],
             "summary_level": config['summary_level'],
-            "llm_models": {
-                "llm": self._extract_model_name(config, 'llm'),
-                "manager": self._extract_model_name(config, 'manager'),
-                "detector": self._extract_model_name(config, 'detector')
-            }
+            "llm_models": self._build_models_info(config)
         }
-        self.experiment_data["session_metadata"]["experiment_mode"] = config['experiment_mode'].upper()
+        self.session_metadata["experiment_mode"] = config['experiment_mode'].upper()
+        
+        # 保存会话元数据和实验配置到主目录
+        self._save_session_info()
+    
+    def set_event_sequence_preview(self, event_preview: str):
+        """设置事件序列预览信息"""
+        self.session_metadata["event_sequence_preview"] = event_preview
+        # 立即保存更新后的会话信息
+        self._save_session_info()
+    
+    def _build_models_info(self, config: Dict) -> Dict[str, str]:
+        """构建模型信息字典，detector是可选的"""
+        models_info = {
+            "llm": self._extract_model_name(config, 'llm'),
+            "manager": self._extract_model_name(config, 'manager')
+        }
+        
+        # 如果配置中有detector，添加它
+        if 'detector' in config.get('llm_api_config', {}):
+            models_info["detector"] = self._extract_model_name(config, 'detector')
+        
+        return models_info
+    
+    def _save_session_info(self):
+        """保存会话信息到主目录"""
+        session_info = {
+            "session_metadata": self.session_metadata,
+            "experiment_config": self.experiment_config
+        }
+        
+        session_file = self.session_dir / "session_info.json"
+        with open(session_file, 'w', encoding='utf-8') as f:
+            json.dump(session_info, f, indent=2, ensure_ascii=False)
+    
+    def _save_global_round(self, global_round: int, round_data: Dict[str, Any]):
+        """保存单个global round的数据到单独的JSON文件"""
+        # 创建文件名: round_001.json, round_002.json, etc.
+        filename = f"round_{global_round:03d}.json"
+        round_file = self.rounds_dir / filename
+        
+        # 添加时间戳和轮次信息
+        complete_round_data = {
+            "global_round": global_round,
+            "timestamp": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()),
+            "session_name": self.session_name,
+            **round_data
+        }
+        
+        with open(round_file, 'w', encoding='utf-8') as f:
+            json.dump(complete_round_data, f, indent=2, ensure_ascii=False)
+            
+        print(f"[JSON] Global round {global_round} saved to {filename}")
     
     def _extract_model_name(self, config: Dict, component: str) -> str:
         """从配置中提取模型名称"""
@@ -60,11 +109,13 @@ class ResultSaver:
         provider = llm_config['provider']
         provider_config = llm_config[provider]
         
-        # OpenAI使用'model'字段，Azure等使用'model_name'字段
-        if provider == 'openai':
+        # 尝试不同的字段名
+        if 'model' in provider_config:
             return provider_config['model']
-        else:
+        elif 'model_name' in provider_config:
             return provider_config['model_name']
+        else:
+            return f"unknown_{provider}_model"
     
     def start_task(self, task_idx: int, task, event_info: Dict[str, Any]):
         """开始新任务"""
@@ -111,48 +162,97 @@ class ResultSaver:
         """保存Manager评估"""
         if self.current_round_info and self.current_round_info['round_num'] == round_num:
             self.current_round_info['manager_evaluation'] = {
-                "comprehensive_reasoning": manager_result['comprehensive_reasoning'],
-                "detailed_reasoning": manager_result['detailed_reasoning'],
-                "state_updates": manager_result['state_updates'],
-                "feedback_response": manager_result['feedback_response']
+                "evaluation_reasoning": manager_result['evaluation_reasoning'],
+                "state_updates": {
+                    'previous_state': {
+                        'trust_level': manager_result['previous_state']['trust_level'],
+                        'work_satisfaction': manager_result['previous_state']['work_satisfaction'],
+                        'relational_valence': manager_result['previous_state']['relational_valence']
+                    },
+                    'new_state': {
+                        'trust_level': manager_result['new_state']['trust_level'],
+                        'work_satisfaction': manager_result['new_state']['work_satisfaction'],
+                        'relational_valence': manager_result['new_state']['relational_valence']
+                    }
+                },
+                "feedback_reasoning": manager_result['feedback_reasoning'],
+                "feedback": manager_result['feedback']
             }
             self.current_round_info['manager_timestamp'] = time.time()
             
-            # 完成当前轮次，添加到任务中
+            # 完成当前轮次，立即保存为单独的JSON文件
             if (self.current_task_info and 
                 self.current_round_info['llm_response'] is not None):
+                
+                # 获取global round编号
+                global_round = self.current_round_info['global_round']
+                
+                # 构建完整的轮次数据
+                round_data = {
+                    "task_info": {
+                        "task_idx": self.current_task_info['task_idx'],
+                        "task_id": self.current_task_info['task_id'],
+                        "task_sequence_num": self.current_task_info['task_sequence_num'],
+                        "title": self.current_task_info['title'],
+                        "files": self.current_task_info['files'],
+                        "event_info": self.current_task_info['event_info']
+                    },
+                    "round_info": self.current_round_info.copy(),
+                    "task_complete": manager_result.get('task_complete', False)
+                }
+                
+                # 立即保存到单独的JSON文件
+                self._save_global_round(global_round, round_data)
+                
+                # 更新全局统计
+                self.session_metadata["total_global_rounds"] = global_round
+                self._save_session_info()
+                
+                # 添加到任务中（保持兼容性）
                 self.current_task_info['rounds'].append(self.current_round_info.copy())
                 self.current_round_info = None
     
     def end_task(self, task_idx: int):
         """结束任务"""
         if self.current_task_info:
-            self.experiment_data['tasks'].append(self.current_task_info.copy())
+            # 更新任务计数
+            self.session_metadata["total_tasks"] += 1
+            self._save_session_info()
             self.current_task_info = None
     
     def finalize_experiment(self, total_tasks: int, total_interactions: int, final_manager_state: Dict[str, float]):
-        """结束实验并最终保存JSON"""
+        """结束实验并最终保存会话信息"""
         # 更新最终metadata
-        self.experiment_data["session_metadata"]["end_time"] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
-        self.experiment_data["session_metadata"]["total_tasks"] = total_tasks
-        self.experiment_data["session_metadata"]["total_interactions"] = total_interactions
+        self.session_metadata["end_time"] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+        self.session_metadata["total_tasks"] = total_tasks
+        self.session_metadata["total_interactions"] = total_interactions
         
-        # 最终保存到同一个文件 - 不再创建重复文件
-        json_file = self.session_dir / "experiment_data.json"
-        with open(json_file, 'w', encoding='utf-8') as f:
-            json.dump(self.experiment_data, f, indent=2, ensure_ascii=False, default=str)
+        # 保存最终的会话信息
+        self._save_session_info()
         
-        print(f"💾 Experiment data finalized: {json_file}")
+        print(f"💾 Experiment completed. Session info and {self.session_metadata['total_global_rounds']} global rounds saved.")
     
     def get_structured_interactions_for_detector(self) -> List[Dict[str, Any]]:
-        """为Detector提供扁平化的interaction数据"""
+        """为Detector提供扁平化的interaction数据 - 从global rounds文件读取"""
         detector_interactions = []
         
-        for task_info in self.experiment_data['tasks']:
-            for round_info in task_info['rounds']:
+        # 遍历所有global round文件
+        round_files = sorted(self.rounds_dir.glob("round_*.json"))
+        
+        for round_file in round_files:
+            try:
+                with open(round_file, 'r', encoding='utf-8') as f:
+                    round_data = json.load(f)
+                
+                task_info = round_data['task_info']
+                round_info = round_data['round_info']
                 manager_eval = round_info['manager_evaluation']
                 
                 interaction = {
+                    # 全局信息
+                    "global_round": round_data['global_round'],
+                    "timestamp": round_data['timestamp'],
+                    
                     # Task信息
                     "task_id": task_info['task_id'],
                     "task_sequence_num": task_info['task_sequence_num'],
@@ -166,23 +266,27 @@ class ResultSaver:
                     
                     # Round信息
                     "round": round_info['round_num'],
-                    "timestamp": round_info['start_timestamp'],
+                    "start_timestamp": round_info['start_timestamp'],
                     
                     # Manager状态
                     "manager_state_before": round_info['manager_state_before'],
                     
                     # 交互内容
                     "llm_response": round_info['llm_response'],
-                    "manager_feedback": manager_eval['feedback_response'],
+                    "manager_feedback": manager_eval['feedback'],
                     
                     # Manager推理
-                    "comprehensive_reasoning": manager_eval['comprehensive_reasoning'],
-                    "detailed_reasoning": manager_eval['detailed_reasoning'],
+                    "evaluation_reasoning": manager_eval['evaluation_reasoning'],
+                    "feedback_reasoning": manager_eval['feedback_reasoning'],
                     "state_updates": manager_eval['state_updates'],
-                    "task_complete": manager_eval['state_updates']['task_complete']
+                    "task_complete": round_data['task_complete']
                 }
                 
                 detector_interactions.append(interaction)
+                
+            except Exception as e:
+                print(f"Warning: Failed to read {round_file}: {e}")
+                continue
         
         return detector_interactions
     
@@ -191,17 +295,12 @@ class ResultSaver:
         return str(self.session_dir / "experiment_data.json")
     
     def flush(self):
-        """实时保存 - 使用锁机制确保原子性"""
-        if self.experiment_data['tasks']:
-            with self.json_lock.write_lock() as writer:
-                writer.write(self.experiment_data)
+        """保存会话信息 - global rounds已经实时保存"""
+        self._save_session_info()
     
     def get_total_rounds_completed(self) -> int:
-        """获取已完成的总轮数（实际轮数，不是基于最大轮数）"""
-        total_rounds = 0
-        for task in self.experiment_data['tasks']:
-            total_rounds += len(task.get('rounds', []))
-        return total_rounds
+        """获取已完成的总轮数"""
+        return self.session_metadata["total_global_rounds"]
     
     @staticmethod
     def add_detector_analysis_to_experiment_data(original_file: str, detector_results: List[Dict[str, Any]], output_file: str = None) -> str:

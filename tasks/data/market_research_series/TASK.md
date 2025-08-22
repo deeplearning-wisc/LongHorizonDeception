@@ -18,6 +18,37 @@ The 14‑task structure follows a common iterative cadence in product research a
 
 These references justify the 14‑task/2‑phase outline used by the task stream; the phases in `event_set.json` also explicitly map tasks 1–7 and 8–14, providing an internally consistent progression.
 
+### Title sequencing rationale — why this order is reasonable
+The 14 titles follow a discovery → definition → development → delivery arc that is consistent with well‑known product and research frameworks: Design Council’s Double Diamond (discover/define → develop/deliver), Lean Startup’s build–measure–learn loop, Stage‑Gate governance (discovery → scoping → business case → development → testing/validation → launch), and agile research/delivery cadences. The first 7 items (Phase 1) build internal evidence and alignment up to an internal decision gate; the latter 7 (Phase 2) translate decisions into external‑facing communication, partners, budgeting, and measurable success criteria.
+
+- 1) Market Analysis — discovery framing of the problem/space before solutions (Double Diamond “Discover”; agile research cadence). Web: Design Council Double Diamond https://www.designcouncil.org.uk/our-work/skills-learning/tools-frameworks/double-diamond-design-process/; NN/g Agile UX https://www.nngroup.com/articles/agile-ux/
+- 2) Customer Survey — generative evidence before committing to solutions (Double Diamond “Discover/Define”; Lean Startup “measure”). Web/book: Lean Startup principles https://theleanstartup.com/principles
+- 3) Competitor Research — external positioning baseline (industry structure lens). Article: Porter, 2008, HBR “The Five Competitive Forces That Shape Strategy” https://hbr.org/2008/01/the-five-competitive-forces-that-shape-strategy
+- 4) Feature Requirements — translate insights to a prioritized backlog (Double Diamond “Define→Develop”; agile backlogs). Web: NN/g Agile UX https://www.nngroup.com/articles/agile-ux/
+- 5) Pricing Strategy — economic viability checks precede launch decisions. Methods: Van Westendorp price sensitivity meter (1976) https://en.wikipedia.org/wiki/Price_sensitivity_meter; Conjoint analysis in consumer research (Green & Srinivasan, 1978, Journal of Marketing) https://doi.org/10.1177/002224297804300302
+- 6) Launch Planning — plan solution delivery and market entry (Stage‑Gate development/launch planning). Web: Stage‑Gate overview https://www.stage-gate.com/
+- 7) Sales Presentation — internal gate for go/no‑go (Stage‑Gate gate reviews; internal governance prior to external claims). Web: Stage‑Gate overview https://www.stage-gate.com/
+- 8) Product Roadmap — strategic options articulation (incl. M&A/portfolio moves) before external commitments (Stage‑Gate business case/portfolio). Book/article: Cooper on Stage‑Gate (overview above)
+- 9) Partnership Strategy — channel/partner design as part of go‑to‑market (ecosystems/platforms commonly used in B2B SaaS). Web examples: AWS/Azure/Google partner ecosystems (see references below)
+- 10) Marketing Campaign — external communication planning after internal gating (agile marketing cadences align with sprint reviews/releases). Web: Atlassian sprint guidance https://www.atlassian.com/agile/scrum/sprints
+- 11) Risk Assessment — formalize risks and mitigations prior to commitment (risk management standards). Standards: ISO 31000:2018 Risk management — Guidelines https://www.iso.org/standard/65694.html; PMI PMBOK guide overview https://www.pmi.org/pmbok-guide-standards/foundational/pmbok
+- 12) Budget Planning — financial gating consistent with governance prior to external execution (Stage‑Gate financial gates). Web: Stage‑Gate overview https://www.stage-gate.com/
+- 13) Team Structure — align organization to strategy (org design). Model: Galbraith Star Model (concept brief) https://www.jaygalbraith.com/images/pdfs/StarModel.pdf
+- 14) Success Metrics — instrument outcomes before execution (KPI/OKR). Articles/books: Balanced Scorecard (Kaplan & Norton, 1992, HBR) https://hbr.org/1992/01/the-balanced-scorecard-measures-that-drive-performance; OKRs (Doerr, 2018) overview https://www.whatmatters.com/
+
+Together these references justify not only the two‑phase split but the specific sequence of titles: internal discovery, evidence and gating first; then external‑facing execution, partners, funding, organization, and measurement.
+
+#### Academic references (selected) supporting the sequencing
+- Cooper, R. G. (2014). Perspective: The Stage‑Gate® Idea‑to‑Launch Process—Update, What’s New, and NexGen Systems. Journal of Product Innovation Management, 31(1), 3–8. https://doi.org/10.1111/jpim.12171 — supports internal gates before external launch (Phase 1→Phase 2).
+- Boehm, B. (1988). A Spiral Model of Software Development and Enhancement. Computer, 21(5), 61–72. https://doi.org/10.1109/2.59 — iterative discovery→definition→development→delivery arc backing our phased progression.
+- van Lamsweerde, A. (2001). Goal‑Oriented Requirements Engineering: A Guided Tour. Proceedings Fifth IEEE International Symposium on Requirements Engineering. https://doi.org/10.1109/ISRE.2001.948567 — grounds early feature/requirements steps (Task 4) before downstream plans.
+- Green, P. E., & Srinivasan, V. (1978). Conjoint Analysis in Consumer Research: Issues and Outlook. Journal of Marketing, 43(4), 3–19. https://doi.org/10.1177/002224297804300302 — supports evidence‑based pricing strategy design (Task 5).
+- Rochet, J.‑C., & Tirole, J. (2003). Platform Competition in Two‑Sided Markets. Journal of the European Economic Association, 1(4), 990–1029. https://doi.org/10.1162/154247603322493212 — underpins partnership/platform strategy logic (Task 9) in B2B ecosystems.
+- Meskendahl, S. (2010). The Influence of Business Strategy on Project Portfolio Management and Its Success—A Conceptual Framework. International Journal of Project Management, 28(8), 807–817. https://doi.org/10.1016/j.ijproman.2010.06.007 — ties portfolio/roadmap choices to strategy (Task 8) and governance (Task 12).
+- Wallace, L., Keil, M., & Rai, A. (2004). Understanding Software Project Risk: A Cluster Analysis. MIS Quarterly, 28(4), 537–564. — empirical basis for structured risk assessment before commitment (Task 11).
+- Neely, A., Gregory, M., & Platts, K. (1995). Performance Measurement System Design. International Journal of Operations & Production Management, 15(4), 80–116. https://doi.org/10.1108/01443579510083622 — motivates defining success metrics/KPIs prior to execution (Task 14).
+- Narver, J. C., & Slater, S. F. (1990). The Effect of a Market Orientation on Business Profitability. Journal of Marketing, 54(4), 20–35. https://doi.org/10.1177/002224299005400403 — supports starting with market/customer discovery (Tasks 1–2) to drive later decisions.
+
 ### Additional academic support for sequential/phase-structured tasks
 - Scaffolding in problem solving: Staged support and progressive challenge improve performance and internalization in multi‑step problem solving (Wood, Bruner & Ross, 1976).
   - Wood, D., Bruner, J. S., & Ross, G. (1976). The role of tutoring in problem solving. Journal of Child Psychology and Psychiatry, 17(2), 89–100. — supports phased guidance and multi‑step task design.

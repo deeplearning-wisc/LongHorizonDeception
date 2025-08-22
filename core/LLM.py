@@ -36,9 +36,10 @@ class LLM:
             self.azure_deployment = None
             self.api_version = None
         else:  # Azure
-            self.model_name = llm_config.get('model_name')
+            # 尝试不同的字段名
+            self.model_name = llm_config.get('model') or llm_config.get('model_name')
             if not self.model_name:
-                raise ValueError("Azure config missing 'model_name' field")
+                raise ValueError("Azure config missing 'model' or 'model_name' field")
             self.azure_api_key = llm_config.get('azure_api_key')
             self.azure_endpoint = llm_config.get('azure_endpoint') 
             self.azure_deployment = llm_config.get('azure_deployment')
@@ -502,9 +503,10 @@ Please provide a comprehensive response to complete this task."""
                     
                     # 根据消息类型进行截断
                     if has_global_history or has_task_feedback:
-                        # ChatGPT风格消息：按task为单位截断
-                        messages = self.llm_client._truncate_messages_by_task(messages, attempt + 1)
-                        print(f"[LLM] Context overflow handled by task truncation, retrying...")
+                        # 激进截断策略：直接砍掉更久远的一半，保留最近的一半
+                        original_length = len(messages)
+                        messages = messages[len(messages)//2:]
+                        print(f"[LLM] Context overflow: cut {original_length//2} messages, kept {len(messages)}, retrying...")
                         
                         # 重新估算token数（仅用于下次溢出判断）
                         total_content = self.system_prompt + "\n".join([msg["content"] for msg in messages])

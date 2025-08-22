@@ -113,79 +113,104 @@ class TaskStreamLogger:
         self.logger.info(f"{'-'*60}")
     
     def log_llm_input(self, system_prompt: str, messages: List[Dict[str, str]], model: str, max_tokens: int):
-        """记录LLM输入到LLM的完整内容（简化版本）"""
+        """记录LLM输入到LLM的完整内容（智能截断长消息）"""
         self.logger.info("[LLM INPUT]")
-        self.logger.info(f"system_role: {repr(system_prompt[:100])}..." if len(system_prompt) > 100 else f"system_role: {repr(system_prompt)}")
+        self.logger.info(f"system_role: {repr(system_prompt)}")
         
-        # 简化messages显示：对每个{}内的content进行截断
-        messages_str = str(messages)
-        
-        # 简单的截断处理：如果太长就截断
-        if len(messages_str) > 1000:
-            # 保持数组开头，然后截断
-            simplified_messages = []
-            for msg in messages:
-                content = msg['content']
-                if len(content) > 80:
-                    simplified_content = content[:80] + "..."
-                else:
-                    simplified_content = content
-                simplified_messages.append({
-                    'role': msg['role'], 
-                    'content': simplified_content
+        # 智能截断messages中的长内容
+        truncated_messages = []
+        for msg in messages:
+            content = msg['content']
+            if len(content) > 500:  # 如果内容超过500字符
+                # 保留前200字符 + 省略号 + 后100字符
+                truncated_content = content[:200] + f"[TRUNCATED - {len(content) - 300} chars]" + content[-100:]
+                truncated_messages.append({
+                    'role': msg['role'],
+                    'content': truncated_content
                 })
-            self.logger.info(f"messages: {simplified_messages}")
-        else:
-            self.logger.info(f"messages: {messages}")
+            else:
+                truncated_messages.append(msg)
+        
+        self.logger.info(f"messages: {truncated_messages}")
         
         self.logger.info(f"model: {model}")
         self.logger.info(f"max_tokens: {max_tokens}")
     
     def log_llm_output(self, response: str, metadata: Dict[str, Any]):
-        """记录LLM输出（简化版本）"""
+        """记录LLM输出（完整版本 - 不截断）"""
         self.logger.info("[LLM OUTPUT]")
         self.logger.info(f"Response length: {len(response)} chars")
         self.logger.info(f"Tokens used: {metadata.get('tokens_used', 'N/A')}")
         
-        # 简化response显示：只显示前500字符和最后200字符
-        if len(response) > 700:
-            preview = response[:500] + f"\n\n... [{len(response) - 700} chars omitted] ...\n\n" + response[-200:]
-            self.logger.info(f"Response preview: {preview}")
-        else:
-            self.logger.info(f"Full response: {response}")
+        # 完整记录response，不进行任何截断
+        self.logger.info(f"Full response: {response}")
     
     def log_manager_context(self, full_context: str):
         """记录Manager的完整context"""
         self.logger.info("[MANAGER CONTEXT]")
         self.logger.info(full_context)
     
-    def log_manager_output(self, task_complete: bool, state_updates: Dict[str, float], 
+    def log_manager_evaluation_raw(self, input_prompt: str, api_response: str):
+        """记录Manager Evaluation阶段的原始输入输出"""
+        self.logger.info("[MANAGER EVALUATION - RAW INPUT/OUTPUT]")
+        self.logger.info("=== RAW INPUT TO EVALUATION API ===")
+        self.logger.info(input_prompt)
+        self.logger.info("=== RAW OUTPUT FROM EVALUATION API ===")
+        self.logger.info(api_response)
+        self.logger.info("=== END EVALUATION RAW DATA ===")
+    
+    def log_manager_feedback_raw(self, input_prompt: str, api_response: str):
+        """记录Manager Feedback阶段的原始输入输出"""
+        self.logger.info("[MANAGER FEEDBACK - RAW INPUT/OUTPUT]")
+        self.logger.info("=== RAW INPUT TO FEEDBACK API ===")
+        self.logger.info(input_prompt)
+        self.logger.info("=== RAW OUTPUT FROM FEEDBACK API ===")
+        self.logger.info(api_response)
+        self.logger.info("=== END FEEDBACK RAW DATA ===")
+    
+    def log_manager_summary_raw(self, input_prompt: str, api_response: str):
+        """记录Manager Summary阶段的原始输入输出"""
+        self.logger.info("[MANAGER SUMMARY - RAW INPUT/OUTPUT]")
+        self.logger.info("=== RAW INPUT TO SUMMARY API ===")
+        self.logger.info(input_prompt)
+        self.logger.info("=== RAW OUTPUT FROM SUMMARY API ===")
+        self.logger.info(api_response)
+        self.logger.info("=== END SUMMARY RAW DATA ===")
+    
+    def log_manager_output(self, task_complete: bool, state_updates: Dict[str, Any], 
                           reasoning: str, feedback: str, tokens_used: int, detailed_reasoning: Dict[str, str] = None):
-        """记录Manager输出，包含详细推理"""
+        """记录Manager输出，包含详细推理（完整版本 - 不截断）"""
         self.logger.info("[MANAGER OUTPUT]")
         self.logger.info(f"Task Complete: {task_complete}")
-        self.logger.info(f"Trust Level: {state_updates['trust_level']:.3f}")
-        self.logger.info(f"Work Satisfaction: {state_updates['work_satisfaction']:.3f}")
-        self.logger.info(f"Relational Valence: {state_updates['relational_valence']:.3f}")
+        
+        # 处理新的state_updates结构
+        if 'previous_state' in state_updates and 'new_state' in state_updates:
+            prev = state_updates['previous_state']
+            new = state_updates['new_state']
+            self.logger.info(f"Trust Level: {prev['trust_level']:.3f} → {new['trust_level']:.3f}")
+            self.logger.info(f"Work Satisfaction: {prev['work_satisfaction']:.3f} → {new['work_satisfaction']:.3f}")
+            self.logger.info(f"Relational Valence: {prev['relational_valence']:.3f} → {new['relational_valence']:.3f}")
+        else:
+            # 兼容简单的state_updates格式
+            self.logger.info(f"Trust Level: {state_updates['trust_level']:.3f}")
+            self.logger.info(f"Work Satisfaction: {state_updates['work_satisfaction']:.3f}")
+            self.logger.info(f"Relational Valence: {state_updates['relational_valence']:.3f}")
+        
         self.logger.info(f"Manager tokens used: {tokens_used}")
         
-        # 记录综合推理
-        self.logger.info(f"\nComplete Manager Reasoning:\n{reasoning}")
+        # 完整记录Manager推理，不截断
+        self.logger.info(f"\nComplete Manager Reasoning (FULL):\n{reasoning}")
         
-        # 记录详细推理（如果提供）
+        # 完整记录详细推理（如果提供）
         if detailed_reasoning:
-            self.logger.info("\n=== DETAILED REASONING BY DIMENSION ===")
-            if 'trust_level' in detailed_reasoning:
-                self.logger.info(f"Trust Level Reasoning: {detailed_reasoning['trust_level']}")
-            if 'work_satisfaction' in detailed_reasoning:
-                self.logger.info(f"Work Satisfaction Reasoning: {detailed_reasoning['work_satisfaction']}")
-            if 'relational_valence' in detailed_reasoning:
-                self.logger.info(f"Relational Valence Reasoning: {detailed_reasoning['relational_valence']}")
-            if 'task_complete' in detailed_reasoning:
-                self.logger.info(f"Task Complete Reasoning: {detailed_reasoning['task_complete']}")
+            self.logger.info("\n=== DETAILED REASONING (FULL) ===")
+            if 'evaluation' in detailed_reasoning:
+                self.logger.info(f"Evaluation Reasoning (FULL): {detailed_reasoning['evaluation']}")
+            if 'feedback' in detailed_reasoning:
+                self.logger.info(f"Feedback Reasoning (FULL): {detailed_reasoning['feedback']}")
             self.logger.info("=== END DETAILED REASONING ===")
         
-        self.logger.info(f"\nManager Feedback to LLM:\n{feedback}")
+        self.logger.info(f"\nManager Feedback to LLM (FULL):\n{feedback}")
         self.logger.info("[END MANAGER OUTPUT]")
     
     def log_task_completion(self, title: str, completed: bool, rounds_used: int):

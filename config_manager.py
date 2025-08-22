@@ -184,8 +184,9 @@ class ConfigManager:
         """基本配置验证"""
         required_sections = [
             'llm_system_prompt',
-            'manager_system_prompt', 
-            'manager_update_prompt',
+            'manager_evaluation_prompt',
+            'manager_feedback_prompt', 
+            'task_completion_threshold',
             'manager_initial_state',
             'llm_api_config',
             'p_event',

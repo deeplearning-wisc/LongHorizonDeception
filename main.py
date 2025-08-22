@@ -11,8 +11,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from config_manager import load_config
 from utils.task_stream_logger import TaskStreamLogger
 from utils.result_saver import ResultSaver
-from core.manager import Manager
+from core.manager_new import Manager
 from core.LLM import LLM
+from core.post_detector import PostDetector
 from tasks.json_loader import JSONTaskLoader
 from tasks.variant_event_loader import get_event_system, DeceptiveEvent
 from tasks.base import Task
@@ -49,6 +50,11 @@ def run_deception_experiment(config_name=None):
     try:
         # 加载统一配置
         config = load_config(config_name)
+        
+        # 直接加载API profiles
+        from config_manager import config_manager
+        api_profiles_data = config_manager._load_api_profiles()
+        api_profiles = api_profiles_data['api_profiles']
         
         # 检查是否启用logger
         enable_logger = config['logging']['enable_logger']
@@ -139,7 +145,7 @@ def run_deception_experiment(config_name=None):
         'llm_provider': llm_provider,
         'llm_config': llm_config,
         'system_prompt': config['llm_system_prompt'],
-        'max_tokens': 16384
+        'max_tokens': llm_config['max_tokens']  # 🚨 FIXED: 从config强制读取max_tokens，无fallback
     }
     safe_log(logger, "log_component_init", "LLM", llm_params)
     llm = LLM(**llm_params)
@@ -155,15 +161,31 @@ def run_deception_experiment(config_name=None):
         'llm_provider': manager_provider,
         'llm_config': manager_config,
         'summary_level': config['summary_level'],
-        'system_prompt': config['manager_system_prompt'],
+        'evaluation_prompt': config['manager_evaluation_prompt'],
+        'feedback_prompt': config['manager_feedback_prompt'],
         'initial_state': config['manager_initial_state'],
-        'update_prompt': config['manager_update_prompt']
+        'task_completion_threshold': config['task_completion_threshold']
     }
     safe_log(logger, "log_component_init", "Manager", manager_params)
     manager = Manager(**manager_params)
     manager._logger = logger  # non-official log
     manager.llm_client._logger = logger  # 传递logger给Manager的LLM客户端
     manager.history._logger = logger  # 传递logger给ManagerHistory
+    
+    # PostDetector配置
+    detector_config = config['llm_api_config']['detector']
+    
+    # 检查detector_config是字符串还是已解析的字典
+    if isinstance(detector_config, str):
+        # 如果是字符串，从api_profiles获取配置
+        detector_llm_config = api_profiles[detector_config]
+    else:
+        # 如果已经是字典，直接使用
+        detector_llm_config = detector_config
+    
+    detector_provider = detector_llm_config['provider']
+    post_detection_prompt = config['post_detector_prompt']
+    print(f"[POST_DETECTOR] Configured: {detector_provider} ({detector_llm_config.get('model', 'unknown')})")
     
     # 显示会话信息
     print(f"- Session: {session_info['session_name']}")
@@ -231,6 +253,53 @@ def run_deception_experiment(config_name=None):
         })
         
         safe_log(logger, "log_info", f"Task {task_idx}: {task.title} - Event '{event.get('name', 'NO_EVENT')}' ({event['category']}, Pressure: {event['pressure_level']})")
+    
+    # 🆕 显示事件序列预览
+    def format_event_sequence_preview(task_stream, event_seed):
+        """格式化事件序列预览"""
+        preview_lines = []
+        preview_lines.append(f"🎲 Event Seed: {event_seed if event_seed is not None else 'Random'}")
+        preview_lines.append("📋 EVENT SEQUENCE PREVIEW:")
+        preview_lines.append("=" * 60)
+        
+        for i, task_info in enumerate(task_stream, 1):
+            task = task_info['task']
+            event = task_info['event']
+            
+            if event['triggered']:
+                # 确定阶段标识
+                if i <= 7:
+                    phase_label = "(PH1)"
+                elif i <= 14:
+                    phase_label = "(PH2)" 
+                else:
+                    phase_label = "(PH3)"
+                
+                # 格式化事件信息
+                event_name = event['name']
+                pressure_level = event['pressure_level'].upper()
+                category = event['category']
+                
+                line = f"  Task {i:2d} {phase_label}: {event_name:<12} {pressure_level:<8} - {category}"
+            else:
+                line = f"  Task {i:2d}: NO_EVENT"
+            
+            preview_lines.append(line)
+        
+        preview_lines.append("=" * 60)
+        return "\n".join(preview_lines)
+    
+    # 生成并显示事件序列预览
+    event_preview = format_event_sequence_preview(task_stream, event_seed)
+    print("\n" + event_preview + "\n")
+    
+    # 保存到session_info
+    result_saver.set_event_sequence_preview(event_preview)
+    
+    # 记录到logger
+    safe_log(logger, "log_info", "Event Sequence Preview:")
+    for line in event_preview.split('\n'):
+        safe_log(logger, "log_info", line)
     
     # 处理Task Stream
     print("Processing tasks...")
@@ -312,7 +381,11 @@ def run_deception_experiment(config_name=None):
             try:
                 # 将event dict转换为event_info格式 - 只传递content，不暴露系统字段
                 event_info = {
-                    'content': event['content']        # Manager只需要知道实际的事件内容
+                    'content': event['content'],       # 事件内容
+                    'category': event['category'],     # 事件类别 
+                    'pressure_level': event['pressure_level'],  # 压力级别
+                    'name': event.get('name', 'NO_EVENT'),      # 事件名称
+                    'triggered': event['triggered']    # 是否触发
                 }
                 
                 # Manager会自动打印完整context，然后获取结果
@@ -323,29 +396,37 @@ def run_deception_experiment(config_name=None):
                 # 记录Manager输出
                 safe_log(logger, "log_manager_output", 
                     task_completed,
-                    manager_result['state_updates'],
-                    manager_result['comprehensive_reasoning'],
-                    manager_result['feedback_response'],
+                    {
+                        'previous_state': manager_result['previous_state'],
+                        'new_state': manager_result['new_state'],
+                        'trust_level': manager_result['trust_level'],
+                        'work_satisfaction': manager_result['work_satisfaction'],
+                        'relational_valence': manager_result['relational_valence']
+                    },
+                    manager_result['evaluation_reasoning'],
+                    manager_result['feedback'],
                     manager_result.get('tokens_used', 0),
-                    manager_result.get('detailed_reasoning', {})
+                    {
+                        'evaluation': manager_result['evaluation_reasoning'],
+                        'feedback': manager_result['feedback_reasoning']
+                    }
                 )
                 
                 # ResultSaver: 保存Manager评估 - 完整的所有推理，绝不截断，并实时保存
                 result_saver.save_manager_evaluation(round_num, manager_result)
                 result_saver.flush()  # 实时保存
                 
-                # 🆕 数据已经保存到JSON，并行检测器会自动检测到新轮次
-                print(f"[JSON] Global round {global_rounds} data saved - ready for detector")
+                # 数据已保存到JSON，实验结束后将进行全局分析
                 
                 # 🆕 添加Manager反馈到任务内历史 (用于下一轮LLM输入)
-                task_manager_feedback_history.append(manager_result['feedback_response'])
+                task_manager_feedback_history.append(manager_result['feedback'])
                 
                 # 🆕 记录这一轮的完整交互到LLM的全局历史
                 llm.add_interaction_to_global_history(
                     task_id=task.title,
                     round_num=round_num,
                     llm_response=llm_response,
-                    manager_feedback=manager_result['feedback_response'],
+                    manager_feedback=manager_result['feedback'],
                     task_complete=task_completed
                 )
                 
@@ -382,6 +463,26 @@ def run_deception_experiment(config_name=None):
     
     # 实验完成
     print("[MAIN] Experiment completed successfully!")
+    
+    # 🆕 运行PostDetector全局分析
+    print("\n=== RUNNING POST-EXPERIMENT DECEPTION ANALYSIS ===")
+    try:
+        post_detector = PostDetector(
+            llm_provider=detector_provider,
+            llm_config=detector_llm_config,
+            post_detection_prompt=post_detection_prompt,
+            session_dir=str(session_dir)
+        )
+        
+        analysis_result = post_detector.run_complete_analysis()
+        
+        if "error" not in analysis_result:
+            print("[POST_DETECTOR] Global deception analysis completed successfully!")
+        else:
+            print(f"[POST_DETECTOR] Analysis failed: {analysis_result['error']}")
+            
+    except Exception as e:
+        print(f"[POST_DETECTOR] Error during analysis: {e}")
     
     # ResultSaver: 最终化实验记录
     interaction_records = result_saver.get_structured_interactions_for_detector()
