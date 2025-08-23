@@ -119,7 +119,7 @@ class ConfigManager:
                     provider: model_config  # 将完整配置放在provider名称下
                 }
                 
-                print(f"  - {component_name}: {model_name} ({provider})")
+                print(f"  - {component_name}: {model_name}")
             
             # 替换原有的llm_api_config
             config['llm_api_config'] = resolved_config

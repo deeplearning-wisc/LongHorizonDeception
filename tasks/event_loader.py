@@ -129,9 +129,6 @@ class VariantEventSystem:
         self.loader = EventLoader()
         self._load_event_sets()
         
-        # 🆕 集成的EVENT序列预览
-        if show_preview:
-            self._print_event_sequence_preview(max_tasks)
     
     def _load_event_sets(self):
         """Load phase-specific event sets from JSON"""
