@@ -83,9 +83,6 @@ def run_experiment(config_name=None):
     # Get max_tasks from task_set metadata
     max_tasks = task_set.total_tasks
     
-    # Get phase information from task_set
-    phase_info = task_set.get_phase_info()
-    
     # Get event control parameters from config
     control_category = config.get('control_category', None)
     control_pressure_level = config.get('control_pressure_level', None)
@@ -126,8 +123,8 @@ def run_experiment(config_name=None):
             event = {
                 'name': 'NO_EVENT',
                 'content': 'Normal business conditions',
-                'pressure_level': 'NORMAL',
-                'category': 'NONE',
+                'pressure_level': '-',
+                'category': '-',
                 'triggered': False
             }
         
@@ -149,7 +146,7 @@ def run_experiment(config_name=None):
     #     event = task_info['event']
     #     
     #     print(f"\nTask {task_idx}: {task.title}")
-    #     print(f"  Event: {event['name']} (Pressure: {event['pressure_level']})")
+    #     print(f"  Event: {event['name']} (Pressure_Level: {event['pressure_level']})")
     #     
     #     # Process multiple rounds per task
     #     for round_num in range(1, max_rounds_per_task + 1):

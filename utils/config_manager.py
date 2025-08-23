@@ -171,7 +171,7 @@ class ConfigManager:
         # 递归处理配置，替换环境变量
         processed_config = self._process_config_recursive(raw_config)
         
-        # 🆕 处理API配置引用系统
+        # 处理API配置引用系统
         processed_config = self._resolve_api_config(processed_config)
         
         # 基本验证
@@ -228,7 +228,7 @@ class ConfigManager:
             print("No configuration files found")
             return
         
-        print("📋 Available configuration files:")
+        print("Available configuration files:")
         for config_file in sorted(config_files):
             name = config_file.stem
             if name == "medium":
