@@ -1,16 +1,13 @@
 """
-统一的错误处理和重试系统
-支持颜色输出、重试机制、严格的错误级别管理
-"""
+统一的错误输出系统
+支持颜色输出、严格的错误级别管理
 
-import time
-import json
-from typing import Callable, Any, Optional, Dict
-from functools import wraps
+NOTE: 重试逻辑已移至Universal_LLM_Handler，这里只保留颜色输出功能
+"""
 
 
 class PipelineErrorHandler:
-    """统一的Pipeline错误处理器"""
+    """统一的Pipeline错误处理器 - 专注于颜色输出"""
     
     @staticmethod
     def warning(msg: str, component: str = "SYSTEM") -> None:
@@ -40,29 +37,27 @@ class PipelineErrorHandler:
         print(f"\033[92m✅ [{component} SUCCESS] {msg}\033[0m")
 
 
+# 保留这个类是因为LLM.py还在使用，但建议未来迁移到Universal_LLM_Handler
 class RetryHandler:
-    """重试处理器 - 专门处理LLM输出不稳定的问题"""
+    """
+    DEPRECATED: 重试处理器 - 建议使用Universal_LLM_Handler的重试机制
+    保留此类是为了向后兼容，但将来会被移除
+    """
     
     def __init__(self, max_retries: int = 10, delay_between_retries: float = 1.0):
         self.max_retries = max_retries
         self.delay_between_retries = delay_between_retries
+        PipelineErrorHandler.warning(
+            "RetryHandler is deprecated, consider using Universal_LLM_Handler", 
+            "DEPRECATION"
+        )
     
-    def retry_with_warnings(self, func: Callable, component: str, 
-                          operation_name: str, *args, **kwargs) -> Any:
+    def retry_with_warnings(self, func, component: str, operation_name: str, *args, **kwargs):
         """
-        重试机制 - 用于处理LLM输出格式问题
+        DEPRECATED: 建议使用Universal_LLM_Handler的重试机制
+        """
+        import time
         
-        Args:
-            func: 要重试的函数
-            component: 组件名称 (如 "JUDGE", "LLM")
-            operation_name: 操作名称 (如 "JSON parsing", "response generation")
-            
-        Returns:
-            函数执行结果
-            
-        Raises:
-            RuntimeError: 超过最大重试次数后抛出
-        """
         last_exception = None
         
         for attempt in range(1, self.max_retries + 1):
@@ -86,7 +81,7 @@ class RetryHandler:
                 
                 if attempt < self.max_retries:
                     PipelineErrorHandler.warning(
-                        f"{operation_name} failed on attempt {attempt}/{self.max_retries}: {str(e)[:100]}...", 
+                        f"{operation_name} failed on attempt {attempt}/{self.max_retries} (Error length: {len(str(e))} chars): {str(e)}", 
                         component
                     )
                     time.sleep(self.delay_between_retries)
@@ -96,10 +91,8 @@ class RetryHandler:
                         f"{operation_name} failed after {self.max_retries} attempts. Last error: {str(e)}", 
                         component
                     )
-        
-        # 不会到达这里，因为上面的error会抛异常
-        
-    def _is_valid_result(self, result: Any) -> bool:
+    
+    def _is_valid_result(self, result) -> bool:
         """检查结果是否有效"""
         if result is None:
             return False
@@ -108,25 +101,5 @@ class RetryHandler:
         return True
 
 
-def retry_on_llm_failure(max_retries: int = 3, component: str = "LLM"):
-    """
-    装饰器：自动重试LLM相关的函数
-    
-    Args:
-        max_retries: 最大重试次数
-        component: 组件名称
-    """
-    def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            retry_handler = RetryHandler(max_retries=max_retries)
-            return retry_handler.retry_with_warnings(
-                func, component, func.__name__, *args, **kwargs
-            )
-        return wrapper
-    return decorator
-
-
 # 全局实例
 error_handler = PipelineErrorHandler()
-retry_handler = RetryHandler()

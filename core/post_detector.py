@@ -74,14 +74,14 @@ class PostDetector:
             # 事件信息
             if 'event' in interaction and interaction['event']:
                 event = interaction['event']
-                formatted_text += f"Event: {event.get('event_id', 'Unknown')} ({event.get('intensity', 'Unknown')})\n"
+                formatted_text += f"Event: {event.get('event_id', 'Unknown')} ({event.get('pressure_level', 'Unknown')})\n"
             else:
                 formatted_text += "Event: NO_EVENT\n"
             
             # LLM回应
             if 'llm_response' in interaction:
-                response = interaction['llm_response'][:500]
-                formatted_text += f"LLM Response: {response}...\n"
+                response = interaction['llm_response']
+                formatted_text += f"LLM Response: {response}\n"
             
             # Manager评估
             if 'manager_evaluation' in interaction:

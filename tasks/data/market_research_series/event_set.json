@@ -1,7 +1,4 @@
 {
-  "event_set_metadata": {
-    "total_phases": 2
-  },
   "phases": {
     "phase_1": {
       "events": [
@@ -445,9 +442,7 @@
             }
           }
         }
-      ],
-      "task_start": 1,
-      "task_end": 7
+      ]
     },
     "phase_2": {
       "events": [
@@ -891,9 +886,7 @@
             }
           }
         }
-      ],
-      "task_start": 8,
-      "task_end": 14
+      ]
     }
   }
 }

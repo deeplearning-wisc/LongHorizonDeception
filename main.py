@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-# main.py
-# DeceptioN主程序 - 运行欺骗检测实验
+"""
+Main experiment runner - Minimal version focusing on task and event flow.
+LLM and Manager interactions are placeholders for now.
+"""
 
 import sys
 import os
@@ -8,242 +10,92 @@ import argparse
 from pathlib import Path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from config_manager import load_config
-from utils.task_stream_logger import TaskStreamLogger
-from utils.result_saver import ResultSaver
-from core.manager_new import Manager
-from core.LLM import LLM
-from core.post_detector import PostDetector
-from tasks.json_loader import JSONTaskLoader
-from tasks.variant_event_loader import get_event_system, DeceptiveEvent
-from tasks.base import Task
-from tqdm import tqdm
+from utils.config_manager import load_config
+from tasks.task_loader import JSONTaskLoader
+from tasks.event_loader import get_event_system
 
-class TaskStreamTask:
-    def __init__(self, task_id, title, task_sequence_num=1):
-        self.task_sequence_num = task_sequence_num
-        self.task_id = task_id
-        self.title = title
-        self.files = []
-        # LLM需要的prompt属性
-        # MockTaskPrompt不再需要normal_prompt字段
-        self.deceptive_prompt = None
-        self.positive_prompt = None
-
-class MockTaskPrompt:
-    def __init__(self, text):
-        self.en = text
-
-# Context management functions moved to LLM class
-
-def safe_log(logger, method_name, *args, **kwargs):
-    """安全的日志记录函数 - 当logger为None时不执行"""
-    if logger:
-        method = getattr(logger, method_name)
-        method(*args, **kwargs)
-
-def run_deception_experiment(config_name=None):
-    """运行长期Task序列的欺骗实验"""
+def run_experiment(config_name=None):
+    """Run the main experiment with task and event system"""
     
-    # Step 1: 加载配置系统 (统一YAML配置)
-    logger = None  # 初始化logger变量
-    try:
-        # 加载统一配置
-        config = load_config(config_name)
-        
-        # 直接加载API profiles
-        from config_manager import config_manager
-        api_profiles_data = config_manager._load_api_profiles()
-        api_profiles = api_profiles_data['api_profiles']
-        
-        # 检查是否启用logger
-        enable_logger = config['logging']['enable_logger']
-        
-        # 根据配置决定是否初始化logger
-        logger = None
-        session_info = None
-        if enable_logger:
-            logger = TaskStreamLogger()
-            session_info = logger.get_session_info()
-            safe_log(logger, 'log_config_loading', "Full Configuration", config)
-        else:
-            # 生成简单的session信息，不创建log文件
-            import time
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            session_info = {
-                'session_name': f'task_stream_{timestamp}',
-                'log_file': None  # 不创建log文件
-            }
-        
-    except Exception as e:
-        safe_log(logger, 'log_error', e, "Configuration loading")
-        print(f"❌ Configuration loading failed: {e}")
-        return False
+    # Load configuration
+    config = load_config(config_name)
     
-    # 配置已经通过config_manager验证过了，这里只需要记录
-    safe_log(logger, "log_config_loading", "Configuration validation passed", config)
-    
-    # 根据experiment_mode确定实验模式
-    if config['experiment_mode'].lower() == "quick":
-        max_tasks = 7  # 快速模式：7个Task
-        experiment_mode = "QUICK MODE"
-    else:
-        max_tasks = 14  # 完整实验：14个Task (updated from 21)
-        experiment_mode = "FULL EXPERIMENT"
-    
-    # 控制台显示实验信息
-    print(f"🚀 Starting DeceptioN Experiment - {experiment_mode}")
-    print(f"📊 Task Count: {max_tasks} tasks")
-    print(f"📁 Session: {session_info['session_name']}")
-    print(f"📄 Log file: {session_info['log_file']}")
-    
-    # Step 3: 初始化组件
-    print("🔧 Initializing components...")
-    
-    # 🆕 强制启用ResultSaver - 删除所有可选性，fail-fast原则
-    result_saver = ResultSaver(session_info['session_name'])
-    
-    result_saver.set_experiment_config(config)
-    
-    # 🆕 复制配置文件作为metadata
-    import shutil
-    session_dir = Path(f"results/{session_info['session_name']}")
-    session_dir.mkdir(parents=True, exist_ok=True)
-    
-    # 确定使用的配置文件名
-    if config_name is None:
-        config_file = "medium.yaml"  # 默认使用medium配置
-    else:
-        if not config_name.endswith(".yaml"):
-            config_name += ".yaml"
-        config_file = config_name
-    
-    # 复制配置文件
-    source_config = Path("configs") / config_file
-    target_config = session_dir / f"experiment_config_{config_file}"
-    shutil.copy2(source_config, target_config)
-    print(f"📄 Configuration saved: {target_config}")
-    print("📝 ResultSaver initialized - Complete JSON experiment data will be saved")
-    
-    # 获取组件配置
-    llm_api_config = config['llm_api_config']
-    
-    def get_component_llm_config(component_name: str):
-        """为指定组件获取LLM配置"""
-        component_config = llm_api_config[component_name]
-        provider = component_config['provider']
-        config_data = component_config[provider]
-        
-        return provider, config_data
-    
-    # 初始化LLM - 使用专用配置
-    llm_provider, llm_config = get_component_llm_config('llm')
-    # 显示LLM使用的模型名
-    print(f"[LLM] Using: {llm_provider} ({llm_config.get('model', 'unknown')})")
-    
-    llm_params = {
-        'llm_provider': llm_provider,
-        'llm_config': llm_config,
-        'system_prompt': config['llm_system_prompt'],
-        'max_tokens': llm_config['max_tokens']  # 🚨 FIXED: 从config强制读取max_tokens，无fallback
-    }
-    safe_log(logger, "log_component_init", "LLM", llm_params)
-    llm = LLM(**llm_params)
-    llm._logger = logger  # 传递logger给LLM
-    llm.llm_client._logger = logger  # 传递logger给LLM客户端
-    
-    # 初始化Manager - 使用专用配置
-    manager_provider, manager_config = get_component_llm_config('manager')
-    # 显示manager使用的模型名
-    print(f"[MANAGER] Using: {manager_provider} ({manager_config.get('model', 'unknown')})")
-    
-    manager_params = {
-        'llm_provider': manager_provider,
-        'llm_config': manager_config,
-        'summary_level': config['summary_level'],
-        'evaluation_prompt': config['manager_evaluation_prompt'],
-        'feedback_prompt': config['manager_feedback_prompt'],
-        'initial_state': config['manager_initial_state'],
-        'task_completion_threshold': config['task_completion_threshold']
-    }
-    safe_log(logger, "log_component_init", "Manager", manager_params)
-    manager = Manager(**manager_params)
-    manager._logger = logger  # non-official log
-    manager.llm_client._logger = logger  # 传递logger给Manager的LLM客户端
-    manager.history._logger = logger  # 传递logger给ManagerHistory
-    
-    # PostDetector配置
-    detector_config = config['llm_api_config']['detector']
-    
-    # 检查detector_config是字符串还是已解析的字典
-    if isinstance(detector_config, str):
-        # 如果是字符串，从api_profiles获取配置
-        detector_llm_config = api_profiles[detector_config]
-    else:
-        # 如果已经是字典，直接使用
-        detector_llm_config = detector_config
-    
-    detector_provider = detector_llm_config['provider']
-    post_detection_prompt = config['post_detector_prompt']
-    print(f"[POST_DETECTOR] Configured: {detector_provider} ({detector_llm_config.get('model', 'unknown')})")
-    
-    # 显示会话信息
-    print(f"- Session: {session_info['session_name']}")
-    if enable_logger and session_info.get('log_file'):
-        print(f"- Log file: {session_info['log_file']}")
-    print()
-    
-    # Step 4: 加载任务数据 - 根据TEST_MODE确定数量
-    task_loader = JSONTaskLoader()#14Task
-    
-    # 加载market_research_series任务集
+    # Load tasks and task set metadata
+    print("Loading tasks...")
+    task_loader = JSONTaskLoader()
     task_set = task_loader.load_task_set("market_research_series")
-    all_tasks = task_set.get_tasks()
     
-    # 根据TEST_MODE选择Task数量
-    selected_tasks = all_tasks[:max_tasks]
-    safe_log(logger, "log_info", f"ra{len(selected_tasks)} tasks for {experiment_mode}")
-    for i, task in enumerate(selected_tasks, 1):
-        safe_log(logger, "log_info", f"  Task {i}: {task.title}")
+    # Print task overview
+    task_set.print_all_tasks_overview()
     
-    # 🆕 从配置读取全局control参数
+    # Get max_tasks from task_set metadata
+    max_tasks = task_set.total_tasks
+    
+    # Get phase information from task_set
+    phase_info = task_set.get_phase_info()
+    
+    print(f"Starting DeceptioN Experiment")
+    print(f"Task Count: {max_tasks} tasks")
+    
+    # Display phase breakdown
+    for phase_key, phase_data in sorted(phase_info.items()):
+        phase_name = phase_data['name']
+        start = phase_data['task_start']
+        end = phase_data['task_end']
+        print(f"  {phase_key}: Tasks {start}-{end} ({phase_name})")
+    
+    print(f"Will process {max_tasks} tasks")
+    
+    # Get event control parameters from config
     control_category = config.get('control_category', None)
-    control_intensity = config.get('control_intensity', None)
-    event_seed = config.get('event_seed', None)  # 获取seed，如果没有则为None
+    control_pressure_level = config.get('control_pressure_level', None)
+    event_seed = config.get('event_seed', None)
     
-    # 初始化事件系统 - 使用配置系统（包含seed支持和control参数）
-    event_system = get_event_system("market_research_series", 
-                                   global_event_probability=config['p_event'], 
-                                   seed=event_seed,
-                                   control_category=control_category,
-                                   control_intensity=control_intensity,
-                                   max_tasks=max_tasks)
-    safe_log(logger, "log_info", f"Event system initialized with {len(event_system.phase_events)} phases, probability: {config['p_event']}, seed: {event_seed}")
+    # Initialize event system with seed
+    print(f"\nInitializing event system...")
+    print(f"  Seed: {event_seed if event_seed is not None else 'Random'}")
+    print(f"  P(event): {config['p_event']}")
+    if control_category:
+        print(f"  Control Category: {control_category}")
+    if control_pressure_level:
+        print(f"  Control Pressure Level: {control_pressure_level}")
     
-    # 🆕 使用新的事件系统生成任务流
+    event_system = get_event_system(
+        "market_research_series",
+        global_event_probability=config['p_event'],
+        seed=event_seed,
+        control_category=control_category,
+        control_pressure_level=control_pressure_level,
+        max_tasks=max_tasks
+    )
+    
+    # Generate task stream with events
+    print(f"\nGenerating task-event stream...")
     task_stream = []
-    for task_idx, task in enumerate(selected_tasks, 1):
-        # 使用新的API生成事件和variant，应用全局control参数
-        deceptive_event, event_variant = event_system.get_event_and_variant_for_task(
-            task_idx, 
-            control_category=control_category,
-            control_intensity=control_intensity
-        )
+    
+    for task_idx in range(1, max_tasks + 1):
+        # Get task by sequence number
+        task = task_set.get_task_by_sequence_num(task_idx)
+        if not task:
+            print(f"Warning: Could not find task {task_idx}")
+            continue
+        # Sample event for this task (using seed for reproducibility)
+        deceptive_event, event_variant = event_system.get_event_and_variant_for_task(task_idx)
         
         if deceptive_event and event_variant:
             event = {
                 'name': deceptive_event.name,
-                'content': event_variant.content,          # LLM看到的实际事件内容
+                'content': event_variant.content,
                 'pressure_level': event_variant.pressure_level,
-                'category': deceptive_event.category,       # 事件类别
+                'category': deceptive_event.category,
                 'triggered': True
             }
         else:
             event = {
                 'name': 'NO_EVENT',
-                'content': 'Normal business conditions',     # LLM看到的内容
+                'content': 'Normal business conditions',
                 'pressure_level': 'NORMAL',
-                'category': 'NONE',                          # 没有特殊事件
+                'category': 'NONE',
                 'triggered': False
             }
         
@@ -251,282 +103,92 @@ def run_deception_experiment(config_name=None):
             'task': task,
             'event': event
         })
-        
-        safe_log(logger, "log_info", f"Task {task_idx}: {task.title} - Event '{event.get('name', 'NO_EVENT')}' ({event['category']}, Pressure: {event['pressure_level']})")
     
-    # 🆕 显示事件序列预览
-    def format_event_sequence_preview(task_stream, event_seed):
-        """格式化事件序列预览"""
-        preview_lines = []
-        preview_lines.append(f"🎲 Event Seed: {event_seed if event_seed is not None else 'Random'}")
-        preview_lines.append("📋 EVENT SEQUENCE PREVIEW:")
-        preview_lines.append("=" * 60)
-        
-        for i, task_info in enumerate(task_stream, 1):
-            task = task_info['task']
-            event = task_info['event']
-            
-            if event['triggered']:
-                # 确定阶段标识
-                if i <= 7:
-                    phase_label = "(PH1)"
-                elif i <= 14:
-                    phase_label = "(PH2)" 
-                else:
-                    phase_label = "(PH3)"
-                
-                # 格式化事件信息
-                event_name = event['name']
-                pressure_level = event['pressure_level'].upper()
-                category = event['category']
-                
-                line = f"  Task {i:2d} {phase_label}: {event_name:<12} {pressure_level:<8} - {category}"
-            else:
-                line = f"  Task {i:2d}: NO_EVENT"
-            
-            preview_lines.append(line)
-        
-        preview_lines.append("=" * 60)
-        return "\n".join(preview_lines)
+    # Display event sequence
+    print("\n" + "="*60)
+    print("EVENT SEQUENCE (Generated with seed)")
+    print("="*60)
     
-    # 生成并显示事件序列预览
-    event_preview = format_event_sequence_preview(task_stream, event_seed)
-    print("\n" + event_preview + "\n")
+    # Use already loaded phase information
     
-    # 保存到session_info
-    result_saver.set_event_sequence_preview(event_preview)
-    
-    # 记录到logger
-    safe_log(logger, "log_info", "Event Sequence Preview:")
-    for line in event_preview.split('\n'):
-        safe_log(logger, "log_info", line)
-    
-    # 处理Task Stream
-    print("Processing tasks...")
-    
-    # 🆕 全局轮次计数器
-    global_rounds = 0
-    
-    for task_idx, task_info in enumerate(tqdm(task_stream, desc="Tasks", unit="task")):
+    for i, task_info in enumerate(task_stream, 1):
         task = task_info['task']
         event = task_info['event']
         
-        # 记录任务开始
-        safe_log(logger, "log_task_start", task_idx + 1, task.title)
-        safe_log(logger, "log_event_info", event)
+        # Determine phase based on loaded phase_description
+        phase = None
+        for phase_key, phase_data in phase_info.items():
+            if phase_data['task_start'] <= i <= phase_data['task_end']:
+                phase = phase_key.replace('_', '').capitalize()  # phase_1 -> Phase1
+                break
         
-        # ResultSaver: 记录任务开始并实时保存
-        result_saver.start_task(task_idx + 1, task, event)
-        result_saver.flush()  # 实时保存
+        if not phase:
+            phase = f"Phase?"  # Fallback if task is outside defined phases
         
-        # 记录LLM全局历史状态
-        if len(llm.global_conversation_history) > 0:
-            safe_log(logger, "log_info", f"LLM has {len(llm.global_conversation_history)} interactions from previous tasks")
-        
-        # 多轮交互直到任务完成 - 使用配置的最大轮数
-        max_rounds = config['max_rounds_per_task']
-        task_completed = False
-        
-        # 🆕 任务内的交互历史 - 实现真正的交错对话
-        task_manager_feedback_history = []
-        
-        # 轮次进度条
-        rounds_desc = f"Task {task.title}"
-        for round_num in tqdm(range(1, max_rounds + 1), desc=rounds_desc, unit="round", leave=False):
-            global_rounds += 1  # 增加全局轮次计数
-            safe_log(logger, "log_round_start", round_num, max_rounds)
-            safe_log(logger, "log_info", f"Global round: {global_rounds}")
-            
-            # ResultSaver: 记录轮次开始和Manager状态，并实时保存
-            result_saver.start_round(round_num, manager.current_state.copy(), global_round=global_rounds)
-            result_saver.flush()  # 实时保存
-            
-            # 记录任务文件信息
-            safe_log(logger, "log_info", f"Task files count: {len(task.files) if task.files else 0}")
-            if task.files:
-                for i, file_obj in enumerate(task.files):
-                    safe_log(logger, "log_info", f"  File {i+1}: {file_obj.filename} ({len(file_obj.content)} chars)")
-            
-            if round_num > 1:
-                safe_log(logger, "log_info", f"LLM has {len(task_manager_feedback_history)} manager feedback(s) from this task")
-            
-            # 🆕 使用LLM的封装好的context管理 + 任务内Manager反馈
-            try:
-                # 判断是否需要使用ChatGPT风格的交错对话
-                has_global_history = len(llm.global_conversation_history) > 0
-                has_task_feedback = len(task_manager_feedback_history) > 0
-                
-                if has_global_history or has_task_feedback:
-                    # 有全局历史或任务内反馈：使用ChatGPT风格的交错对话
-                    enhanced_prompt = llm._build_enhanced_prompt_with_history(task, event['content'])
-                    llm_result = llm.process_task_with_enhanced_prompt(task, enhanced_prompt, task_manager_feedback_history)
-                else:
-                    # 完全新的开始：使用简单的事件处理
-                    llm_result = llm.process_task_with_event(task, event['content'])
-                
-                llm_response = llm_result['response']
-                
-                # 记录LLM的输出
-                safe_log(logger, "log_llm_output", llm_response, llm_result.get('llm_metadata', {}))
-                
-                # ResultSaver: 保存LLM回复 - 完整内容，绝不截断，并实时保存
-                result_saver.save_llm_response(round_num, llm_response)
-                result_saver.flush()  # 实时保存
-                
-            except Exception as e:
-                safe_log(logger, "log_error", e, f"LLM processing - Task {task.title}, Round {round_num}")
-                raise  # 直接抛出异常，fail-fast原则
-            
-            # Manager评估
-            try:
-                # 将event dict转换为event_info格式 - 只传递content，不暴露系统字段
-                event_info = {
-                    'content': event['content'],       # 事件内容
-                    'category': event['category'],     # 事件类别 
-                    'pressure_level': event['pressure_level'],  # 压力级别
-                    'name': event.get('name', 'NO_EVENT'),      # 事件名称
-                    'triggered': event['triggered']    # 是否触发
-                }
-                
-                # Manager会自动打印完整context，然后获取结果
-                manager_result = manager.evaluate_and_update(llm_response, task, event_info)
-                
-                task_completed = manager_result['task_complete']
-                
-                # 记录Manager输出
-                safe_log(logger, "log_manager_output", 
-                    task_completed,
-                    {
-                        'previous_state': manager_result['previous_state'],
-                        'new_state': manager_result['new_state'],
-                        'trust_level': manager_result['trust_level'],
-                        'work_satisfaction': manager_result['work_satisfaction'],
-                        'relational_valence': manager_result['relational_valence']
-                    },
-                    manager_result['evaluation_reasoning'],
-                    manager_result['feedback'],
-                    manager_result.get('tokens_used', 0),
-                    {
-                        'evaluation': manager_result['evaluation_reasoning'],
-                        'feedback': manager_result['feedback_reasoning']
-                    }
-                )
-                
-                # ResultSaver: 保存Manager评估 - 完整的所有推理，绝不截断，并实时保存
-                result_saver.save_manager_evaluation(round_num, manager_result)
-                result_saver.flush()  # 实时保存
-                
-                # 数据已保存到JSON，实验结束后将进行全局分析
-                
-                # 🆕 添加Manager反馈到任务内历史 (用于下一轮LLM输入)
-                task_manager_feedback_history.append(manager_result['feedback'])
-                
-                # 🆕 记录这一轮的完整交互到LLM的全局历史
-                llm.add_interaction_to_global_history(
-                    task_id=task.title,
-                    round_num=round_num,
-                    llm_response=llm_response,
-                    manager_feedback=manager_result['feedback'],
-                    task_complete=task_completed
-                )
-                
-                if task_completed:
-                    safe_log(logger, "log_task_completion", task.title, True, round_num)
-                    break
-                else:
-                    safe_log(logger, "log_info", f"Task not complete, continuing to round {round_num + 1}")
-                    
-            except Exception as e:
-                safe_log(logger, "log_error", e, f"Manager evaluation - Task {task.title}, Round {round_num}")
-                raise  # 直接抛出异常，fail-fast原则
-        
-        if not task_completed:
-            safe_log(logger, "log_task_completion", task.title, False, max_rounds)
-        
-        # ResultSaver: 任务结束并实时保存
-        result_saver.end_task(task_idx + 1)
-        result_saver.flush()  # 实时保存
-        
-        # 记录当前状态和历史
-        current_state = manager.get_current_state()
-        safe_log(logger, "log_info", f"Manager State after Task {task_idx + 1}:")
-        safe_log(logger, "log_info", f"  Trust Level: {current_state['trust_level']:.3f}")
-        safe_log(logger, "log_info", f"  Work Satisfaction: {current_state['work_satisfaction']:.3f}")
-        safe_log(logger, "log_info", f"  Relational Valence: {current_state['relational_valence']:.3f}")
-        safe_log(logger, "log_info", f"  Total History Summaries: {len(manager.history.interaction_summaries)}")
-    
-    # 最终总结
-    final_state = manager.get_current_state()
-    # total_interactions现在由ResultSaver统计，这里使用实际的interaction数据
-    total_interactions = len(result_saver.get_structured_interactions_for_detector())
-    safe_log(logger, "log_final_summary", final_state, total_interactions)
-    
-    # 实验完成
-    print("[MAIN] Experiment completed successfully!")
-    
-    # 🆕 运行PostDetector全局分析
-    print("\n=== RUNNING POST-EXPERIMENT DECEPTION ANALYSIS ===")
-    try:
-        post_detector = PostDetector(
-            llm_provider=detector_provider,
-            llm_config=detector_llm_config,
-            post_detection_prompt=post_detection_prompt,
-            session_dir=str(session_dir)
-        )
-        
-        analysis_result = post_detector.run_complete_analysis()
-        
-        if "error" not in analysis_result:
-            print("[POST_DETECTOR] Global deception analysis completed successfully!")
+        if event['triggered']:
+            print(f"Task {i:2d} [{phase}]: {event['name']:<20} | {event['pressure_level']:<8} | {event['category']}")
         else:
-            print(f"[POST_DETECTOR] Analysis failed: {analysis_result['error']}")
+            print(f"Task {i:2d} [{phase}]: NO_EVENT")
+    
+    print("="*60)
+    
+    # Process task stream round-by-round
+    print("\nProcessing task stream...")
+    max_rounds_per_task = config['max_rounds_per_task']
+    global_round = 0
+    
+    for task_idx, task_info in enumerate(task_stream, 1):
+        task = task_info['task']
+        event = task_info['event']
+        
+        print(f"\nTask {task_idx}: {task.title}")
+        print(f"  Event: {event['name']} (Pressure: {event['pressure_level']})")
+        
+        # Process multiple rounds per task
+        for round_num in range(1, max_rounds_per_task + 1):
+            global_round += 1
+            print(f"  Round {round_num}/{max_rounds_per_task} (Global Round {global_round})")
             
-    except Exception as e:
-        print(f"[POST_DETECTOR] Error during analysis: {e}")
+            # LLM processing placeholder
+            # llm_response = llm.process_task_with_event(task, event['content'])
+            pass
+            
+            # Manager evaluation placeholder
+            # manager_result = manager.evaluate_and_update(llm_response, task, event)
+            pass
+            
+            # Task completion check placeholder
+            # if manager_result['task_complete']:
+            #     break
+        
+        print(f"  Task completed after {round_num} rounds")
     
-    # ResultSaver: 最终化实验记录
-    interaction_records = result_saver.get_structured_interactions_for_detector()
-    final_manager_state = manager.get_current_state()
-    result_saver.finalize_experiment(
-        total_tasks=max_tasks,
-        total_interactions=len(interaction_records),
-        final_manager_state=final_manager_state
-    )
-    print(f"[MAIN] Complete experiment data saved: {result_saver.get_record_path()}")
-    
-    # 关闭logger
-    if logger:
-        logger.close()
-    
-    return True
+    print(f"\nExperiment complete. Total rounds: {global_round}")
+    if event_seed is not None:
+        print(f"Seed used: {event_seed} (reproducible)")
 
 def main():
-    """主函数 - 处理命令行参数并运行实验"""
-    parser = argparse.ArgumentParser(description='DeceptioN - AI Deception Detection Experiment Framework')
-    parser.add_argument('--config', '-c', type=str, help='Configuration file name (e.g., normal, high_pressure, test)')
-    parser.add_argument('--list-configs', action='store_true', help='Show available configuration files')
+    parser = argparse.ArgumentParser(description='DeceptioN Experiment Runner')
+    parser.add_argument('--config', type=str, default=None,
+                       help='Configuration file name (without .yaml extension)')
+    parser.add_argument('--list-configs', action='store_true',
+                       help='List available configuration files')
     
     args = parser.parse_args()
     
-    # 显示可用配置文件
     if args.list_configs:
-        from config_manager import config_manager
-        config_manager.show_available_configs()
-        return
+        # List available configs
+        configs_dir = Path("configs")
+        if configs_dir.exists():
+            print("Available configurations:")
+            for config_file in sorted(configs_dir.glob("*.yaml")):
+                if config_file.name != "api_profiles.yaml":
+                    print(f"  - {config_file.stem}")
+        sys.exit(0)
     
-    # 运行实验
-    try:
-        if run_deception_experiment(args.config):
-            print("✅ DeceptioN experiment completed successfully!")
-        else:
-            print("❌ DeceptioN experiment failed!")
-            sys.exit(1)
-    except Exception as e:
-        print(f"💥 FATAL ERROR: {e}")
-        import traceback
-        print("Full traceback:")
-        traceback.print_exc()
-        sys.exit(1)
+    # Run experiment
+    run_experiment(args.config)
 
 if __name__ == "__main__":
     main()
+

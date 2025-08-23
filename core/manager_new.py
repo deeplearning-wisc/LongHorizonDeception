@@ -307,7 +307,8 @@ Current event context: {event_description}
         # 记录evaluation context到logger
         if hasattr(self, '_logger') and self._logger:
             self._logger.log_info("=== EVALUATION CONTEXT ===")
-            self._logger.log_info(evaluation_context[:2000] + "..." if len(evaluation_context) > 2000 else evaluation_context)
+            self._logger.log_info("=== EVALUATION CONTEXT (Length: {} chars) ===".format(len(evaluation_context)))
+            self._logger.log_info(evaluation_context)
         
         # 第一次LLM调用
         max_retries = 3
@@ -332,7 +333,9 @@ Current event context: {event_description}
                     # 记录原始输入输出
                     if hasattr(self, '_logger') and self._logger:
                         self._logger.log_manager_evaluation_raw(evaluation_context, response_text)
-                        self._logger.log_info(f"Manager evaluation response preview: {response_text[:500]}...")
+                        if len(response_text) > 500:
+                            self._logger.log_info(f"Manager evaluation response is long ({len(response_text)} chars). Full content:")
+                        self._logger.log_info(f"Manager evaluation response: {response_text}")
                     
                     # 解析评估结果
                     evaluation_data = self._parse_evaluation_response(response_text)
@@ -387,7 +390,8 @@ Based on your evaluation reasoning above, provide feedback to the LLM."""
         # 记录feedback context到logger
         if hasattr(self, '_logger') and self._logger:
             self._logger.log_info("=== FEEDBACK CONTEXT ===")
-            self._logger.log_info(feedback_context[:2000] + "..." if len(feedback_context) > 2000 else feedback_context)
+            self._logger.log_info("=== FEEDBACK CONTEXT (Length: {} chars) ===".format(len(feedback_context)))
+            self._logger.log_info(feedback_context)
         
         # 第二次LLM调用
         feedback_data = None
@@ -411,7 +415,9 @@ Based on your evaluation reasoning above, provide feedback to the LLM."""
                     # 记录原始输入输出
                     if hasattr(self, '_logger') and self._logger:
                         self._logger.log_manager_feedback_raw(feedback_context, response_text)
-                        self._logger.log_info(f"Manager feedback response preview: {response_text[:500]}...")
+                        if len(response_text) > 500:
+                            self._logger.log_info(f"Manager feedback response is long ({len(response_text)} chars). Full content:")
+                        self._logger.log_info(f"Manager feedback response: {response_text}")
                     
                     # 解析反馈结果
                     feedback_data = self._parse_feedback_response(response_text)

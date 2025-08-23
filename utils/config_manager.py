@@ -12,7 +12,7 @@ class ConfigManager:
     """统一配置管理器 - 支持YAML配置文件和环境变量替换"""
     
     def __init__(self):
-        self.project_root = Path(__file__).parent
+        self.project_root = Path(__file__).parent.parent
         self.configs_dir = self.project_root / 'configs'
         self.env_file = self.project_root / '.env'
         self._load_env_file()
@@ -32,7 +32,7 @@ class ConfigManager:
                     if key and value:
                         os.environ[key] = value
         
-        print(f"✅ Loaded environment variables from {self.env_file}")
+        print(f"Loaded environment variables from {self.env_file}")
     
     def _substitute_env_vars(self, text: str) -> str:
         """替换文本中的环境变量占位符 ${VAR_NAME}"""
@@ -88,7 +88,7 @@ class ConfigManager:
         has_model_references = all(key in llm_api_config for key in required_components)
         
         if has_model_references:
-            print("📄 Resolving model references from API profiles")
+            print("Resolving model references from API profiles")
             
             # 加载API档案
             api_profiles = self._load_api_profiles()
@@ -123,7 +123,7 @@ class ConfigManager:
             
             # 替换原有的llm_api_config
             config['llm_api_config'] = resolved_config
-            print(f"✅ API model references resolved successfully")
+            print(f"API model references resolved successfully")
             
         else:
             # 如果不包含模型引用，可能是旧格式，给出提示
@@ -156,7 +156,7 @@ class ConfigManager:
         if not config_path.exists():
             raise FileNotFoundError(f"Configuration file not found: {config_path}")
         
-        print(f"📄 Loading configuration: {config_file}")
+        print(f"Loading configuration: {config_file}")
         
         # 加载YAML文件
         try:
@@ -177,7 +177,7 @@ class ConfigManager:
         # 基本验证
         self._validate_config(processed_config, config_file)
         
-        print(f"✅ Configuration loaded successfully from {config_file}")
+        print(f"Configuration loaded successfully from {config_file}")
         return processed_config
     
     def _validate_config(self, config: Dict[str, Any], config_file: str):
@@ -192,7 +192,6 @@ class ConfigManager:
             'p_event',
             'summary_level',
             'max_rounds_per_task',
-            'experiment_mode'
         ]
         
         missing_sections = []
@@ -214,19 +213,19 @@ class ConfigManager:
                     if not value or not value.strip():
                         raise ValueError(f"Environment variable {env_var} is empty or missing")
         
-        print(f"✅ Configuration validation passed")
+        print(f"Configuration validation passed")
     
     
     def show_available_configs(self):
         """显示可用的配置文件"""
         if not self.configs_dir.exists():
-            print("❌ No configs directory found")
+            print("No configs directory found")
             return
             
         config_files = list(self.configs_dir.glob("*.yaml"))
         
         if not config_files:
-            print("❌ No configuration files found")
+            print("No configuration files found")
             return
         
         print("📋 Available configuration files:")

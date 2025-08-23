@@ -92,7 +92,7 @@ class UniversalLLMHandler:
                 if hasattr(e, 'status_code'):
                     self._print(f"[UniHandler] Status Code: {e.status_code}", force=True)
                 if hasattr(e, 'response') and hasattr(e.response, 'text'):
-                    self._print(f"[UniHandler] Response Text: {e.response.text[:500]}", force=True)  # 只显示前500字符
+                    self._print(f"[UniHandler] Response Text (Length: {len(e.response.text)} chars): {e.response.text}", force=True)
                 if attempt == retry - 1:  # 最后一次重试失败
                     self._print(f"[UniHandler] All {retry} attempts failed, giving up", force=True)
                     raise e

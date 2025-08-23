@@ -1,11 +1,62 @@
-# tasks/json_loader.py
-# JSON Task Loader for LDLE Framework
-# Replaces Python-based task definitions with JSON files
+# tasks/task_loader.py
+# Task Loader for LDLE Framework
+# Loads task definitions from JSON files
 
 import json
 from typing import Dict, List, Optional, Any
 from pathlib import Path
-from .base import Task, TaskSet, TaskPrompt, TaskFile
+from dataclasses import dataclass, field
+
+@dataclass
+class TaskFile:
+    """Container for task file information"""
+    filename: str
+    content: str
+
+
+@dataclass
+class Task:
+    """单个任务的数据结构"""
+    task_sequence_num: int = 0
+    title: str = ""
+    base_prompt: str = ""
+    files: List[TaskFile] = field(default_factory=list)
+
+class TaskSet:
+    """Container for a set of related tasks"""
+    
+    def __init__(self, name: str, total_tasks: int, phase_description: Optional[Dict[str, Any]] = None):
+        self.name = name
+        self.total_tasks = total_tasks
+        self.phase_description = phase_description or {}
+        self._tasks: List[Task] = []
+    
+    def add_task(self, task: Task):
+        """Add a task to the set"""
+        self._tasks.append(task)
+    
+    def print_all_tasks_overview(self):
+        """Print overview of all tasks with titles for global information"""
+        sorted_tasks = sorted(self._tasks, key=lambda task: task.task_sequence_num)
+        print(f"\n=== Task Set: {self.name} ===")
+        print(f"Total Tasks: {self.total_tasks}")
+        print("\nTask Overview:")
+        for task in sorted_tasks:
+            print(f"  Task {task.task_sequence_num}: {task.title}")
+        print()
+    
+    def get_task_by_sequence_num(self, task_sequence_num: int) -> Optional[Task]:
+        """Get task for specific sequence number"""
+        for task in self._tasks:
+            if task.task_sequence_num == task_sequence_num:
+                return task
+        return None
+    
+    
+    def get_phase_info(self) -> Dict[str, Any]:
+        """Get phase description information"""
+        return self.phase_description.copy()
+    
 
 class JSONTaskLoader:
     """
@@ -21,7 +72,6 @@ class JSONTaskLoader:
             data_directory: Directory containing JSON task files
         """
         self.data_directory = Path(data_directory)
-        self._loaded_task_sets: Dict[str, TaskSet] = {}
     
     def load_task_set_from_json(self, json_file_path: str) -> TaskSet:
         """
@@ -76,13 +126,19 @@ class JSONTaskLoader:
             if field not in task_set_info:
                 raise ValueError(f"Missing '{field}' in task_set section of {source_file}")
         
-        # Support both duration_days (old) and total_tasks (new) formats
-        duration_days = task_set_info.get("duration_days") or task_set_info.get("total_tasks", 14)
+        # Get total_tasks from JSON
+        total_tasks = task_set_info.get("total_tasks")
+        if total_tasks is None:
+            raise ValueError(f"Missing 'total_tasks' in task_set section of {source_file}")
+        
+        # Extract phase description if available
+        phase_description = task_set_info.get("phase_description", {})
         
         # Create TaskSet
         task_set = TaskSet(
             name=task_set_info["name"],
-            duration_days=duration_days
+            total_tasks=total_tasks,
+            phase_description=phase_description
         )
         
         # Parse and add tasks
@@ -162,15 +218,9 @@ class JSONTaskLoader:
             if field not in file_data:
                 raise ValueError(f"Missing '{field}' in file data of task {task_title} in {source_file}")
         
-        # Validate all file fields - NO DEFAULTS ALLOWED
-        if "file_type" not in file_data:
-            raise ValueError(f"Missing 'file_type' in file data of task {task_title} in {source_file}")
-        
         return TaskFile(
             filename=file_data["filename"],
-            content=file_data["content"],
-            description=file_data["description"] if "description" in file_data and file_data["description"] is not None else None,
-            file_type=file_data["file_type"]
+            content=file_data["content"]
         )
     
     def get_available_task_sets(self) -> List[str]:
@@ -207,10 +257,6 @@ class JSONTaskLoader:
         Returns:
             TaskSet: Loaded task set
         """
-        # Check cache first
-        if task_set_name in self._loaded_task_sets:
-            return self._loaded_task_sets[task_set_name]
-        
         # Try directory-based format first (new format)
         directory_path = self.data_directory / task_set_name
         tasks_file = directory_path / "tasks.json"
@@ -218,36 +264,9 @@ class JSONTaskLoader:
         if tasks_file.exists():
             # Load from directory structure
             json_file_path = f"{task_set_name}/tasks.json"
-            task_set = self.load_task_set_from_json(json_file_path)
+            return self.load_task_set_from_json(json_file_path)
         else:
             # Fall back to direct JSON file (legacy format)
             json_file_path = f"{task_set_name}.json"
-            task_set = self.load_task_set_from_json(json_file_path)
-        
-        # Cache for future use
-        self._loaded_task_sets[task_set_name] = task_set
-        
-        return task_set
+            return self.load_task_set_from_json(json_file_path)
     
-    def validate_task_set(self, task_set_name: str) -> List[str]:
-        """
-        Validate a task set and return any errors
-        
-        Args:
-            task_set_name: Name of task set to validate
-            
-        Returns:
-            List[str]: List of validation errors (empty if valid)
-        """
-        try:
-            task_set = self.load_task_set(task_set_name)
-            return task_set.validate()
-        except Exception as e:
-            return [f"Failed to load task set: {e}"]
-
-# Global JSON loader instance
-_json_loader = JSONTaskLoader()
-
-def get_json_loader() -> JSONTaskLoader:
-    """Get the global JSON task loader"""
-    return _json_loader

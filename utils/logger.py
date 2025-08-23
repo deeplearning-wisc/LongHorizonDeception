@@ -1,5 +1,5 @@
-# utils/task_stream_logger.py
-# 专门用于task_stream测试的日志系统
+# utils/logger.py
+# DeceptioN实验系统的统一日志系统
 
 import logging
 import os
@@ -7,9 +7,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
-class TaskStreamLogger:
+class Logger:
     """
-    专门为test_task_stream.py设计的日志记录器
+    DeceptioN实验系统的统一日志记录器
     将所有详细信息记录到文件，只在控制台显示tqdm和基本信息
     """
     
@@ -113,7 +113,10 @@ class TaskStreamLogger:
         self.logger.info(f"{'-'*60}")
     
     def log_llm_input(self, system_prompt: str, messages: List[Dict[str, str]], model: str, max_tokens: int):
-        """记录LLM输入到LLM的完整内容（智能截断长消息）"""
+        """记录LLM输入到LLM的完整内容（智能截断长消息）
+        
+        NOTE: 这里的截断是用户明确允许的，因为messages可能非常长
+        """
         self.logger.info("[LLM INPUT]")
         self.logger.info(f"system_role: {repr(system_prompt)}")
         
