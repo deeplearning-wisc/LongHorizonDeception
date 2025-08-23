@@ -3,7 +3,7 @@
 
 from typing import Dict, Any, Optional, List
 from tasks.base import Task, TaskFile
-from .Universal_LLM_Client import UniversalLLMClient
+from .Universal_LLM_Handler import UniversalLLMHandler
 from utils.error_handler import PipelineErrorHandler, RetryHandler
 
 class LLM:
@@ -55,7 +55,7 @@ class LLM:
         self.retry_handler = RetryHandler(max_retries=3)
         
         # Use universal LLM client - supports OpenAI and Azure
-        self.llm_client = UniversalLLMClient(llm_provider, llm_config)
+        self.llm_client = UniversalLLMHandler(llm_provider, llm_config)
         
         # 获取模型的context限制
         self.context_limit = self.llm_client.model_limits.context_window

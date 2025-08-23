@@ -3,6 +3,6 @@
 
 from .LLM import LLM
 from .manager_new import Manager
-from .Universal_LLM_Client import UniversalLLMClient
+from .Universal_LLM_Handler import UniversalLLMHandler
 
-__all__ = ['LLM', 'Manager', 'UniversalLLMClient']
+__all__ = ['LLM', 'Manager', 'UniversalLLMHandler']

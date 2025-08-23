@@ -6,9 +6,9 @@ api_profiles:
   gpt4o1120azurenew:
     provider: "azure"
     azure_api_key: "${gpt_4o_key}"
-    azure_endpoint: "https://saft.openai.azure.com"
+    azure_endpoint: "https://deceptionn1.openai.azure.com"
     azure_deployment: "gpt-4o"
-    azure_api_version: "2024-12-01-preview"
+    azure_api_version: "2025-04-01-preview"
     input_tokens: 128000
     max_output_tokens: 16384          # 改为 max_output_tokens（Responses API）
 
@@ -17,7 +17,7 @@ api_profiles:
     azure_api_key: "${gpt_5_key}"
     azure_endpoint: "https://deceptionn1.openai.azure.com"
     azure_deployment: "gpt-5"
-    azure_api_version: "2024-12-01-preview"
+    azure_api_version: "2025-04-01-preview"
     input_tokens: 272000
     max_output_tokens: 128000         # 改为 max_output_tokens（Responses API）
 

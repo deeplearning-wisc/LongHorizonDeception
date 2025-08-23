@@ -1,7 +1,7 @@
 # manager_new.py - 新的两阶段Manager实现
 import time
 from typing import Dict, Any, Optional, List
-from core.Universal_LLM_Client import UniversalLLMClient
+from core.Universal_LLM_Handler import UniversalLLMHandler
 
 class ManagerHistory:
     """
@@ -234,7 +234,7 @@ class Manager:
             raise ValueError(f"Unsupported LLM provider: {llm_provider}")
         
         # LLM客户端初始化 
-        self.llm_client = UniversalLLMClient(
+        self.llm_client = UniversalLLMHandler(
             provider=llm_provider,
             config=llm_config
         )
