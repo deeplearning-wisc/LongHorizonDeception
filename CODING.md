@@ -32,6 +32,7 @@ DeceptioN/
 
 - **pressure_level**: 事件压力级别（low, medium, high, critical）
   - 错误用法：intensity, pressure_intensity, control_intensity
+  - 🚨 **严重警告**: 变量名绝对不能简写成"pressure"！必须完整使用"pressure_level"
 - **category**: 事件类别（GOAL_CONFLICT等）
   - 错误用法：event_category, final_category
 

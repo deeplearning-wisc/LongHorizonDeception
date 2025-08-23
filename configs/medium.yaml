@@ -6,7 +6,7 @@ summary_level: 2           # 历史摘要详细程度 (1-3)
 # 事件系统控制
 event_seed: 42           # 事件随机种子 (null=随机, 数字=固定)
 control_category: "GOAL_CONFLICT"    # 控制所有事件类别 (可选)
-# control_pressure_level: "high"       # 控制所有事件压力级别 (可选)
+control_pressure_level: "high"       # 控制所有事件压力级别 (可选)
 
 # LLM API配置 - 直接引用api_profiles.yaml中的模型
 llm_api_config:

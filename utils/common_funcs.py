@@ -5,7 +5,7 @@ Common utility functions for DeceptioN project
 
 from typing import List, Set, Any, Optional
 
-# 定义系统支持的categories和pressure levels
+# 定义系统支持的categories和pressure_levels
 VALID_CATEGORIES: Set[str] = {
     "GOAL_CONFLICT",
     "COMPETITIVE_INTERACTION", 
@@ -45,17 +45,17 @@ def validate_category(category: str, context: str = "") -> str:
 
 def validate_pressure_level(pressure_level: str, context: str = "") -> str:
     """
-    验证pressure level是否在允许的4个值中
+    验证pressure_level是否在允许的4个值中
     
     Args:
         pressure_level: 要验证的pressure level
         context: 错误上下文信息
         
     Returns:
-        str: 验证通过的pressure level
+        str: 验证通过的pressure_level
         
     Raises:
-        ValueError: 如果pressure level不在允许的值中
+        ValueError: 如果pressure_level不在允许的值中
     """
     # 转换为大写进行比较，保持一致性
     pressure_upper = pressure_level.upper()

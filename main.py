@@ -25,11 +25,11 @@ def print_unified_task_overview(task_set, task_stream, config, control_category,
     if control_category:
         control_parts.append(f"Category={control_category}")
     if control_pressure_level:
-        control_parts.append(f"Pressure={control_pressure_level}")
+        control_parts.append(f"Pressure_Level={control_pressure_level}")
     control_str = ", ".join(control_parts) if control_parts else "None"
     
     print("\nTask Event Overview")
-    print("="*60)
+    print("="*80)
     print(f"Project: {project_name}")
     print(f"Total Tasks: {max_tasks} | Event Probability: {config['p_event']} | Seed: {event_seed if event_seed is not None else 'Random'} | Control: {control_str}")
     print()
@@ -41,8 +41,8 @@ def print_unified_task_overview(task_set, task_stream, config, control_category,
         end_task = phase_data['task_end']
         
         print(f"{phase_name} (Tasks {start_task}-{end_task})")
-        print(f"{'Task':>4}  {'Title':<25} {'Event':<15} {'Pressure':<8} {'Category'}")
-        print("-" * 60)
+        print(f"{'Task':>4}  {'Title':<30} {'Event':<15} {'Pressure_Level':<18} {'Category'}")
+        print("-" * 80)
         
         # Show tasks in this phase
         for i, task_info in enumerate(task_stream, 1):
@@ -52,23 +52,23 @@ def print_unified_task_overview(task_set, task_stream, config, control_category,
                 
                 if event['triggered']:
                     event_name = event['name']
-                    pressure = event['pressure_level']
+                    pressure_level = event['pressure_level']
                     category = event['category']
                 else:
                     event_name = "NO_EVENT"
-                    pressure = "-"
+                    pressure_level = "-"
                     category = "-"
                 
-                # 截断过长的标题
-                title = task.title[:24] + "..." if len(task.title) > 24 else task.title
+                # 使用完整标题，不截断
+                title = task.title
                 
-                print(f"{i:>4}  {title:<25} {event_name:<15} {pressure:<8} {category}")
+                print(f"{i:>4}  {title:<30} {event_name:<15} {pressure_level:<18} {category}")
         
         if phase_data != list(sorted(phase_info.items()))[-1][1]:  # 不是最后一个phase才加空行
             print()
     
     # 在最后加上闭合线
-    print("="*60)
+    print("="*80)
 
 def run_experiment(config_name=None):
     """Run the main experiment with task and event system"""
