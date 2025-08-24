@@ -22,8 +22,8 @@ class Task:
     base_prompt: str = ""
     files: List[TaskFile] = field(default_factory=list)
 
-class TaskSet:
-    """Container for a set of related tasks"""
+class TaskStream:
+    """Container for a stream of related tasks"""
     
     def __init__(self, name: str, total_tasks: int, phase_description: Optional[Dict[str, Any]] = None):
         self.name = name
@@ -34,16 +34,6 @@ class TaskSet:
     def add_task(self, task: Task):
         """Add a task to the set"""
         self._tasks.append(task)
-    
-    def print_all_tasks_overview(self):
-        """Print overview of all tasks with titles for global information"""
-        sorted_tasks = sorted(self._tasks, key=lambda task: task.task_sequence_num)
-        print(f"\n=== Task Set: {self.name} ===")
-        print(f"Total Tasks: {self.total_tasks}")
-        print("\nTask Overview:")
-        for task in sorted_tasks:
-            print(f"  Task {task.task_sequence_num}: {task.title}")
-        print()
     
     def get_task_by_sequence_num(self, task_sequence_num: int) -> Optional[Task]:
         """Get task for specific sequence number"""
@@ -56,9 +46,23 @@ class TaskSet:
     def get_phase_info(self) -> Dict[str, Any]:
         """Get phase description information"""
         return self.phase_description.copy()
+
+    
+    def get_phase_for_task(self, task_sequence_num: int) -> str:
+        """Determine which phase a given task sequence number belongs to"""
+        if not self.phase_description:
+            raise ValueError("No phase_description available")
+            
+        for phase_key, phase_data in self.phase_description.items():
+            if 'task_start' in phase_data and 'task_end' in phase_data:
+                if phase_data['task_start'] <= task_sequence_num <= phase_data['task_end']:
+                    return phase_key
+        
+        # 找不到对应phase，直接报错
+        raise ValueError(f"No phase defined for task {task_sequence_num}. Check phases configuration in tasks.json")
     
 
-class JSONTaskLoader:
+class TaskLoader:
     """
     Loads task sets from JSON files
     Provides same interface as Python-based task sets for compatibility
@@ -73,7 +77,7 @@ class JSONTaskLoader:
         """
         self.data_directory = Path(data_directory)
     
-    def load_task_set_from_json(self, json_file_path: str) -> TaskSet:
+    def load_task_set_from_json(self, json_file_path: str) -> TaskStream:
         """
         Load a task set from JSON file
         
@@ -100,7 +104,7 @@ class JSONTaskLoader:
         
         return self._parse_task_set_json(data, json_file_path)
     
-    def _parse_task_set_json(self, data: Dict[str, Any], source_file: str) -> TaskSet:
+    def _parse_task_set_json(self, data: Dict[str, Any], source_file: str) -> TaskStream:
         """
         Parse JSON data into TaskSet object
         
@@ -131,11 +135,13 @@ class JSONTaskLoader:
         if total_tasks is None:
             raise ValueError(f"Missing 'total_tasks' in task_set section of {source_file}")
         
-        # Extract phase description if available
-        phase_description = task_set_info.get("phase_description", {})
+        # Extract phase description (required)
+        if "phase_description" not in task_set_info:
+            raise ValueError(f"Missing 'phase_description' in task_set section of {source_file}")
+        phase_description = task_set_info["phase_description"]
         
         # Create TaskSet
-        task_set = TaskSet(
+        task_set = TaskStream(
             name=task_set_info["name"],
             total_tasks=total_tasks,
             phase_description=phase_description
@@ -223,31 +229,7 @@ class JSONTaskLoader:
             content=file_data["content"]
         )
     
-    def get_available_task_sets(self) -> List[str]:
-        """
-        Get list of available JSON task set files and directories
-        
-        Returns:
-            List[str]: List of available task set names (without .json extension)
-        """
-        available = []
-        if self.data_directory.exists():
-            # Check for direct JSON files (legacy format)
-            for json_file in self.data_directory.glob("*.json"):
-                # Remove .json extension to get task set name
-                task_set_name = json_file.stem
-                available.append(task_set_name)
-            
-            # Check for directory-based task sets (new format)
-            for directory in self.data_directory.iterdir():
-                if directory.is_dir():
-                    tasks_file = directory / "tasks.json"
-                    if tasks_file.exists():
-                        available.append(directory.name)
-        
-        return sorted(available)
-    
-    def load_task_set(self, task_set_name: str) -> TaskSet:
+    def load_task_stream(self, task_set_name: str) -> TaskStream:
         """
         Load task set by name (convenience method)
         
@@ -266,7 +248,6 @@ class JSONTaskLoader:
             json_file_path = f"{task_set_name}/tasks.json"
             return self.load_task_set_from_json(json_file_path)
         else:
-            # Fall back to direct JSON file (legacy format)
-            json_file_path = f"{task_set_name}.json"
-            return self.load_task_set_from_json(json_file_path)
+            # 找不到任务集，直接报错
+            raise FileNotFoundError(f"Task set '{task_set_name}' not found in {self.data_directory}")
     

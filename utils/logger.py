@@ -95,10 +95,10 @@ class Logger:
             else:
                 self.logger.info(f"  {key}: {value}")
     
-    def log_task_start(self, task_idx: int, title: str):
+    def log_task_start(self, task_sequence_num: int, title: str):
         """记录任务开始"""
         self.logger.info("\n" + "#"*80)
-        self.logger.info(f"TASK {task_idx}: {title}")
+        self.logger.info(f"TASK {task_sequence_num}: {title}")
         self.logger.info("#"*80)
     
     def log_event_info(self, event: Dict[str, Any]):
@@ -143,7 +143,9 @@ class Logger:
         """记录LLM输出（完整版本 - 不截断）"""
         self.logger.info("[LLM OUTPUT]")
         self.logger.info(f"Response length: {len(response)} chars")
-        self.logger.info(f"Tokens used: {metadata.get('tokens_used', 'N/A')}")
+        if 'tokens_used' not in metadata:
+            raise ValueError("Missing 'tokens_used' field in metadata")
+        self.logger.info(f"Tokens used: {metadata['tokens_used']}")
         
         # 完整记录response，不进行任何截断
         self.logger.info(f"Full response: {response}")

@@ -68,7 +68,9 @@ class ResultSaver:
         }
         
         # 如果配置中有detector，添加它
-        if 'detector' in config.get('llm_api_config', {}):
+        if 'llm_api_config' not in config:
+            raise ValueError("Missing 'llm_api_config' section in config")
+        if 'detector' in config['llm_api_config']:
             models_info["detector"] = self._extract_model_name(config, 'detector')
         
         return models_info
@@ -117,12 +119,11 @@ class ResultSaver:
         else:
             return f"unknown_{provider}_model"
     
-    def start_task(self, task_idx: int, task, event_info: Dict[str, Any]):
+    def start_task(self, task_sequence_num: int, task, event_info: Dict[str, Any]):
         """开始新任务"""
         self.current_task_info = {
-            "task_idx": task_idx,
-            "task_id": task.title,
-            "task_sequence_num": getattr(task, 'task_sequence_num', task_idx),
+            "task_sequence_num": task_sequence_num,
+            "task_sequence_num_from_json": getattr(task, 'task_sequence_num', task_sequence_num),
             "title": task.title,
             "files": [
                 {
@@ -143,7 +144,7 @@ class ResultSaver:
         """开始新轮次"""
         self.current_round_info = {
             "round_num": round_num,
-            "global_round": global_round,  # 🆕 全局轮次编号
+            "global_round": global_round,  # 全局轮次编号
             "start_timestamp": time.time(),
             "manager_state_before": manager_state_before.copy(),
             "llm_response": None,
@@ -190,15 +191,14 @@ class ResultSaver:
                 # 构建完整的轮次数据
                 round_data = {
                     "task_info": {
-                        "task_idx": self.current_task_info['task_idx'],
-                        "task_id": self.current_task_info['task_id'],
+                        "task_sequence_num": self.current_task_info['task_sequence_num'],
                         "task_sequence_num": self.current_task_info['task_sequence_num'],
                         "title": self.current_task_info['title'],
                         "files": self.current_task_info['files'],
                         "event_info": self.current_task_info['event_info']
                     },
                     "round_info": self.current_round_info.copy(),
-                    "task_complete": manager_result.get('task_complete', False)
+                    "task_complete": manager_result['task_complete']
                 }
                 
                 # 立即保存到单独的JSON文件
@@ -212,7 +212,7 @@ class ResultSaver:
                 self.current_task_info['rounds'].append(self.current_round_info.copy())
                 self.current_round_info = None
     
-    def end_task(self, task_idx: int):
+    def end_task(self, task_sequence_num: int):
         """结束任务"""
         if self.current_task_info:
             # 更新任务计数
@@ -254,7 +254,6 @@ class ResultSaver:
                     "timestamp": round_data['timestamp'],
                     
                     # Task信息
-                    "task_id": task_info['task_id'],
                     "task_sequence_num": task_info['task_sequence_num'],
                     "title": task_info['title'],
                     "files": task_info['files'],
@@ -328,10 +327,12 @@ class ResultSaver:
             original_path = Path(original_file)
             output_file = str(original_path.parent / f"{original_path.stem}_with_detector{original_path.suffix}")
         
-        # 创建detector结果的索引字典 (task_id, round) -> detector_result
+        # 创建detector结果的索引字典 (title, round) -> detector_result
         detector_index = {}
         for result in detector_results:
-            key = (result.get('task_id'), result.get('round'))
+            if 'title' not in result or 'round' not in result:
+                raise ValueError("Missing 'title' or 'round' field in detector result")
+            key = (result['title'], result['round'])
             detector_index[key] = {
                 "deception_detected": result['deception_detected'],
                 "intent": result['intent'],
@@ -348,10 +349,10 @@ class ResultSaver:
         # 遍历实验数据，为每个round添加对应的detector分析
         total_rounds_analyzed = 0
         for task in experiment_data['tasks']:
-            task_id = task['task_id']
+            title = task['title']
             for round_info in task['rounds']:
                 round_num = round_info['round_num']
-                key = (task_id, round_num)
+                key = (title, round_num)
                 
                 if key in detector_index:
                     round_info['detector_analysis'] = detector_index[key]

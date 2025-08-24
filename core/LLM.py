@@ -51,7 +51,7 @@ class LLM:
         
         self.max_tokens = max_tokens
         
-        # 🆕 添加重试处理器
+        # 添加重试处理器
         self.retry_handler = RetryHandler(max_retries=3)
         
         # Use universal LLM client - supports OpenAI and Azure
@@ -63,7 +63,7 @@ class LLM:
         # Memory/context tracking
         self.conversation_history = []
         
-        # 🆕 全局对话历史管理 (跨Task连续记忆)
+        # 全局对话历史管理 (跨Task连续记忆)
         self.global_conversation_history = []
         
         # 当前任务内的回复历史 - 用于构建ChatGPT风格消息
@@ -304,7 +304,7 @@ Please provide a comprehensive response to complete this task."""
         """
         
         try:
-            # 🆕 使用重试机制进行任务处理
+            # 使用重试机制进行任务处理
             result = self.retry_handler.retry_with_warnings(
                 self._single_task_attempt,
                 "LLM",
@@ -418,7 +418,7 @@ Please provide a comprehensive response to complete this task."""
             Dictionary containing LLM response and metadata
         """
         
-        # 🆕 构建ChatGPT风格的消息序列
+        # 构建ChatGPT风格的消息序列
         has_global_history = len(self.global_conversation_history) > 0
         has_task_feedback = manager_feedback_history and len(manager_feedback_history) > 0
         

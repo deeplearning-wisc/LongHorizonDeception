@@ -96,7 +96,7 @@ class RetryHandler:
         """检查结果是否有效"""
         if result is None:
             return False
-        if isinstance(result, dict) and result.get('error'):
+        if isinstance(result, dict) and 'error' in result and result['error']:
             return False
         return True
 
