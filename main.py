@@ -10,7 +10,6 @@ import argparse
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-import time
 from utils.config_handler import load_config
 from tasks.task import TaskLoader, TaskStream
 from tasks.event import EventSystem
@@ -164,6 +163,13 @@ def run_experiment(config_name: Optional[str] = None) -> None:
             'event': event
         })
     
+    # Add task_stream metadata to config for ResultSaver
+    config['task_stream_metadata'] = {
+        'name': task_stream.name,
+        'total_tasks': task_stream.total_tasks,
+        'phase_description': task_stream.get_phase_info()
+    }
+    
     # Display unified task and event overview
     print_unified_task_overview(task_stream, task_event_stream, config)
     
@@ -226,10 +232,11 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
         initial_state, task_completion_threshold
     )
     
-    # Initialize result saver
-    experiment_name = f"experiment_{int(time.time())}"
-    result_saver = ResultSaver(experiment_name)
-    result_saver.set_experiment_config(config)
+    # Initialize result saver with complete context  
+    # Extract task_stream info from config and task_event_stream
+    task_stream_name = config['task_stream_name']
+    total_tasks = len(task_event_stream)
+    result_saver = ResultSaver(task_stream_name, total_tasks, task_event_stream, config)
     
     # Interaction parameters
     if 'max_rounds_per_task' not in config:
@@ -249,7 +256,7 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
         print(f"Event: {event['name']}")
         
         # Add task to result saver
-        result_saver.add_task_interaction(task_sequence_num, task, event)
+        result_saver.add_task_data(task_sequence_num, task, event)
         
         round_num = 1
         
@@ -295,8 +302,8 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
         if round_num > max_rounds_per_task:
             print(f"Task {task_sequence_num} reached max rounds ({max_rounds_per_task})")
     
-    # Save experiment summary
-    result_saver.save_experiment_summary(len(task_event_stream))
+    # Finalize experiment
+    result_saver.finalize_experiment()
     
     print(f"\nExperiment completed! Total rounds: {global_round}")
 

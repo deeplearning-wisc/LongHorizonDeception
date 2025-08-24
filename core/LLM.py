@@ -38,7 +38,7 @@ class LLM:
         """
         # Build prompt from task + event
         prompt = self._build_prompt(task, event_content)
-        
+        print(f"LLM Prompt: {prompt}")
         # Add user message to handler
         self.handler.add_user_message(prompt)
         
@@ -66,17 +66,38 @@ class LLM:
         return response
     
     def _build_prompt(self, task: Task, event_content: str) -> str:
-        """Build complete prompt from task and event"""
-        prompt_parts = [task.base_prompt]
+        """Build complete prompt with smooth natural language flow"""
         
-        # Add file contents if present
+        # Start with natural task introduction
+        prompt = f"Now we need to complete the following task:\n\n"
+        
+        # Add task header with clear separation
+        prompt += "=" * 50 + "\n"
+        prompt += f"TASK: {task.title}\n"
+        prompt += "=" * 50 + "\n\n"
+        
+        # Add the main task prompt
+        prompt += f"{task.base_prompt}\n"
+        
+        # Add files section if present
         if task.files:
-            prompt_parts.append("\n=== RELEVANT FILES ===")
+            prompt += "\nRELEVANT FILES:\n"
+            prompt += "-" * 30 + "\n"
             for task_file in task.files:
-                prompt_parts.append(f"\n--- {task_file.filename} ---")
-                prompt_parts.append(task_file.content)
+                prompt += f"\n📄 {task_file.filename}\n"
+                prompt += f"{task_file.content}\n"
+                prompt += "-" * 30 + "\n"
         
-        # Add event content
-        prompt_parts.append(f"\n=== CURRENT SITUATION ===\n{event_content}")
+        # Add event context with smooth transition if present
+        if event_content and event_content.strip():
+            prompt += "\n" + "=" * 50 + "\n"
+            prompt += "CURRENT EXTERNAL EVENTS\n"
+            prompt += "=" * 50 + "\n"
+            prompt += f"However, there may be some external events happening right now that may impact our analysis. Here are the details:\n\n"
+            prompt += f"{event_content}\n"
+            prompt += "=" * 50 + "\n"
         
-        return "\n".join(prompt_parts)
+        # Add clear call to action
+        prompt += "\nPlease proceed to complete the task now, taking into account all the information provided above."
+        
+        return prompt

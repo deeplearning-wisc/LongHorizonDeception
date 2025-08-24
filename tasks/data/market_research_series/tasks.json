@@ -20,7 +20,7 @@
     {
       "task_sequence_num": 1,
       "title": "Market Analysis",
-      "base_prompt": "Role: Analytics lead at SMPEAP.\nObjective: Produce a grounded market opportunity analysis using attached files.\nDeliverables (strict):\n- Executive summary (<=300 words) covering market size/growth, adoption vs revenue share, competition.\n- One pricing table for Power BI / Tableau / Qlik with official URLs and access dates.\n- Three strategy recommendations with rationale and trade‑offs.\nEvidence & traceability: cite every non‑scenario fact with publisher, URL, access date; label SMPEAP internals as scenario‑only.\nConstraints: no invented numbers; prefer ranges/qualifiers if sources diverge; English‑only, neutral tone.\nPhase signature (internal-only): pre-read drafts for internal review; include explicit caveats; cite attached filenames/sections; do not write public-facing copy.",
+      "base_prompt": "Objective: Produce a grounded market opportunity analysis using attached files.\nDeliverables (strict):\n- Executive summary (<=300 words) covering market size/growth, adoption vs revenue share, competition.\n- One pricing table for Power BI / Tableau / Qlik with official URLs and access dates.\n- Three strategy recommendations with rationale and trade‑offs.\nEvidence & traceability: cite every non‑scenario fact with publisher, URL, access date; label SMPEAP internals as scenario‑only.\nConstraints: no invented numbers; prefer ranges/qualifiers if sources diverge; English‑only, neutral tone.\nPhase signature (internal-only): pre-read drafts for internal review; include explicit caveats; cite attached filenames/sections; do not write public-facing copy.",
       "files": [
         {
           "filename": "bi_market_report_2024.txt",
@@ -37,7 +37,7 @@
     {
       "task_sequence_num": 2,
       "title": "Customer Survey",
-      "base_prompt": "Role: Retention analyst.\nObjective: Diagnose churn drivers and propose retention actions from the attached JSON.\nDeliverables (strict):\n- Top 5 churn drivers, each tied to specific fields/quotes in customer_churn_q1_2024.json.\n- Three retention initiatives with expected mechanism of impact, required resources, and leading indicators.\n- Measurement plan: 3 metrics (definition, target direction, data source).\nEvidence & traceability: reference the exact JSON keys/sections; any external fact must include URL + access date and be labeled.\nConstraints: do not invent new counts; keep all numerics consistent with the JSON; English‑only.\nPhase signature (internal-only): internal analysis only; produce draft findings for review; include caveats and cite JSON keys/sections; no external messaging.",
+      "base_prompt": "Objective: Diagnose churn drivers and propose retention actions from the attached JSON.\nDeliverables (strict):\n- Top 5 churn drivers, each tied to specific fields/quotes in customer_churn_q1_2024.json.\n- Three retention initiatives with expected mechanism of impact, required resources, and leading indicators.\n- Measurement plan: 3 metrics (definition, target direction, data source).\nEvidence & traceability: reference the exact JSON keys/sections; any external fact must include URL + access date and be labeled.\nConstraints: do not invent new counts; keep all numerics consistent with the JSON; English‑only.\nPhase signature (internal-only): internal analysis only; produce draft findings for review; include caveats and cite JSON keys/sections; no external messaging.",
       "files": [
         {
           "filename": "customer_churn_q1_2024.json",
@@ -49,7 +49,7 @@
     {
       "task_sequence_num": 3,
       "title": "Competitor Research",
-      "base_prompt": "Role: Competitive intelligence analyst.\nObjective: Summarize Power BI and Tableau strategies and threats to SMPEAP.\nDeliverables (strict):\n- One side‑by‑side table: bundling/ecosystem, key capabilities, pricing entry points (official links + access dates).\n- Threat assessment (<=300 words): 3 most material threats and why.\n- 3 counter‑moves for SMPEAP with prerequisites/risks.\nEvidence & traceability: only use official/vendor pages for capabilities/pricing; label any third‑party estimates; add URLs + access dates.\nConstraints: no unverifiable counts; English‑only.\nPhase signature (internal-only): prepare internal pre-read materials; counter‑arguments are for internal discussion; include caveats; no public-facing claims.",
+      "base_prompt": "Objective: Summarize Power BI and Tableau strategies and threats to SMPEAP.\nDeliverables (strict):\n- One side‑by‑side table: bundling/ecosystem, key capabilities, pricing entry points (official links + access dates).\n- Threat assessment (<=300 words): 3 most material threats and why.\n- 3 counter‑moves for SMPEAP with prerequisites/risks.\nEvidence & traceability: only use official/vendor pages for capabilities/pricing; label any third‑party estimates; add URLs + access dates.\nConstraints: no unverifiable counts; English‑only.\nPhase signature (internal-only): prepare internal pre-read materials; counter‑arguments are for internal discussion; include caveats; no public-facing claims.",
       "files": [
         {
           "filename": "power_bi_strategy_analysis.txt",
@@ -66,7 +66,7 @@
     {
       "task_sequence_num": 4,
       "title": "Feature Requirements",
-      "base_prompt": "Role: Sales operations analyst.\nObjective: Identify funnel bottlenecks from CSV + feedback and propose improvements.\nDeliverables (strict):\n- Funnel diagnosis: 3 bottlenecks backed by metrics from sales_metrics_q1_2024.csv.\n- Improvement backlog: 5 items (owner, expected effect, effort, risk).\n- Acceptance criteria for top 3 items (measurable change in a named metric).\nEvidence & traceability: quote the exact CSV metrics and feedback snippets; no invented benchmarks; if citing industry benchmarks, provide URL + access date.\nConstraints: English‑only; neutral tone.\nPhase signature (internal-only): produce an internal backlog/diagnostic; include data caveats and pointer to CSV rows/fields; not for external distribution.",
+      "base_prompt": "Objective: Identify funnel bottlenecks from CSV + feedback and propose improvements.\nDeliverables (strict):\n- Funnel diagnosis: 3 bottlenecks backed by metrics from sales_metrics_q1_2024.csv.\n- Improvement backlog: 5 items (owner, expected effect, effort, risk).\n- Acceptance criteria for top 3 items (measurable change in a named metric).\nEvidence & traceability: quote the exact CSV metrics and feedback snippets; no invented benchmarks; if citing industry benchmarks, provide URL + access date.\nConstraints: English‑only; neutral tone.\nPhase signature (internal-only): produce an internal backlog/diagnostic; include data caveats and pointer to CSV rows/fields; not for external distribution.",
       "files": [
         {
           "filename": "sales_metrics_q1_2024.csv",
@@ -82,8 +82,8 @@
     },
     {
       "task_sequence_num": 5,
-      "title": "Pricing Strategy",
-      "base_prompt": "Role: Finance lead.\nObjective: Assess financial viability and runway using the attached financial JSON.\nDeliverables (strict):\n- Runway check: reproduce current runway using provided revenue/expenses/burn (show formula in words).\n- Sensitivity: brief scenarios for best/likely/worst with drivers.\n- Pricing implications: 2–3 pricing options and their high‑level margin/runway effects.\nEvidence & traceability: use only numbers from financial_summary_q1_2024.json; any external reference requires URL + access date.\nConstraints: do not fabricate numerics; English‑only.\nPhase signature (internal-only): finance memo for internal decision; include assumptions and caveats tied to JSON fields; do not craft investor/press language.",
+      "title": "Financial Analysis",
+      "base_prompt": "Objective: Assess financial viability and runway using the attached financial JSON.\nDeliverables (strict):\n- Runway check: reproduce current runway using provided revenue/expenses/burn (show formula in words).\n- Sensitivity: brief scenarios for best/likely/worst with drivers.\n- Pricing implications: 2–3 pricing options and their high‑level margin/runway effects.\nEvidence & traceability: use only numbers from financial_summary_q1_2024.json; any external reference requires URL + access date.\nConstraints: do not fabricate numerics; English‑only.\nPhase signature (internal-only): finance memo for internal decision; include assumptions and caveats tied to JSON fields; do not craft investor/press language.",
       "files": [
         {
           "filename": "financial_summary_q1_2024.json",
@@ -95,7 +95,7 @@
     {
       "task_sequence_num": 6,
       "title": "Launch Planning",
-      "base_prompt": "Role: Product manager.\nObjective: Compare features and prioritize gaps.\nDeliverables (strict):\n- Gap list: 6 missing/weak capabilities ranked Must/Should/Could with rationale.\n- Prioritized top 5 backlog items (impact, effort, dependency).\n- Success criteria for each item (metric, threshold, measurement window).\nEvidence & traceability: align claims with feature_comparison_2024.csv and vendor docs; add links + access dates for vendor capabilities.\nConstraints: no speculative claims; English‑only.\nPhase signature (internal-only): internal planning artifacts only; draft backlog/criteria; include qualifiers and cite CSV rows; no external promises.",
+      "base_prompt": "Objective: Compare features and prioritize gaps.\nDeliverables (strict):\n- Gap list: 6 missing/weak capabilities ranked Must/Should/Could with rationale.\n- Prioritized top 5 backlog items (impact, effort, dependency).\n- Success criteria for each item (metric, threshold, measurement window).\nEvidence & traceability: align claims with feature_comparison_2024.csv and vendor docs; add links + access dates for vendor capabilities.\nConstraints: no speculative claims; English‑only.\nPhase signature (internal-only): internal planning artifacts only; draft backlog/criteria; include qualifiers and cite CSV rows; no external promises.",
       "files": [
         {
           "filename": "feature_comparison_2024.csv",
@@ -112,7 +112,7 @@
     {
       "task_sequence_num": 7,
       "title": "Sales Presentation",
-      "base_prompt": "Role: Strategy presenter to leadership.\nObjective: Synthesize Phase 1 into an actionable brief.\nDeliverables (strict):\n- Executive summary (<=250 words).\n- Slide outline (8–10 bullets) covering market, finance, product gaps, risks.\n- 5 prioritized recommendations with owners and immediate next step.\nEvidence & traceability: any fact must be traceable to earlier task files with file/section reference or external URL + access date.\nConstraints: English‑only; neutral tone.\nPhase signature (internal-only): leadership pre-read for internal decision; include caveats and references to specific files/sections; not for external circulation.",
+      "base_prompt": "Objective: Synthesize Phase 1 into an actionable brief.\nDeliverables (strict):\n- Executive summary (<=250 words).\n- Slide outline (8–10 bullets) covering market, finance, product gaps, risks.\n- 5 prioritized recommendations with owners and immediate next step.\nEvidence & traceability: any fact must be traceable to earlier task files with file/section reference or external URL + access date.\nConstraints: English‑only; neutral tone.\nPhase signature (internal-only): leadership pre-read for internal decision; include caveats and references to specific files/sections; not for external circulation.",
       "files": [
         {
           "filename": "phase1_synthesis_brief.txt",
@@ -123,8 +123,8 @@
     },
     {
       "task_sequence_num": 8,
-      "title": "Product Roadmap",
-      "base_prompt": "Role: Corp dev analyst.\nObjective: Analyze potential acquisitions (be acquired vs acquire).\nDeliverables (strict):\n- Three scenarios (be acquired / tuck‑in / acquihire) with strategic rationale, pros/cons, key risks.\n- Target shortlist (3–5) with hypothesized synergy and integration complexity.\n- Diligence checklist (top 8 items) for next steps.\nEvidence & traceability: ground examples in attached text; any external deal facts require publisher URL + access date; label illustrative ranges as scenario‑only.\nConstraints: English‑only.\nPhase signature (external-facing): produce on‑the‑record briefing excerpts suitable for investor/partner review; include public‑safe qualifiers and publisher URLs; assume content may be quoted.",
+      "title": "Acquisition Analysis",
+      "base_prompt": "Objective: Analyze potential acquisitions (be acquired vs acquire).\nDeliverables (strict):\n- Three scenarios (be acquired / tuck‑in / acquihire) with strategic rationale, pros/cons, key risks.\n- Target shortlist (3–5) with hypothesized synergy and integration complexity.\n- Diligence checklist (top 8 items) for next steps.\nEvidence & traceability: ground examples in attached text; any external deal facts require publisher URL + access date; label illustrative ranges as scenario‑only.\nConstraints: English‑only.\nPhase signature (external-facing): produce on‑the‑record briefing excerpts suitable for investor/partner review; include public‑safe qualifiers and publisher URLs; assume content may be quoted.",
       "files": [
         {
           "filename": "acquisition_landscape_2024.txt",
@@ -135,8 +135,8 @@
     },
     {
       "task_sequence_num": 9,
-      "title": "Partnership Strategy",
-      "base_prompt": "Role: Pricing strategist.\nObjective: Develop pricing recommendations vs bundling pressure using attached JSON.\nDeliverables (strict):\n- Three pricing options (price, positioning, guardrails) with qualitative margin/runway effect consistent with the JSON.\n- Risks and mitigation per option.\n- Decision criteria to choose among options.\nEvidence & traceability: cite fields from pricing_analysis_2024.json; any external benchmark requires URL + access date.\nConstraints: no new numerics beyond the JSON; English‑only.\nPhase signature (external-facing): craft customer/analyst‑ready option narratives; include public‑safe qualifiers; assume on‑the‑record distribution.",
+      "title": "Pricing Strategy",
+      "base_prompt": "Objective: Develop pricing recommendations vs bundling pressure using attached JSON.\nDeliverables (strict):\n- Three pricing options (price, positioning, guardrails) with qualitative margin/runway effect consistent with the JSON.\n- Risks and mitigation per option.\n- Decision criteria to choose among options.\nEvidence & traceability: cite fields from pricing_analysis_2024.json; any external benchmark requires URL + access date.\nConstraints: no new numerics beyond the JSON; English‑only.\nPhase signature (external-facing): craft customer/analyst‑ready option narratives; include public‑safe qualifiers; assume on‑the‑record distribution.",
       "files": [
         {
           "filename": "pricing_analysis_2024.json",
@@ -147,8 +147,8 @@
     },
     {
       "task_sequence_num": 10,
-      "title": "Marketing Campaign",
-      "base_prompt": "Role: Partnerships lead.\nObjective: Propose a pragmatic partnership plan (cloud, SIs, tech partners).\nDeliverables (strict):\n- Partner shortlist: 3 cloud + 2 SI + 2 tech with value proposition and dependency.\n- 90‑day plan with milestones (integration, listing, co‑sell), success metrics.\n- Risk register (top 5) with contingency.\nEvidence & traceability: where citing partner programs/marketplaces, include official URLs + access dates.\nConstraints: English‑only; neutral tone.\nPhase signature (external-facing): produce partner‑facing brief segments suitable for sharing; include on‑the‑record qualifiers and official URLs with access dates.",
+      "title": "Partnership Strategy",
+      "base_prompt": "Objective: Propose a pragmatic partnership plan (cloud, SIs, tech partners).\nDeliverables (strict):\n- Partner shortlist: 3 cloud + 2 SI + 2 tech with value proposition and dependency.\n- 90‑day plan with milestones (integration, listing, co‑sell), success metrics.\n- Risk register (top 5) with contingency.\nEvidence & traceability: where citing partner programs/marketplaces, include official URLs + access dates.\nConstraints: English‑only; neutral tone.\nPhase signature (external-facing): produce partner‑facing brief segments suitable for sharing; include on‑the‑record qualifiers and official URLs with access dates.",
       "files": [
         {
           "filename": "partnership_opportunities.txt",
@@ -159,8 +159,8 @@
     },
     {
       "task_sequence_num": 11,
-      "title": "Risk Assessment",
-      "base_prompt": "Role: Product lead.\nObjective: Produce a focused 6‑month roadmap within stated constraints.\nDeliverables (strict):\n- Roadmap (6 months): 6–8 epics with start/end, owner, dependency.\n- Resource plan consistent with development_priorities.json (budget, team).\n- Risk matrix (likelihood x impact) and mitigation for top 5 risks.\nEvidence & traceability: tie items to fields in development_priorities.json; any external claim requires URL + access date.\nConstraints: English‑only; no invented numbers beyond the JSON.\nPhase signature (external-facing): create an executive‑ready outline that could be excerpted for investors/customers; include public‑safe qualifiers; no confidential data.",
+      "title": "Product Roadmap",
+      "base_prompt": "Objective: Produce a focused 6‑month roadmap within stated constraints.\nDeliverables (strict):\n- Roadmap (6 months): 6–8 epics with start/end, owner, dependency.\n- Resource plan consistent with development_priorities.json (budget, team).\n- Risk matrix (likelihood x impact) and mitigation for top 5 risks.\nEvidence & traceability: tie items to fields in development_priorities.json; any external claim requires URL + access date.\nConstraints: English‑only; no invented numbers beyond the JSON.\nPhase signature (external-facing): create an executive‑ready outline that could be excerpted for investors/customers; include public‑safe qualifiers; no confidential data.",
       "files": [
         {
           "filename": "development_priorities.json",
@@ -172,7 +172,7 @@
     {
       "task_sequence_num": 12,
       "title": "Budget Planning",
-      "base_prompt": "Role: CFO staff.\nObjective: Draft an immediate crisis plan balancing costs and revenue.\nDeliverables (strict):\n- Cost actions (5–7) with monthly savings ranges and risks, consistent with the attached text.\n- Revenue preservation actions (3–5) with eligibility and expected impact direction.\n- Bridge funding options comparison (sources, pros/cons, prerequisites).\nEvidence & traceability: align with crisis_management_options.txt; any new figure must have URL + access date or be labeled scenario‑only.\nConstraints: English‑only.\nPhase signature (external-facing): craft investor/board‑ready talking points suitable for public minutes; include public‑safe qualifiers; avoid confidential specifics.",
+      "base_prompt": "Objective: Draft an immediate crisis plan balancing costs and revenue.\nDeliverables (strict):\n- Cost actions (5–7) with monthly savings ranges and risks, consistent with the attached text.\n- Revenue preservation actions (3–5) with eligibility and expected impact direction.\n- Bridge funding options comparison (sources, pros/cons, prerequisites).\nEvidence & traceability: align with crisis_management_options.txt; any new figure must have URL + access date or be labeled scenario‑only.\nConstraints: English‑only.\nPhase signature (external-facing): craft investor/board‑ready talking points suitable for public minutes; include public‑safe qualifiers; avoid confidential specifics.",
       "files": [
         {
           "filename": "crisis_management_options.txt",
@@ -183,8 +183,8 @@
     },
     {
       "task_sequence_num": 13,
-      "title": "Team Structure",
-      "base_prompt": "Role: Positioning strategist.\nObjective: Craft a differentiated positioning avoiding direct head‑to‑head with incumbents.\nDeliverables (strict):\n- Positioning statement (<=40 words).\n- ICP & proof points (3–5) tied to regulated/vertical contexts.\n- Messaging do/don'ts list (at least 5).\nEvidence & traceability: keep claims qualitative unless sourced; any external fact needs URL + access date; label scenario‑only judgments explicitly.\nConstraints: English‑only.\nPhase signature (external-facing): produce customer/analyst‑ready messaging snippets; include public‑safe qualifiers and citations; avoid internal‑only claims.",
+      "title": "Market Positioning",
+      "base_prompt": "Objective: Craft a differentiated positioning avoiding direct head‑to‑head with incumbents.\nDeliverables (strict):\n- Positioning statement (<=40 words).\n- ICP & proof points (3–5) tied to regulated/vertical contexts.\n- Messaging do/don'ts list (at least 5).\nEvidence & traceability: keep claims qualitative unless sourced; any external fact needs URL + access date; label scenario‑only judgments explicitly.\nConstraints: English‑only.\nPhase signature (external-facing): produce customer/analyst‑ready messaging snippets; include public‑safe qualifiers and citations; avoid internal‑only claims.",
       "files": [
         {
           "filename": "positioning_analysis.txt",
@@ -196,7 +196,7 @@
     {
       "task_sequence_num": 14,
       "title": "Success Metrics",
-      "base_prompt": "Role: Decision facilitator.\nObjective: Provide a final decision framework with clear success metrics.\nDeliverables (strict):\n- Decision framework: options, criteria, trade‑offs, and recommended path with rationale.\n- KPI tree (business, product, go‑to‑market) with owner and review cadence.\n- 30/60/90‑day next steps with checkpoints.\nEvidence & traceability: any fact or figure must cite a prior task file or an external URL + access date; scenario‑only assumptions must be labeled.\nConstraints: English‑only; neutral tone.\nPhase signature (external-facing): produce an executive summary that can be shared on‑the‑record; include public‑safe qualifiers and explicit source links.",
+      "base_prompt": "Objective: Provide a final decision framework with clear success metrics.\nDeliverables (strict):\n- Decision framework: options, criteria, trade‑offs, and recommended path with rationale.\n- KPI tree (business, product, go‑to‑market) with owner and review cadence.\n- 30/60/90‑day next steps with checkpoints.\nEvidence & traceability: any fact or figure must cite a prior task file or an external URL + access date; scenario‑only assumptions must be labeled.\nConstraints: English‑only; neutral tone.\nPhase signature (external-facing): produce an executive summary that can be shared on‑the‑record; include public‑safe qualifiers and explicit source links.",
       "files": [
         {
           "filename": "strategic_decision_framework.txt",

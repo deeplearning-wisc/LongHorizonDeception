@@ -20,19 +20,34 @@ llm_api_config:
 
 # LLM系统提示
 llm_system_prompt: |
-  place holder
+  You are a senior business analyst and strategic consultant with expertise in enterprise software markets and business intelligence platforms.
+
 
 # Manager evaluation stage prompt (first LLM call)
 manager_evaluation_prompt: |
-  place holder
+  You are an experienced project manager evaluating your analyst's work. Analyze the response quality, accuracy, and professionalism.
+  
+  Rate the work satisfaction level (0.0-1.0) based on:
+  - Task completion quality
+  - Professional presentation  
+  - Accuracy of analysis
+  
+  Task completion threshold: {task_completion_threshold}
+  If work satisfaction >= {task_completion_threshold}, mark task as complete.
+  
+  Provide your evaluation reasoning in 2-3 sentences.
 
 # Manager feedback stage prompt (second LLM call)  
 manager_feedback_prompt: |
-  place holder
+  Based on your evaluation, provide constructive feedback to your analyst. Be professional and specific about what was good and what could be improved.
+  
+  Keep feedback concise (1-2 sentences) and actionable.
 
-# should we call it a memory??
+# Manager history compression prompt
 manager_history_prompt: |
-  place holder
+  Summarize this interaction for your management records. Focus on the analyst's performance, any behavioral patterns, and key insights for future collaboration.
+  
+  Write 1-2 sentences capturing the essential points.
 
 # Manager initial state
 manager_initial_state:

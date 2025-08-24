@@ -1,57 +1,195 @@
 import json
-import os
+import yaml
 import time
 from typing import Dict, Any, List
 from pathlib import Path
+from datetime import datetime
 from tasks.task import Task
 
 class ResultSaver:
     """
-    New ResultSaver for LLM-Manager interaction experiments
-    Saves complete interaction data in structured JSON format
+    New ResultSaver based on TaskStream and UniversalLLM standards
+    Implements the new file structure:
+    results/{task_stream_name}_{timestamp}/
+    ├── stream_info.txt           # Runtime info with task-event table
+    ├── stream_config.yaml        # Config snapshot
+    └── result.json               # Complete experiment data (incremental updates)
     """
     
-    def __init__(self, experiment_name: str):
-        """Initialize ResultSaver with experiment name"""
-        self.experiment_name = experiment_name
-        self.experiment_data = {
-            'experiment_info': {
-                'name': experiment_name,
-                'start_timestamp': time.time(),
-                'total_tasks': 0,
-                'total_rounds': 0,
-                'config': {}
-            },
-            'task_interactions': []
-        }
+    def __init__(self, task_stream_name: str, total_tasks: int, task_event_stream: List[Dict[str, Any]], config: Dict[str, Any]):
+        """
+        Initialize ResultSaver with complete context information
+        
+        Args:
+            task_stream_name: Name of the task stream
+            total_tasks: Total number of tasks
+            task_event_stream: Complete task-event assignments  
+            config: Full experiment configuration (with task_stream_metadata)
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.session_name = f"{task_stream_name}_{timestamp}"
+        
+        # Store core objects
+        self.task_stream_name = task_stream_name
+        self.total_tasks = total_tasks
+        self.task_event_stream = task_event_stream
+        self.config = config
+        
+        # Extract task_stream metadata from config
+        task_stream_metadata = config.get('task_stream_metadata', {})
+        phase_description = task_stream_metadata.get('phase_description', {})
         
         # Create results directory
-        self.results_dir = Path("results") / experiment_name
+        self.results_dir = Path("results") / self.session_name
         self.results_dir.mkdir(parents=True, exist_ok=True)
-    
-    def set_experiment_config(self, config: Dict[str, Any]) -> None:
-        """Set experiment configuration"""
-        self.experiment_data['experiment_info']['config'] = config
-    
-    def add_task_interaction(self, task_sequence_num: int, task: Task, event_info: Dict[str, Any]) -> None:
-        """Add new task interaction structure"""
-        task_interaction = {
-            'task_info': {
-                'sequence_num': task_sequence_num,
-                'title': task.title,
-                'base_prompt': task.base_prompt,
-                'files': [{'name': f.filename, 'content': f.content} for f in task.files] if task.files else []
+        
+        # Initialize result.json structure
+        self.result_data = {
+            "metadata": {
+                "task_stream_name": task_stream_name,
+                "total_tasks": total_tasks,
+                "phases": len(phase_description),
+                "phase_description": phase_description
             },
-            'event_info': event_info,
-            'rounds': []
+            "experiment": {
+                "global_rounds": 0,
+                "tasks": []
+            }
         }
         
-        self.experiment_data['task_interactions'].append(task_interaction)
+        # Initialize files immediately
+        self._create_stream_info_txt()
+        self._create_stream_config_yaml()
+        self._create_initial_result_json()
+        
+        print(f"[RESULT_SAVER] Session initialized: {self.session_name}")
+    
+    def _create_stream_info_txt(self) -> None:
+        """Create stream_info.txt with runtime information and task-event table"""
+        info_file = self.results_dir / "stream_info.txt"
+        
+        # Extract control parameters
+        control_category = self.config.get('control_category', '')
+        control_pressure_level = self.config.get('control_pressure_level', '')
+        control_parts = []
+        if control_category:
+            control_parts.append(f"Category={control_category}")
+        if control_pressure_level:
+            control_parts.append(f"Pressure_Level={control_pressure_level}")
+        control_str = ", ".join(control_parts) if control_parts else "None"
+        
+        # Get LLM configuration info
+        llm_provider = self.config.get('llm_api_config', {}).get('llm', 'Unknown')
+        manager_provider = self.config.get('llm_api_config', {}).get('manager', 'Unknown')
+        
+        with open(info_file, 'w', encoding='utf-8') as f:
+            f.write(f"DeceptioN Experiment Session Information\\n")
+            f.write(f"Generated: {datetime.now().isoformat()}\\n")
+            f.write(f"=" * 80 + "\\n\\n")
+            
+            # Basic Information
+            f.write(f"PROJECT INFORMATION:\\n")
+            f.write(f"  Name: {self.task_stream_name}\\n")
+            f.write(f"  Total Tasks: {self.total_tasks}\\n")
+            f.write(f"  Phases: {len(self.config.get('task_stream_metadata', {}).get('phase_description', {}))}\\n")
+            f.write(f"  Event Probability: {self.config.get('p_event', 'Unknown')}\\n")
+            f.write(f"  Event Seed: {self.config.get('event_seed', 'Unknown')}\\n")
+            f.write(f"  Control Parameters: {control_str}\\n")
+            f.write(f"\\n")
+            
+            # LLM Configuration
+            f.write(f"LLM CONFIGURATION:\\n")
+            f.write(f"  LLM Provider: {llm_provider}\\n")
+            f.write(f"  Manager Provider: {manager_provider}\\n")
+            f.write(f"\\n")
+            
+            # Phase Information
+            f.write(f"PHASE STRUCTURE:\\n")
+            phase_info = self.config.get('task_stream_metadata', {}).get('phase_description', {})
+            for phase_key, phase_data in sorted(phase_info.items()):
+                f.write(f"  {phase_key}: {phase_data['name']} (Tasks {phase_data['task_start']}-{phase_data['task_end']})\\n")
+            f.write(f"\\n")
+            
+            # Task-Event Assignment Table
+            f.write(f"TASK-EVENT ASSIGNMENTS:\\n")
+            f.write(f"{'Task':>4}  {'Title':<25} {'Event':<30} {'Pressure':<10} {'Category'}\\n")
+            f.write(f"-" * 80 + "\\n")
+            
+            # Group by phases
+            sorted_phases = list(sorted(phase_info.items()))
+            for phase_key, phase_data in sorted_phases:
+                start_task = phase_data['task_start']
+                end_task = phase_data['task_end']
+                
+                f.write(f"\\n{phase_data['name']} (Tasks {start_task}-{end_task}):\\n")
+                
+                for i, task_info in enumerate(self.task_event_stream, 1):
+                    if start_task <= i <= end_task:
+                        task = task_info['task']
+                        event = task_info['event']
+                        
+                        title = task.title[:24] + "..." if len(task.title) > 24 else task.title
+                        event_name = event['name'][:29] + "..." if len(event['name']) > 29 else event['name']
+                        
+                        f.write(f"{i:>4}  {title:<25} {event_name:<30} {event['pressure_level']:<10} {event['category']}\\n")
+            
+            f.write(f"\\n" + "=" * 80 + "\\n")
+            f.write(f"Additional runtime information will be appended below:\\n\\n")
+    
+    def _create_stream_config_yaml(self) -> None:
+        """Create stream_config.yaml as a complete config backup"""
+        config_file = self.results_dir / "stream_config.yaml"
+        
+        with open(config_file, 'w', encoding='utf-8') as f:
+            yaml.dump(self.config, f, default_flow_style=False, indent=2)
+        
+        print(f"[RESULT_SAVER] Config snapshot saved: {config_file}")
+    
+    def _create_initial_result_json(self) -> None:
+        """Create initial result.json with metadata"""
+        result_file = self.results_dir / "result.json"
+        
+        with open(result_file, 'w', encoding='utf-8') as f:
+            json.dump(self.result_data, f, indent=2, ensure_ascii=False)
+        
+        print(f"[RESULT_SAVER] Initial result.json created")
+    
+    def add_task_data(self, task_sequence_num: int, task: Task, event_info: Dict[str, Any]) -> None:
+        """
+        Add new task structure to result.json
+        Called when starting a new task
+        """
+        task_data = {
+            "task": {
+                "task_sequence_num": task_sequence_num,
+                "title": task.title,
+                "base_prompt": task.base_prompt,
+                "files": [
+                    {
+                        "filename": f.filename,
+                        "content": f.content,
+                        "file_type": "text"  # Default type, can be enhanced
+                    }
+                    for f in task.files
+                ] if task.files else []
+            },
+            "event": {
+                "name": event_info.get('name', ''),
+                "content": event_info.get('content', ''),
+                "pressure_level": event_info.get('pressure_level', ''),
+                "category": event_info.get('category', ''),
+                "triggered": True  # All events in task_event_stream are triggered
+            },
+            "rounds": []
+        }
+        
+        # Add to in-memory structure
+        self.result_data["experiment"]["tasks"].append(task_data)
     
     def save_interaction_round(self, task_sequence_num: int, round_num: int, global_round: int,
                               llm_response: str, manager_result: Dict[str, Any]) -> None:
         """
-        Save a single interaction round
+        Save a single interaction round and update result.json immediately
         
         Args:
             task_sequence_num: Task sequence number (1-indexed)
@@ -61,58 +199,62 @@ class ResultSaver:
             manager_result: Manager's complete evaluation result
         """
         round_data = {
-            'round_num': round_num,
-            'global_round': global_round,
-            'task_complete': manager_result['task_complete'],
-            'llm_response': llm_response,
-            'manager_evaluation': manager_result
+            "round": round_num,
+            "global_round": global_round,
+            "llm_response": llm_response,
+            "manager_evaluation": {
+                "evaluation_reasoning": manager_result.get('evaluation_reasoning', ''),
+                "state_updates": {
+                    "previous_state": manager_result.get('previous_state', {}),
+                    "new_state": manager_result.get('current_state', {})
+                },
+                "feedback_reasoning": manager_result.get('feedback_reasoning', ''),
+                "feedback": manager_result.get('feedback_response', '')
+            }
         }
         
-        # Find the correct task interaction and add round
-        task_interaction = self.experiment_data['task_interactions'][task_sequence_num - 1]
-        task_interaction['rounds'].append(round_data)
-        
-        # Update counters
-        self.experiment_data['experiment_info']['total_rounds'] = global_round
-    
-    def save_experiment_summary(self, total_tasks: int) -> None:
-        """Save final experiment summary"""
-        self.experiment_data['experiment_info']['total_tasks'] = total_tasks
-        self.experiment_data['experiment_info']['end_timestamp'] = time.time()
-        
-        # Calculate duration
-        start_time = self.experiment_data['experiment_info']['start_timestamp']
-        end_time = self.experiment_data['experiment_info']['end_timestamp']
-        self.experiment_data['experiment_info']['duration_seconds'] = end_time - start_time
-        
-        # Save complete experiment data
-        output_file = self.results_dir / "experiment_results.json"
-        
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(self.experiment_data, f, indent=2, ensure_ascii=False)
-        
-        print(f"Experiment results saved to: {output_file}")
-        
-        # Save summary file
-        self._save_summary_file()
-    
-    def _save_summary_file(self) -> None:
-        """Save human-readable summary"""
-        summary_file = self.results_dir / "experiment_summary.txt"
-        
-        info = self.experiment_data['experiment_info']
-        duration = info['duration_seconds']
-        
-        with open(summary_file, 'w', encoding='utf-8') as f:
-            f.write(f"Experiment: {info['name']}\n")
-            f.write(f"Duration: {duration:.2f} seconds\n")
-            f.write(f"Total Tasks: {info['total_tasks']}\n")
-            f.write(f"Total Rounds: {info['total_rounds']}\n")
-            f.write("\nTask Completion Summary:\n")
+        # Find the correct task and add round
+        task_index = task_sequence_num - 1
+        if task_index < len(self.result_data["experiment"]["tasks"]):
+            self.result_data["experiment"]["tasks"][task_index]["rounds"].append(round_data)
             
-            for i, task_interaction in enumerate(self.experiment_data['task_interactions'], 1):
-                task_title = task_interaction['task_info']['title']
-                rounds = len(task_interaction['rounds'])
-                completed = task_interaction['rounds'][-1]['task_complete'] if rounds > 0 else False
-                
-                f.write(f"Task {i}: {task_title} - {rounds} rounds - {'Completed' if completed else 'Incomplete'}\n")
+            # Update global round count
+            self.result_data["experiment"]["global_rounds"] = global_round
+            
+            # Immediately save to file (incremental update)
+            self._save_result_json()
+            
+            print(f"[RESULT_SAVER] Round saved - Task {task_sequence_num}, Round {round_num}, Global {global_round}")
+        else:
+            print(f"[RESULT_SAVER] ERROR: Task {task_sequence_num} not found for round saving")
+    
+    def _save_result_json(self) -> None:
+        """Save current result_data to result.json file"""
+        result_file = self.results_dir / "result.json"
+        
+        with open(result_file, 'w', encoding='utf-8') as f:
+            json.dump(self.result_data, f, indent=2, ensure_ascii=False)
+    
+    def append_to_stream_info(self, message: str) -> None:
+        """
+        Append additional information to stream_info.txt
+        Can be called anytime during experiment
+        """
+        info_file = self.results_dir / "stream_info.txt"
+        
+        with open(info_file, 'a', encoding='utf-8') as f:
+            f.write(f"[{datetime.now().strftime('%H:%M:%S')}] {message}\\n")
+    
+    def finalize_experiment(self) -> None:
+        """
+        Finalize experiment - add final timestamps and summary
+        """
+        # Add completion timestamp to stream_info
+        self.append_to_stream_info(f"Experiment completed - Total global rounds: {self.result_data['experiment']['global_rounds']}")
+        
+        # Final save to ensure everything is persisted
+        self._save_result_json()
+        
+        print(f"[RESULT_SAVER] Experiment finalized: {self.results_dir}")
+        print(f"[RESULT_SAVER] Total tasks: {len(self.result_data['experiment']['tasks'])}")
+        print(f"[RESULT_SAVER] Total global rounds: {self.result_data['experiment']['global_rounds']}")
