@@ -1,5 +1,5 @@
-# tasks/task_loader.py
-# Task Loader for LDLE Framework
+# tasks/task.py
+# Task Loader for DeceptioN Framework
 # Loads task definitions from JSON files
 
 import json
@@ -16,7 +16,7 @@ class TaskFile:
 
 @dataclass
 class Task:
-    """单个任务的数据结构"""
+    """Data structure for a single task"""
     task_sequence_num: int = 0
     title: str = ""
     base_prompt: str = ""
@@ -25,10 +25,10 @@ class Task:
 class TaskStream:
     """Container for a stream of related tasks"""
     
-    def __init__(self, name: str, total_tasks: int, phase_description: Optional[Dict[str, Any]] = None):
+    def __init__(self, name: str, total_tasks: int, phase_description: Dict[str, Any]):
         self.name = name
         self.total_tasks = total_tasks
-        self.phase_description = phase_description or {}
+        self.phase_description = phase_description
         self._tasks: List[Task] = []
     
     def add_task(self, task: Task):
@@ -58,7 +58,7 @@ class TaskStream:
                 if phase_data['task_start'] <= task_sequence_num <= phase_data['task_end']:
                     return phase_key
         
-        # 找不到对应phase，直接报错
+        # No matching phase found
         raise ValueError(f"No phase defined for task {task_sequence_num}. Check phases configuration in tasks.json")
     
 
@@ -85,7 +85,7 @@ class TaskLoader:
             json_file_path: Path to JSON file (relative to data directory)
             
         Returns:
-            TaskSet: Loaded task set
+            TaskStream: Loaded task stream
             
         Raises:
             FileNotFoundError: If JSON file doesn't exist
@@ -131,9 +131,9 @@ class TaskLoader:
                 raise ValueError(f"Missing '{field}' in task_set section of {source_file}")
         
         # Get total_tasks from JSON
-        total_tasks = task_set_info.get("total_tasks")
-        if total_tasks is None:
+        if "total_tasks" not in task_set_info:
             raise ValueError(f"Missing 'total_tasks' in task_set section of {source_file}")
+        total_tasks = task_set_info["total_tasks"]
         
         # Extract phase description (required)
         if "phase_description" not in task_set_info:
@@ -176,23 +176,21 @@ class TaskLoader:
         if isinstance(base_prompt_data, dict):
             # Old format with language nesting
             if "en" not in base_prompt_data:
-                task_title = task_data.get('title') or 'MISSING_TITLE'
+                task_title = task_data['title']
                 raise ValueError(f"Missing 'en' in base_prompt of task {task_title} in {source_file}")
             base_prompt = base_prompt_data["en"]
         elif isinstance(base_prompt_data, str):
             # New simplified format
             base_prompt = base_prompt_data
         else:
-            task_title = task_data.get('title') or 'MISSING_TITLE'
+            task_title = task_data['title']
             raise ValueError(f"Invalid base_prompt format in task {task_title} in {source_file}")
         
         # Parse files (optional)
         files = []
         if "files" in task_data and task_data["files"]:
             for file_data in task_data["files"]:
-                task_title = task_data.get('title')
-                if not task_title:
-                    raise ValueError(f"Task missing title in {source_file}")
+                task_title = task_data['title']  # Already validated in required_fields
                 task_file = self._parse_task_file_json(file_data, task_title, source_file)
                 files.append(task_file)
         
@@ -237,7 +235,7 @@ class TaskLoader:
             task_set_name: Name of task set (without .json extension)
             
         Returns:
-            TaskSet: Loaded task set
+            TaskStream: Loaded task stream
         """
         # Try directory-based format first (new format)
         directory_path = self.data_directory / task_set_name
@@ -248,6 +246,6 @@ class TaskLoader:
             json_file_path = f"{task_set_name}/tasks.json"
             return self.load_task_set_from_json(json_file_path)
         else:
-            # 找不到任务集，直接报错
+            # Task set not found
             raise FileNotFoundError(f"Task set '{task_set_name}' not found in {self.data_directory}")
     

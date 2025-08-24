@@ -20,7 +20,7 @@ class Event:
     """Event with complete variant information directly accessible"""
     name: str
     category: str
-    variants: Dict[str, Dict[str, str]]  # 直接存储variant数据，不创建EventVariant对象
+    variants: Dict[str, Dict[str, str]]  # Store variant data directly without creating EventVariant objects
     
     def get_variant_info(self, pressure_level: str) -> Dict[str, str]:
         """Get complete variant information including Event data"""
@@ -111,7 +111,7 @@ class EventLoader:
                     raise ValueError(f"Missing 'name' field in event data of phase {phase_key}")
                 category = validate_category(event_data["category"], f"phase {phase_key} event {event_data['name']}")
                 
-                # Parse variants - 直接存储variant数据
+                # Parse variants - store variant data directly
                 variants = {}
                 variants_data = event_data["variants"]
                 for variant_key, variant_data in variants_data.items():
@@ -124,8 +124,8 @@ class EventLoader:
                     }
                 
                 event = Event(
-                    name=event_data["name"],  # 读取name字段如GC_E1
-                    category=category,  # 使用验证后的category
+                    name=event_data["name"],  # Read name field like GC_E1
+                    category=category,  # Use validated category
                     variants=variants
                 )
                 events.append(event)
@@ -146,7 +146,7 @@ class EventSystem:
         self.p_event = p_event
         self.seed = seed
         
-        # 验证控制参数 - 必须显式提供
+        # Validate control parameters - must be explicitly provided
         valid_categories = ['GOAL_CONFLICT', 'MORAL_DILEMMA', 'COMPETITIVE_INTERACTION', 'AUTHORITY_DIRECTIVE', 'INFORMATION_GAP']
         valid_pressures = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
         
@@ -160,7 +160,7 @@ class EventSystem:
         self.control_pressure_level = control_pressure_level
         
         if seed is not None:
-            random.seed(seed)  # 设置全局随机种子
+            random.seed(seed)  # Set global random seed
         self.loader = EventLoader()
         self._load_event_sets()
         
@@ -222,26 +222,26 @@ class EventSystem:
     
     def get_event_and_variant_for_phase(self, phase: str, task_sequence_num: int) -> tuple[Optional[Event], Optional[Dict[str, str]]]:
         """
-        获取事件和variant，使用三层独立随机但保持状态一致的算法
+        Get event and variant using three-layer independent random algorithm with consistent state
         
-        核心算法：总是生成3个随机数，控制时选择性使用结果
+        Core algorithm: Always generate 3 random numbers, selectively use results when controlled
         
         Args:
             phase: Phase string (e.g., "phase_1")
-            task_sequence_num: 任务序列号
+            task_sequence_num: Task sequence number
             
         Returns:
             (selected_event, selected_variant) or (None, None) if no event triggered
         """
-        # 第1步：检查是否应该触发事件
+        # Step 1: Check if event should be triggered
         if not self.should_trigger_event(task_sequence_num):
             return None, None
         
-        # 第2步：获取phase的events
+        # Step 2: Get events for this phase
         phase_events = self.event_set[phase]
         
-        # 第3步：**总是生成3个随机数，保证状态消耗一致**
-        # 这3个随机数的消耗顺序必须在所有控制模式下保持一致
+        # Step 3: **Always generate 3 random numbers to ensure consistent state consumption**
+        # These 3 random numbers must be consumed in the same order across all control modes
         random_category_idx = random.randint(0, len(self.category_index) - 1)  # 第1个随机数
         random_event_idx = random.randint(0, len(phase_events) - 1)            # 第2个随机数  
         random_pressure_idx = random.randint(0, 3)                             # 第3个随机数 (4个pressure levels)
@@ -263,12 +263,12 @@ class EventSystem:
         # 第5步：根据最终category选择event
         category_events = self.category_index[category][phase]
         if not category_events:
-            # 该category在此phase没有事件，fallback到全部事件
-            selected_event = phase_events[random_event_idx]
-        else:
-            # 使用event随机索引选择该category下的事件
-            event_idx_in_category = random_event_idx % len(category_events)
-            selected_event = category_events[event_idx_in_category]
+            # This should NEVER happen with proper 5x2x4x4 JSON structure - fail fast for extreme bugs
+            raise ValueError(f"CRITICAL: Category '{category}' has no events in phase '{phase}'. JSON structure corrupted!")
+        
+        # 使用event随机索引选择该category下的事件
+        event_idx_in_category = random_event_idx % len(category_events)
+        selected_event = category_events[event_idx_in_category]
         
         # 第6步：根据有效控制参数选择pressure_level
         pressure_levels = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']

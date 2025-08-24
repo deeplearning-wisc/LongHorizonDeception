@@ -27,8 +27,8 @@ def print_unified_task_overview(task_set: TaskStream, task_event_stream: List[Di
     phase_info = task_set.get_phase_info()
     
     # Extract control parameters from config
-    control_category = config.get('control_category')
-    control_pressure_level = config.get('control_pressure_level')
+    control_category = config['control_category']
+    control_pressure_level = config['control_pressure_level']
     
     # Build control display string
     control_parts = []
@@ -96,13 +96,6 @@ def run_experiment(config_name: Optional[str] = None) -> None:
     total_tasks = task_stream.total_tasks
     
     # Get event control parameters from config
-    if 'control_category' not in config:
-        raise ValueError("Missing 'control_category' field in config")
-    if 'control_pressure_level' not in config:
-        raise ValueError("Missing 'control_pressure_level' field in config")
-    if 'event_seed' not in config:
-        raise ValueError("Missing 'event_seed' field in config")
-        
     control_category = config['control_category']
     control_pressure_level = config['control_pressure_level']
     event_seed = config['event_seed']

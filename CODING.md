@@ -44,4 +44,4 @@ DeceptioN/
 
 - **Fail-fast**: 严格错误处理，确保数据完整性
 - **职责分离**: TaskLoader管理任务和phase，EventSystem管理事件
-- **可重现**: 通过seed控制随机性，支持科学实验
+- **可重现**: 通过seed控制随机性，支持科学实验对于上一轮来说,我希望你好好检查有没有fallback,有没有截断,反正就是那个markdown文档里说的那点东西
