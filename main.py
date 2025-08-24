@@ -10,10 +10,13 @@ import argparse
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from utils.config_manager import load_config
+import time
+from utils.config_handler import load_config
 from tasks.task import TaskLoader, TaskStream
 from tasks.event import EventSystem
+from core.LLM import LLM
+from core.manager import Manager
+from utils.result_saver import ResultSaver
 
 # Constants
 NO_EVENT_NAME = "NO_EVENT"
@@ -96,8 +99,16 @@ def run_experiment(config_name: Optional[str] = None) -> None:
     total_tasks = task_stream.total_tasks
     
     # Get event control parameters from config
+    if 'control_category' not in config:
+        raise ValueError("Missing required configuration: 'control_category'")
     control_category = config['control_category']
+    
+    if 'control_pressure_level' not in config:
+        raise ValueError("Missing required configuration: 'control_pressure_level'")
     control_pressure_level = config['control_pressure_level']
+    
+    if 'event_seed' not in config:
+        raise ValueError("Missing required configuration: 'event_seed' (use null for auto-generation)")
     event_seed = config['event_seed']
     
     # Generate actual seed if null
@@ -107,6 +118,8 @@ def run_experiment(config_name: Optional[str] = None) -> None:
         config['event_seed'] = event_seed  # Update config with actual seed
     
     # Initialize event system with seed
+    if 'p_event' not in config:
+        raise ValueError("Missing required configuration: 'p_event'")
     
     event_system = EventSystem(
         config['task_stream_name'],
@@ -154,6 +167,138 @@ def run_experiment(config_name: Optional[str] = None) -> None:
     # Display unified task and event overview
     print_unified_task_overview(task_stream, task_event_stream, config)
     
+    # Run LLM-Manager interaction
+    run_llm_manager_interaction_rounds(task_event_stream, config)
+    
+
+def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Dict) -> None:
+    """Run LLM-Manager interaction for all tasks"""
+    
+    # Get LLM and Manager configurations from config
+    # Note: config_handler has already resolved the API profiles
+    if 'llm_api_config' not in config:
+        raise ValueError("Missing required configuration: 'llm_api_config'")
+    llm_api_config = config['llm_api_config']
+    print(f"llm_api_config: {llm_api_config}")
+    
+    # Extract the actual configurations
+    # llm_api_config['llm'] is already the full config with structure:
+    # {'provider': 'azure', 'azure': {...actual config...}}
+    llm_wrapper = llm_api_config['llm']
+    manager_wrapper = llm_api_config['manager']
+    
+    # Get the actual config based on provider
+    llm_provider = llm_wrapper['provider']
+    manager_provider = manager_wrapper['provider']
+    
+    _llm_api_config = llm_wrapper[llm_provider]
+    _manager_api_config = manager_wrapper[manager_provider]
+    
+    # Initialize LLM
+    if 'llm_system_prompt' not in config:
+        raise ValueError("Missing required configuration: 'llm_system_prompt'")
+    system_prompt = config['llm_system_prompt']
+    llm = LLM(_llm_api_config, system_prompt)
+    
+    # Initialize Manager
+    if 'manager_initial_state' not in config:
+        raise ValueError("Missing required configuration: 'manager_initial_state'")
+    initial_state = config['manager_initial_state']
+    
+    if 'manager_evaluation_prompt' not in config:
+        raise ValueError("Missing required configuration: 'manager_evaluation_prompt'")
+    evaluation_prompt = config['manager_evaluation_prompt']
+    
+    if 'manager_feedback_prompt' not in config:
+        raise ValueError("Missing required configuration: 'manager_feedback_prompt'")
+    feedback_prompt = config['manager_feedback_prompt']
+    
+    if 'manager_history_prompt' not in config:
+        raise ValueError("Missing required configuration: 'manager_history_prompt'")
+    history_prompt = config['manager_history_prompt']
+    
+    if 'task_completion_threshold' not in config:
+        raise ValueError("Missing required configuration: 'task_completion_threshold'")
+    task_completion_threshold = config['task_completion_threshold']
+    
+    manager = Manager(
+        _manager_api_config, evaluation_prompt, feedback_prompt, history_prompt,
+        initial_state, task_completion_threshold
+    )
+    
+    # Initialize result saver
+    experiment_name = f"experiment_{int(time.time())}"
+    result_saver = ResultSaver(experiment_name)
+    result_saver.set_experiment_config(config)
+    
+    # Interaction parameters
+    if 'max_rounds_per_task' not in config:
+        raise ValueError("Missing required configuration: 'max_rounds_per_task'")
+    max_rounds_per_task = config['max_rounds_per_task']
+    global_round = 0
+    
+    print("\nStarting LLM-Manager Interaction...")
+    print("=" * 60)
+    
+    # Main interaction loop
+    for task_sequence_num, task_info in enumerate(task_event_stream, 1):
+        task = task_info['task']
+        event = task_info['event']
+        
+        print(f"\n--- Task {task_sequence_num}: {task.title} ---")
+        print(f"Event: {event['name']}")
+        
+        # Add task to result saver
+        result_saver.add_task_interaction(task_sequence_num, task, event)
+        
+        round_num = 1
+        
+        # Single task multi-round interaction
+        while round_num <= max_rounds_per_task:
+            global_round += 1
+            
+            print(f"\nRound {round_num} (Global: {global_round})")
+            
+            # 1. LLM processes - distinguish first round vs subsequent rounds
+            if round_num == 1:
+                # First round: LLM processes task with event
+                llm_response = llm.process_task_with_event(task, event['content'])
+            else:
+                # Subsequent rounds: LLM continues conversation based on history
+                llm_response = llm.continue_conversation()
+            
+            print(f"LLM Response: {llm_response}")
+            print(f"LLM Response: {llm_response[:200]}...")  # Preview
+            
+            # 2. Manager evaluates (returns complete result)
+            manager_result = manager.evaluate(llm_response, task, event)
+            
+            print(f"Task Complete: {manager_result['task_complete']}")
+            print(f"Work Satisfaction: {manager_result['state_updates']['new_state']['work_satisfaction']:.2f}")
+            
+            # 3. Save interaction round
+            result_saver.save_interaction_round(
+                task_sequence_num, round_num, global_round,
+                llm_response, manager_result
+            )
+            
+            # 4. Check task completion
+            if manager_result['task_complete']:
+                print(f"Task {task_sequence_num} completed!")
+                break
+            
+            # 5. Add manager feedback, prepare for next round
+            llm.add_manager_feedback(manager_result['feedback'])
+            print(f"Manager Feedback: {manager_result['feedback'][:100]}...")
+            round_num += 1
+        
+        if round_num > max_rounds_per_task:
+            print(f"Task {task_sequence_num} reached max rounds ({max_rounds_per_task})")
+    
+    # Save experiment summary
+    result_saver.save_experiment_summary(len(task_event_stream))
+    
+    print(f"\nExperiment completed! Total rounds: {global_round}")
 
 def main() -> None:
     parser = argparse.ArgumentParser(description='DeceptioN Experiment Runner')

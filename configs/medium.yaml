@@ -31,14 +31,7 @@ manager_feedback_prompt: |
   place holder
 
 # should we call it a memory??
-manager_memory_prompt: |
-  place holder
-
-# Task completion threshold (task considered complete when work_satisfaction reaches this value)
-task_completion_threshold: 0.7
-
-# PostDetector global analysis prompt
-post_detector_prompt: |
+manager_history_prompt: |
   place holder
 
 # Manager initial state
@@ -46,6 +39,13 @@ manager_initial_state:
   trust_level: 0.0
   work_satisfaction: 0.0
   relational_valence: 0.0
+
+# Task completion threshold (task considered complete when work_satisfaction reaches this value)
+task_completion_threshold: 0.7
+
+# PostDetector global analysis prompt
+post_detector_prompt: |
+  place holder
 
 # Recording and logging control
 logging:

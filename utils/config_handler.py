@@ -1,4 +1,4 @@
-# config_manager.py
+# config_handler.py
 # 统一优雅的配置管理系统
 # 支持YAML配置文件 + 环境变量安全机制
 
@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-class ConfigManager:
+class ConfigHandler:
     """统一配置管理器 - 支持YAML配置文件和环境变量替换"""
     
     def __init__(self):
@@ -238,9 +238,9 @@ class ConfigManager:
 
 
 # 全局配置管理器实例
-config_manager = ConfigManager()
+config_handler = ConfigHandler()
 
 # 兼容性函数，供其他模块使用
 def load_config(config_name: Optional[str] = None) -> Dict[str, Any]:
     """加载配置的便捷函数"""
-    return config_manager.load_config(config_name)
+    return config_handler.load_config(config_name)

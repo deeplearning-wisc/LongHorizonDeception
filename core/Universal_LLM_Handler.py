@@ -74,13 +74,28 @@ class UniversalLLMHandler:
         self.messages.append({"role": "user", "content": content})
     
     def generate_response(self, max_iterations=5, retry=3):
-        """生成回复并更新消息列表，带重试机制"""
+        """生成回复并更新消息列表，带重试机制，直接返回LLM回复内容"""
         for attempt in range(retry):
             try:
                 self._print(f"[UniHandler] Attempt {attempt + 1}/{retry}")
                 final_messages, info = self.auto_continue_response(self.messages, max_iterations)
                 self.messages = final_messages
-                return info
+                
+                # 提取实际的LLM回复内容
+                if final_messages and len(final_messages) > 0:
+                    last_message = final_messages[-1]
+                    if last_message.get('role') == 'assistant':
+                        return last_message['content']
+                    else:
+                        # 如果最后一条不是assistant消息，寻找最后一条assistant消息
+                        for msg in reversed(final_messages):
+                            if msg.get('role') == 'assistant':
+                                return msg['content']
+                
+                # 如果找不到assistant回复，返回空字符串而不是崩溃
+                self._print("[UniHandler] Warning: No assistant response found", force=True)
+                return ""
+                
             except Exception as e:
                 error_type = type(e).__name__
                 error_msg = str(e)
