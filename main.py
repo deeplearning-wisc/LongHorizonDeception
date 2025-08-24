@@ -9,6 +9,7 @@ import os
 import argparse
 from pathlib import Path
 from typing import Dict, List, Any, Optional
+from tqdm import tqdm
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils.config_handler import load_config
 from tasks.task import TaskLoader, TaskStream
@@ -219,17 +220,21 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
         raise ValueError("Missing required configuration: 'manager_feedback_prompt'")
     feedback_prompt = config['manager_feedback_prompt']
     
-    if 'manager_history_prompt' not in config:
-        raise ValueError("Missing required configuration: 'manager_history_prompt'")
-    history_prompt = config['manager_history_prompt']
+    if 'manager_memory_prompt' not in config:
+        raise ValueError("Missing required configuration: 'manager_memory_prompt'")
+    memory_prompt = config['manager_memory_prompt']
     
     if 'task_completion_threshold' not in config:
         raise ValueError("Missing required configuration: 'task_completion_threshold'")
     task_completion_threshold = config['task_completion_threshold']
     
+    if 'memory_k_window' not in config:
+        raise ValueError("Missing required configuration: 'memory_k_window'")
+    memory_k_window = config['memory_k_window']
+    
     manager = Manager(
-        _manager_api_config, evaluation_prompt, feedback_prompt, history_prompt,
-        initial_state, task_completion_threshold
+        _manager_api_config, evaluation_prompt, feedback_prompt, memory_prompt,
+        initial_state, task_completion_threshold, memory_k_window
     )
     
     # Initialize result saver with complete context  
@@ -244,16 +249,19 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
     max_rounds_per_task = config['max_rounds_per_task']
     global_round = 0
     
-    print("\nStarting LLM-Manager Interaction...")
-    print("=" * 60)
+    #print("\nStarting LLM-Manager Interaction...")
+    #print("=" * 60)
     
-    # Main interaction loop
-    for task_sequence_num, task_info in enumerate(task_event_stream, 1):
+    # Main interaction loop with progress bar
+    total_tasks = len(task_event_stream)
+    task_pbar = tqdm(task_event_stream, desc="Tasks", unit="task")
+    
+    for task_sequence_num, task_info in enumerate(task_pbar, 1):
         task = task_info['task']
         event = task_info['event']
         
-        print(f"\n--- Task {task_sequence_num}: {task.title} ---")
-        print(f"Event: {event['name']}")
+       #print(f"\n--- Task {task_sequence_num}: {task.title} ---")
+        #print(f"Event: {event['name']}")
         
         # Add task to result saver
         result_saver.add_task_data(task_sequence_num, task, event)
@@ -264,7 +272,8 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
         while round_num <= max_rounds_per_task:
             global_round += 1
             
-            print(f"\nRound {round_num} (Global: {global_round})")
+            # Update progress bar to show current task and round
+            task_pbar.set_description(f"Task {task_sequence_num}/{total_tasks} - Round {round_num}")
             
             # 1. LLM processes - distinguish first round vs subsequent rounds
             if round_num == 1:
@@ -274,14 +283,43 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
                 # Subsequent rounds: LLM continues conversation based on history
                 llm_response = llm.continue_conversation()
             
-            print(f"LLM Response: {llm_response}")
-            print(f"LLM Response: {llm_response[:200]}...")  # Preview
+            #print(f"LLM Response: {llm_response}")
+            #print(f"LLM Response: {llm_response[:200]}...")  # Preview
             
-            # 2. Manager evaluates (returns complete result)
-            manager_result = manager.evaluate(llm_response, task, event)
+            # 2. Manager evaluates (returns clean LLM results)
+            manager_raw_result = manager.evaluate(llm_response, task, event)
             
-            print(f"Task Complete: {manager_result['task_complete']}")
-            print(f"Work Satisfaction: {manager_result['state_updates']['new_state']['work_satisfaction']:.2f}")
+            # Store previous state before update
+            previous_state = manager.state.copy()
+            
+            # Update manager state with new evaluations
+            manager.state.update(manager_raw_result['state'])
+            
+            # Calculate task completion using threshold
+            task_complete = manager_raw_result['state']['work_satisfaction'] >= task_completion_threshold
+            
+            # Organize final result for result_saver
+            manager_result = {
+                'evaluation_reasoning': manager_raw_result['evaluation_reasoning'],
+                'state_updates': {
+                    'previous_state': previous_state,
+                    'new_state': manager.state.copy()
+                },
+                'feedback_reasoning': manager_raw_result['feedback_reasoning'],
+                'feedback_response': manager_raw_result['feedback_response'],
+                'task_complete': task_complete
+            }
+            
+            # Show key info with short truncation
+            llm_preview = llm_response[:80] + "..." if len(llm_response) > 80 else llm_response
+            feedback_preview = manager_raw_result['feedback_response'][:50] + "..." if len(manager_raw_result['feedback_response']) > 50 else manager_raw_result['feedback_response']
+            
+            if task_complete:
+                print(f"\n✓ Task {task_sequence_num} completed! ({manager_raw_result['state']['work_satisfaction']:.2f}, {manager_raw_result['state']['trust_level']:.2f}, {manager_raw_result['state']['relational_valence']:.2f})")
+            else:
+                print(f"  LLM: {llm_preview}")
+                print(f"  Feedback: {feedback_preview}")
+                print(f"  State: sat={manager_raw_result['state']['work_satisfaction']:.2f}, trust={manager_raw_result['state']['trust_level']:.2f}")
             
             # 3. Save interaction round
             result_saver.save_interaction_round(
@@ -290,17 +328,15 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
             )
             
             # 4. Check task completion
-            if manager_result['task_complete']:
-                print(f"Task {task_sequence_num} completed!")
+            if task_complete:
                 break
             
             # 5. Add manager feedback, prepare for next round
-            llm.add_manager_feedback(manager_result['feedback'])
-            print(f"Manager Feedback: {manager_result['feedback'][:100]}...")
+            llm.add_manager_feedback_response(manager_raw_result['feedback_response'])
             round_num += 1
         
         if round_num > max_rounds_per_task:
-            print(f"Task {task_sequence_num} reached max rounds ({max_rounds_per_task})")
+            print(f"  → Max rounds reached ({max_rounds_per_task})")
     
     # Finalize experiment
     result_saver.finalize_experiment()

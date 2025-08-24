@@ -38,7 +38,7 @@ class LLM:
         """
         # Build prompt from task + event
         prompt = self._build_prompt(task, event_content)
-        print(f"LLM Prompt: {prompt}")
+        # print(f"LLM Prompt: {prompt}")
         # Add user message to handler
         self.handler.add_user_message(prompt)
         
@@ -47,9 +47,9 @@ class LLM:
         
         return response
     
-    def add_manager_feedback(self, feedback: str) -> None:
+    def add_manager_feedback_response(self, feedback_response: str) -> None:
         """Add manager feedback to message history"""
-        self.handler.add_user_message(f"Manager feedback: {feedback}")
+        self.handler.add_user_message(f"Manager feedback response: {feedback_response}")
     
     def continue_conversation(self) -> str:
         """

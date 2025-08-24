@@ -203,13 +203,11 @@ class ResultSaver:
             "global_round": global_round,
             "llm_response": llm_response,
             "manager_evaluation": {
-                "evaluation_reasoning": manager_result.get('evaluation_reasoning', ''),
-                "state_updates": {
-                    "previous_state": manager_result.get('previous_state', {}),
-                    "new_state": manager_result.get('current_state', {})
-                },
-                "feedback_reasoning": manager_result.get('feedback_reasoning', ''),
-                "feedback": manager_result.get('feedback_response', '')
+                "evaluation_reasoning": manager_result['evaluation_reasoning'],
+                "state_updates": manager_result['state_updates'],
+                "feedback_reasoning": manager_result['feedback_reasoning'],
+                "feedback_response": manager_result['feedback_response'],
+                "task_complete": manager_result['task_complete']
             }
         }
         

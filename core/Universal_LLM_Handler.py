@@ -9,7 +9,7 @@ class UniversalLLMHandler:
     统一的LLM客户端 - 支持Azure和自动截断
     """
     
-    def __init__(self, provider: str, config: Dict[str, Any], verbose_print: bool = False):
+    def __init__(self, provider: str, config: Dict[str, Any], verbose_print: bool = False, truncation: str = "auto"):
         """
         初始化统一客户端
         
@@ -21,6 +21,7 @@ class UniversalLLMHandler:
         self.provider = provider.lower()
         self.config = config
         self.verbose_print = verbose_print
+        self.truncation = truncation
         
         if self.provider == "azure":
             self._init_azure()
@@ -145,7 +146,7 @@ class UniversalLLMHandler:
             # 构建请求参数
             request_params = {
                 "model": self.azure_deployment,
-                "truncation": "auto",
+                "truncation": self.truncation,  # Set via constructor parameter
                 "max_output_tokens": self.config["max_output_tokens"],
                 "store": True  # 必须存储以支持续写
             }
