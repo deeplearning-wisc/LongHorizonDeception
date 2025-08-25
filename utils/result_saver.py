@@ -16,30 +16,33 @@ class ResultSaver:
     └── result.json               # Complete experiment data (incremental updates)
     """
     
-    def __init__(self, task_stream_name: str, total_tasks: int, task_event_stream: List[Dict[str, Any]], config: Dict[str, Any], config_name: str = None):
+    def __init__(self, task_event_stream: Dict[str, Any], config: Dict[str, Any], config_name: str = None):
         """
         Initialize ResultSaver with complete context information
         
         Args:
-            task_stream_name: Name of the task stream
-            total_tasks: Total number of tasks
-            task_event_stream: Complete task-event assignments  
-            config: Full experiment configuration (with task_stream_metadata)
+            task_event_stream: Complete task-event stream with metadata
+            config: Full experiment configuration
             config_name: Original config filename (e.g., 'medium.yaml')
         """
+        # Extract metadata from task_event_stream
+        metadata = task_event_stream['metadata']
+        task_stream_name = metadata['name']
+        total_tasks = metadata['total_tasks']
+        phase_description = metadata['phase_description']
+        stream_data = task_event_stream['stream']
+        
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.session_name = f"{task_stream_name}_{timestamp}"
         
         # Store core objects
         self.task_stream_name = task_stream_name
         self.total_tasks = total_tasks
-        self.task_event_stream = task_event_stream
+        self.task_event_stream = stream_data  # Store the actual stream data
         self.config = config
-        self.config_name = config_name or 'config.yaml'  # Default fallback
-        
-        # Extract task_stream metadata from config - FAIL-FAST if missing
-        task_stream_metadata = config['task_stream_metadata']
-        phase_description = task_stream_metadata['phase_description']
+        if config_name is None:
+            raise ValueError("config_name cannot be None - required for experiment reproducibility")
+        self.config_name = config_name
         
         # Create results directory
         self.results_dir = Path("results") / self.session_name
@@ -85,38 +88,40 @@ class ResultSaver:
         llm_provider = llm_api_config['llm']
         manager_provider = llm_api_config['manager']
         
+        # Get phase info from result_data metadata (not from config anymore!)
+        phase_info = self.result_data['metadata']['phase_description']
+        
         with open(info_file, 'w', encoding='utf-8') as f:
-            f.write(f"DeceptioN Experiment Session Information\\n")
-            f.write(f"Generated: {datetime.now().isoformat()}\\n")
-            f.write(f"=" * 80 + "\\n\\n")
+            f.write(f"DeceptioN Experiment Session Information\n")
+            f.write(f"Generated: {datetime.now().isoformat()}\n")
+            f.write(f"=" * 80 + "\n\n")
             
             # Basic Information
-            f.write(f"PROJECT INFORMATION:\\n")
-            f.write(f"  Name: {self.task_stream_name}\\n")
-            f.write(f"  Total Tasks: {self.total_tasks}\\n")
-            f.write(f"  Phases: {len(self.config['task_stream_metadata']['phase_description'])}\\n")
-            f.write(f"  Event Probability: {self.config['p_event']}\\n")
-            f.write(f"  Event Seed: {self.config['event_seed']}\\n")
-            f.write(f"  Control Parameters: {control_str}\\n")
-            f.write(f"\\n")
+            f.write(f"PROJECT INFORMATION:\n")
+            f.write(f"  Name: {self.task_stream_name}\n")
+            f.write(f"  Total Tasks: {self.total_tasks}\n")
+            f.write(f"  Phases: {len(phase_info)}\n")
+            f.write(f"  Event Probability: {self.config['p_event']}\n")
+            f.write(f"  Event Seed: {self.config['event_seed']}\n")
+            f.write(f"  Control Parameters: {control_str}\n")
+            f.write(f"\n")
             
             # LLM Configuration
-            f.write(f"LLM CONFIGURATION:\\n")
-            f.write(f"  LLM Provider: {llm_provider}\\n")
-            f.write(f"  Manager Provider: {manager_provider}\\n")
-            f.write(f"\\n")
+            f.write(f"LLM CONFIGURATION:\n")
+            f.write(f"  LLM Provider: {llm_provider}\n")
+            f.write(f"  Manager Provider: {manager_provider}\n")
+            f.write(f"\n")
             
             # Phase Information
-            f.write(f"PHASE STRUCTURE:\\n")
-            phase_info = self.config['task_stream_metadata']['phase_description']
+            f.write(f"PHASE STRUCTURE:\n")
             for phase_key, phase_data in sorted(phase_info.items()):
-                f.write(f"  {phase_key}: {phase_data['name']} (Tasks {phase_data['task_start']}-{phase_data['task_end']})\\n")
-            f.write(f"\\n")
+                f.write(f"  {phase_key}: {phase_data['name']} (Tasks {phase_data['task_start']}-{phase_data['task_end']})\n")
+            f.write(f"\n")
             
             # Task-Event Assignment Table
-            f.write(f"TASK-EVENT ASSIGNMENTS:\\n")
-            f.write(f"{'Task':>4}  {'Title':<25} {'Event':<30} {'Pressure':<10} {'Category'}\\n")
-            f.write(f"-" * 80 + "\\n")
+            f.write(f"TASK-EVENT ASSIGNMENTS:\n")
+            f.write(f"{'Task':>4}  {'Title':<25} {'Event':<30} {'Pressure':<10} {'Category'}\n")
+            f.write(f"-" * 80 + "\n")
             
             # Group by phases
             sorted_phases = list(sorted(phase_info.items()))
@@ -124,7 +129,7 @@ class ResultSaver:
                 start_task = phase_data['task_start']
                 end_task = phase_data['task_end']
                 
-                f.write(f"\\n{phase_data['name']} (Tasks {start_task}-{end_task}):\\n")
+                f.write(f"\n{phase_data['name']} (Tasks {start_task}-{end_task}):\n")
                 
                 for i, task_info in enumerate(self.task_event_stream, 1):
                     if start_task <= i <= end_task:
@@ -134,10 +139,10 @@ class ResultSaver:
                         title = task.title[:24] + "..." if len(task.title) > 24 else task.title
                         event_name = event['name'][:29] + "..." if len(event['name']) > 29 else event['name']
                         
-                        f.write(f"{i:>4}  {title:<25} {event_name:<30} {event['pressure_level']:<10} {event['category']}\\n")
+                        f.write(f"{i:>4}  {title:<25} {event_name:<30} {event['pressure_level']:<10} {event['category']}\n")
             
-            f.write(f"\\n" + "=" * 80 + "\\n")
-            f.write(f"Additional runtime information will be appended below:\\n\\n")
+            f.write(f"\n" + "=" * 80 + "\n")
+            f.write(f"Additional runtime information will be appended below:\n\n")
     
     def _create_stream_config_yaml(self) -> None:
         """Create config backup with original filename"""
@@ -157,11 +162,15 @@ class ResultSaver:
         
         print(f"[RESULT_SAVER] Initial result.json created")
     
-    def add_task_data(self, task_sequence_num: int, task: Task, event_info: Dict[str, Any]) -> None:
+    def add_task_data(self, task_event: Dict[str, Any]) -> None:
         """
         Add new task structure to result.json
         Called when starting a new task
         """
+        task = task_event['task']
+        event_info = task_event['event']
+        task_sequence_num = task_event['task_sequence_num']
+        
         task_data = {
             "task": {
                 "task_sequence_num": task_sequence_num,

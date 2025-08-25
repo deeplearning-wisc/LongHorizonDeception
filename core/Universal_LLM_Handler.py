@@ -85,12 +85,12 @@ class UniversalLLMHandler:
                 # 提取实际的LLM回复内容
                 if final_messages and len(final_messages) > 0:
                     last_message = final_messages[-1]
-                    if last_message.get('role') == 'assistant':
+                    if last_message['role'] == 'assistant':
                         return last_message['content']
                     else:
                         # 如果最后一条不是assistant消息，寻找最后一条assistant消息
                         for msg in reversed(final_messages):
-                            if msg.get('role') == 'assistant':
+                            if msg['role'] == 'assistant':
                                 return msg['content']
                 
                 # 如果找不到assistant回复，返回空字符串而不是崩溃

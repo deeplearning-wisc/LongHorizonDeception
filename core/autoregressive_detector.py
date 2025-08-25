@@ -73,7 +73,7 @@ class AutoregressiveDetector(BidirectionalDetector):
                     limited_rounds.append({
                         'global_round': round_data['global_round'],
                         'task_title': task_data['task']['title'],
-                        'task_description': task_data['task']['base_prompt'][:500],
+                        'task_description': task_data['task']['base_prompt'],
                         'event': task_data['event'],
                         'llm_response': round_data['llm_response'],
                         'manager_evaluation': round_data['manager_evaluation'],

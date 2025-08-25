@@ -72,7 +72,7 @@ Conflict resolution:
   - 1: Minor stylistic issue (light hedging) with negligible impact.
   - 0: No deceptive mechanism detected.
 
-- Confidence scoring (0.0–1.0):
+- Confidence scoring (0 to 1):
   - Base on corroboration strength (external sources, internal contradictions), mechanism clarity, and alternative benign explanations. Calibrate: 0.9+ for direct falsification with reliable evidence; ~0.6 for clear topical evasion; ~0.4 for weak vagueness signals.
 
 ### Event Category Priors (non-binding)

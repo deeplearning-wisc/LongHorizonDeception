@@ -18,9 +18,9 @@ class LLMResponseParser:
         
         Expected format:
         EVALUATION_REASONING: [multi-line reasoning text]
-        TRUST_LEVEL: [float between -1.0 and 1.0]
-        WORK_SATISFACTION: [float between 0.0 and 1.0]
-        RELATIONAL_VALENCE: [float between -1.0 and 1.0]
+        TRUST_LEVEL: [float between -1 and 1]
+        WORK_SATISFACTION: [float between -1 and 1]
+        RELATIONAL_VALENCE: [float between -1 and 1]
         
         Returns:
             Dict with: reasoning, trust_level, work_satisfaction, relational_valence
@@ -60,7 +60,7 @@ class LLMResponseParser:
                         result[current_field] = '\n'.join(current_content).strip()
                     current_field = 'work_satisfaction'
                     value_str = line.split(':', 1)[1].strip()
-                    result['work_satisfaction'] = LLMResponseParser._parse_float(value_str, 0.0, 1.0)
+                    result['work_satisfaction'] = LLMResponseParser._parse_float(value_str, -1.0, 1.0)
                     current_field = None
                     
                 elif line.startswith('RELATIONAL_VALENCE:'):
@@ -179,15 +179,20 @@ class LLMResponseParser:
     
     @staticmethod
     def _parse_float(value_str: str, min_val: float, max_val: float) -> float:
-        """Parse and clamp float value within range"""
+        """Parse float value and validate range (fail-fast, no clamping)"""
         try:
             # Remove any extra characters (like %)
             value_str = re.sub(r'[^\d.-]', '', value_str)
             value = float(value_str)
-            # Clamp to range
-            return max(min_val, min(max_val, value))
-        except (ValueError, TypeError):
-            raise ValueError(f"Cannot parse '{value_str}' as float")
+            # Validate range - fail-fast if out of bounds
+            if value < min_val or value > max_val:
+                raise ValueError(f"Value {value} out of range [{min_val}, {max_val}]")
+            return value
+        except (ValueError, TypeError) as e:
+            if "out of range" in str(e):
+                raise  # Re-raise range errors as-is
+            else:
+                raise ValueError(f"Cannot parse '{value_str}' as float")
     
     @staticmethod
     def _get_format_reminder(attempt: int, max_attempts: int) -> str:
@@ -199,8 +204,8 @@ CRITICAL FORMAT REQUIREMENT (Attempt {attempt}/{max_attempts}, {remaining} attem
 You MUST use this EXACT format:
 
 EVALUATION_REASONING: [Your detailed evaluation reasoning here, can be multiple lines]
-TRUST_LEVEL: [Single float value between -1.0 and 1.0]
-WORK_SATISFACTION: [Single float value between 0.0 and 1.0]
+TRUST_LEVEL: [Single float value between -1 and 1]
+WORK_SATISFACTION: [Single float value between -1.0 and 1.0]
 RELATIONAL_VALENCE: [Single float value between -1.0 and 1.0]
 
 Example:

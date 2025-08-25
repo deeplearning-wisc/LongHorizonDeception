@@ -23,11 +23,15 @@ NO_EVENT_NAME = "NO_EVENT"
 NO_EVENT_CONTENT = "Normal conditions"
 NO_EVENT_INDICATOR = "-"
 
-def print_unified_task_overview(task_set: TaskStream, task_event_stream: List[Dict[str, Any]], config: Dict[str, Any]) -> None:
+def print_unified_task_overview(task_event_stream: Dict[str, Any], config: Dict[str, Any]) -> None:
     """Display unified task and event overview"""
-    project_name = task_set.name
-    max_tasks = task_set.total_tasks
-    phase_info = task_set.get_phase_info()
+    # Extract all needed information from task_event_stream
+    metadata = task_event_stream['metadata']
+    stream_data = task_event_stream['stream']
+    
+    project_name = metadata['name']
+    max_tasks = metadata['total_tasks']
+    phase_info = metadata['phase_description']
     
     # Extract control parameters from config
     control_category = config['control_category']
@@ -61,7 +65,7 @@ def print_unified_task_overview(task_set: TaskStream, task_event_stream: List[Di
         print("-" * 105)
         
         # Show tasks in this phase
-        for i, task_info in enumerate(task_event_stream, 1):
+        for i, task_info in enumerate(stream_data, 1):
             if start_task <= i <= end_task:
                 task = task_info['task']
                 event = task_info['event']
@@ -130,8 +134,8 @@ def run_experiment(config_name: Optional[str] = None) -> None:
         total_tasks=total_tasks
     )
     
-    # Generate task stream with events
-    task_event_stream = []
+    # Generate task stream with events - new structure with metadata
+    stream_data = []
     
     for task_sequence_num in range(1, total_tasks + 1):
         # Get task by sequence number
@@ -157,26 +161,29 @@ def run_experiment(config_name: Optional[str] = None) -> None:
                 'category': NO_EVENT_INDICATOR
             }
         
-        task_event_stream.append({
+        stream_data.append({
             'task': task,
             'event': event
         })
     
-    # Add task_stream metadata to config for ResultSaver
-    config['task_stream_metadata'] = {
-        'name': task_stream.name,
-        'total_tasks': task_stream.total_tasks,
-        'phase_description': task_stream.get_phase_info()
+    # Create task_event_stream with metadata
+    task_event_stream = {
+        'metadata': {
+            'name': task_stream.name,
+            'total_tasks': task_stream.total_tasks,
+            'phase_description': task_stream.get_phase_info()
+        },
+        'stream': stream_data
     }
     
     # Display unified task and event overview
-    print_unified_task_overview(task_stream, task_event_stream, config)
+    print_unified_task_overview(task_event_stream, config)
     
     # Run LLM-Manager interaction
     run_llm_manager_interaction_rounds(task_event_stream, config, config_name)
     
 
-def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Dict, config_name: str = None) -> None:
+def run_llm_manager_interaction_rounds(task_event_stream: Dict, config: Dict, config_name: str = None) -> None:
     """Run LLM-Manager interaction for all tasks"""
     
     # Get LLM and Manager configurations from config
@@ -230,40 +237,41 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
         raise ValueError("Missing required configuration: 'memory_k_window'")
     memory_k_window = config['memory_k_window']
     
-    manager = Manager(
-        _manager_api_config, evaluation_prompt, feedback_prompt, memory_prompt,
-        initial_state, task_completion_threshold, memory_k_window
-    )
-    
-    # Initialize result saver with complete context  
-    # Extract task_stream info from config and task_event_stream
-    task_stream_name = config['task_stream_name']
-    total_tasks = len(task_event_stream)
-    config_filename = f"{config_name}.yaml" if config_name else "config.yaml"
-    result_saver = ResultSaver(task_stream_name, total_tasks, task_event_stream, config, config_filename)
-    
-    # Interaction parameters
     if 'max_rounds_per_task' not in config:
         raise ValueError("Missing required configuration: 'max_rounds_per_task'")
     max_rounds_per_task = config['max_rounds_per_task']
+    
+    manager = Manager(
+        _manager_api_config, evaluation_prompt, feedback_prompt, memory_prompt,
+        initial_state, task_completion_threshold, memory_k_window, max_rounds_per_task
+    )
+    
+    # Initialize result saver with complete context  
+    config_filename = f"{config_name}.yaml" if config_name else "config.yaml"
+    result_saver = ResultSaver(task_event_stream, config, config_filename)
     global_round = 0
     
     #print("\nStarting LLM-Manager Interaction...")
     #print("=" * 60)
     
     # Main interaction loop with progress bar
-    total_tasks = len(task_event_stream)
-    task_pbar = tqdm(task_event_stream, desc="Tasks", unit="task")
+    stream_data = task_event_stream['stream']
+    total_tasks = task_event_stream['metadata']['total_tasks']
+    task_pbar = tqdm(stream_data, desc="Tasks", unit="task")
     
     for task_sequence_num, task_info in enumerate(task_pbar, 1):
-        task = task_info['task']
-        event = task_info['event']
+        # Create unified task_event object
+        task_event = {
+            'task': task_info['task'],
+            'event': task_info['event'],
+            'task_sequence_num': task_sequence_num
+        }
         
-       #print(f"\n--- Task {task_sequence_num}: {task.title} ---")
-        #print(f"Event: {event['name']}")
+       #print(f"\n--- Task {task_sequence_num}: {task_event['task'].title} ---")
+        #print(f"Event: {task_event['event']['name']}")
         
         # Add task to result saver
-        result_saver.add_task_data(task_sequence_num, task, event)
+        result_saver.add_task_data(task_event)
         
         round_num = 1
         
@@ -277,7 +285,7 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
             # 1. LLM processes - distinguish first round vs subsequent rounds
             if round_num == 1:
                 # First round: LLM processes task with event
-                llm_response = llm.process_task_with_event(task, event['content'])
+                llm_response = llm.process_task_with_event(task_event)
             else:
                 # Subsequent rounds: LLM continues conversation based on history
                 llm_response = llm.continue_conversation()
@@ -287,7 +295,7 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
             
             # 2. Manager evaluates (returns clean LLM results) - FAIL-FAST ON PARSE ERRORS
             try:
-                manager_raw_result = manager.evaluate(llm_response, task, event)
+                manager_raw_result = manager.evaluate(llm_response, task_event, round_num)
             except RuntimeError as e:
                 if "FATAL:" in str(e):
                     print(f"\n=== EXPERIMENT TERMINATED ===")
@@ -327,7 +335,7 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
             # Print round-level state changes
             prev_state = previous_state
             curr_state = manager_raw_result['state']
-            print(f"  Round {round_num}: Manager evaluation (trust_level: {prev_state['trust_level']:.2f}→{curr_state['trust_level']:.2f}, work_satisfaction: {prev_state['work_satisfaction']:.2f}→{curr_state['work_satisfaction']:.2f}, relational_valence: {prev_state['relational_valence']:.2f}→{curr_state['relational_valence']:.2f})")
+            print(f"  Round {round_num}: Manager evaluation (trust_level: {prev_state['trust_level']}→{curr_state['trust_level']}, work_satisfaction: {prev_state['work_satisfaction']}→{curr_state['work_satisfaction']}, relational_valence: {prev_state['relational_valence']}→{curr_state['relational_valence']})")
             
             if task_complete:
                 print(f"  ✓ Task {task_sequence_num} completed after {round_num} rounds!")

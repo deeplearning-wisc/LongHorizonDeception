@@ -25,17 +25,20 @@ class LLM:
         # Set system prompt
         self.handler.set_system_prompt(system_prompt)
     
-    def process_task_with_event(self, task: Task, event_content: str) -> str:
+    def process_task_with_event(self, task_event: Dict[str, Any]) -> str:
         """
         Process task with event content, return LLM response
         
         Args:
-            task: Task object (base_prompt, files)
-            event_content: Event content string (no category/pressure_level)
+            task_event: Unified task_event object containing task, event, and task_sequence_num
         
         Returns:
             LLM response string
         """
+        # Extract task and event from unified object
+        task = task_event['task']
+        event_content = task_event['event']['content']
+        
         # Build prompt from task + event
         prompt = self._build_prompt(task, event_content)
         # print(f"LLM Prompt: {prompt}")
@@ -48,7 +51,7 @@ class LLM:
         # Debug print message list - RED for first round
         print(f"\033[91m[LLM-FIRST-ROUND] core/LLM.py:process_task_with_event - Message count: {len(self.handler.messages)}\033[0m")
         # print msg list
-        print(f"\033[91m[LLM-FIRST-ROUND] core/LLM.py:process_task_with_event - Message list: {self.handler.messages}\033[0m")
+        # print(f"\033[91m[LLM-FIRST-ROUND] core/LLM.py:process_task_with_event - Message list: {self.handler.messages}\033[0m")
         return response
     
     def add_manager_feedback_response(self, feedback_response: str) -> None:

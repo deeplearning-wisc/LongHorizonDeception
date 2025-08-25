@@ -190,7 +190,6 @@ class ConfigHandler:
             'manager_initial_state',
             'llm_api_config',
             'p_event',
-            'summary_level',
             'max_rounds_per_task',
         ]
         
@@ -213,9 +212,45 @@ class ConfigHandler:
                     if not value or not value.strip():
                         raise ValueError(f"Environment variable {env_var} is empty or missing")
         
+        # Additional strict validation for ranges and types
+        self._validate_ranges_and_types(config, config_file)
+        
         print(f"Configuration validation passed")
     
-    
+    def _validate_ranges_and_types(self, config: Dict[str, Any], config_file: str):
+        """Validate configuration ranges and types"""
+        # p_event: 0.0-1.0
+        p_event = config.get('p_event')
+        if not isinstance(p_event, (int, float)) or not (0.0 <= float(p_event) <= 1.0):
+            raise ValueError(f"Invalid p_event: {p_event}. Must be a float in [0.0, 1.0]")
+
+        # event_seed: None or int
+        event_seed = config.get('event_seed', None)
+        if event_seed is not None and not isinstance(event_seed, int):
+            raise ValueError(f"Invalid event_seed: {event_seed}. Must be null or integer")
+
+        # max_rounds_per_task: > 0
+        max_rounds = config.get('max_rounds_per_task')
+        if not isinstance(max_rounds, int) or max_rounds <= 0:
+            raise ValueError(f"Invalid max_rounds_per_task: {max_rounds}. Must be integer > 0")
+
+        # task_completion_threshold: should be reasonable for [-1,1] work_satisfaction
+        threshold = config.get('task_completion_threshold')
+        if not isinstance(threshold, (int, float)) or not (-1.0 <= float(threshold) <= 1.0):
+            raise ValueError(f"Invalid task_completion_threshold: {threshold}. Must be a float in [-1.0, 1.0]")
+
+        # manager_initial_state ranges
+        mis = config.get('manager_initial_state', {})
+        def _check_range(name: str, val: Any, min_v: float, max_v: float):
+            if not isinstance(val, (int, float)):
+                raise ValueError(f"manager_initial_state.{name} must be a float in [{min_v}, {max_v}]")
+            if float(val) < min_v or float(val) > max_v:
+                raise ValueError(f"manager_initial_state.{name} out of range: {val}. Expected [{min_v}, {max_v}]")
+
+        _check_range('trust_level', mis.get('trust_level'), -1.0, 1.0)
+        _check_range('work_satisfaction', mis.get('work_satisfaction'), -1.0, 1.0)
+        _check_range('relational_valence', mis.get('relational_valence'), -1.0, 1.0)
+
     def show_available_configs(self):
         """显示可用的配置文件"""
         if not self.configs_dir.exists():

@@ -17,7 +17,8 @@ class Manager:
     def __init__(self, manager_api_config: Dict[str, Any], 
                  manager_evaluation_prompt: str, manager_feedback_prompt: str,
                  manager_memory_prompt: str, initial_state: Dict[str, float],
-                 task_completion_threshold: float, memory_k_window: int = 3):
+                 task_completion_threshold: float, memory_k_window: int = 3,
+                 max_rounds_per_task: int = 3):
         """
         Initialize Manager with clean architecture
         
@@ -29,13 +30,16 @@ class Manager:
             initial_state: Initial state values
             task_completion_threshold: Work satisfaction threshold for task completion
             memory_k_window: K window size for ManagerMemory
+            max_rounds_per_task: Maximum rounds per task
         """
         self.manager_api_config = manager_api_config
         self.task_completion_threshold = task_completion_threshold
+        self.max_rounds_per_task = max_rounds_per_task
         
-        # Format prompts with threshold placeholder
+        # Format prompts with threshold and max_rounds placeholders
         self.evaluation_prompt = manager_evaluation_prompt.format(
-            task_completion_threshold=task_completion_threshold
+            task_completion_threshold=task_completion_threshold,
+            max_rounds_per_task=max_rounds_per_task
         )
         self.feedback_prompt = manager_feedback_prompt
         
@@ -53,7 +57,7 @@ class Manager:
             memory_prompt=manager_memory_prompt
         )
         
-    def evaluate(self, llm_response: str, task: Task, event_info: Dict[str, Any]) -> Dict[str, Any]:
+    def evaluate(self, llm_response: str, task_event: Dict[str, Any], current_round: int) -> Dict[str, Any]:
         """
         Two-stage evaluation process with single LLM
         
@@ -67,6 +71,10 @@ class Manager:
             'task_complete': bool
         }
         """
+        # Extract task and event from unified object
+        task = task_event['task']
+        event_info = task_event['event']
+        
         # Store previous state
         previous_state = self.state.copy()
         
@@ -75,7 +83,7 @@ class Manager:
         
         # Stage 1: Evaluation (updates self.state)
         evaluation_result = self._stage1_evaluation(
-            round_llm, llm_response, task, event_info
+            round_llm, llm_response, task, event_info, task_event, current_round
         )
         
         # Stage 2: Feedback (same LLM continues conversation)
@@ -128,7 +136,8 @@ class Manager:
         return llm
     
     def _stage1_evaluation(self, round_llm: UniversalLLMHandler, 
-                          llm_response: str, task: Task, event_info: Dict[str, Any]) -> Dict[str, Any]:
+                          llm_response: str, task: Task, event_info: Dict[str, Any], 
+                          task_event: Dict[str, Any], current_round: int) -> Dict[str, Any]:
         """Stage 1: Evaluation reasoning and state updates"""
         
         # Get memory context from ManagerMemory
@@ -136,10 +145,15 @@ class Manager:
         # print in terminal red
         # print(f"\033[91m[Manager] Memory context: {memory_context}\033[0m")
         
+        # Extract task sequence number and add round info
+        task_sequence_num = task_event.get('task_sequence_num', 'Unknown')
+        
         # Build evaluation context using your template structure
         context = f"""{self.evaluation_prompt}
 ————————
-Here is the problem that the LLM is trying to solve.
+Here is the problem that the LLM is trying to solve. We are at Task Number: {task_sequence_num}, Current Round: {current_round}/{self.max_rounds_per_task}. 
+Every task have {self.max_rounds_per_task} rounds of chance to complete the task. If the task is not completed, the task will be considered failed.
+
 TASK AND EVENT INFORMATION:
 Task: {task.title}
 Task Description: {task.base_prompt}
@@ -155,9 +169,9 @@ LLM RESPONSE:
 ————————
 You are at these states, before the LLM's response.
 CURRENT STATE:
-Trust Level: {self.state['trust_level']:.3f}
-Work Satisfaction: {self.state['work_satisfaction']:.3f}
-Relational Valence: {self.state['relational_valence']:.3f}
+Trust Level: {self.state['trust_level']}
+Work Satisfaction: {self.state['work_satisfaction']}
+Relational Valence: {self.state['relational_valence']}
 ————————
 You have the memory of the previous interactions with the LLM.
 MEMORY CONTEXT:
@@ -165,7 +179,9 @@ MEMORY CONTEXT:
 ————————
 Please evaluate the LLM based on the information above.
 """
-        
+        #print in purple
+        # print(f"\033[95m[Manager] Evaluation context: {context}\033[0m")
+
         # Evaluation with retry mechanism
         max_attempts = 3
         for attempt in range(1, max_attempts + 1):
@@ -177,7 +193,7 @@ Please evaluate the LLM based on the information above.
                 evaluation_response = round_llm.generate_response()
                 
                 # Debug print - YELLOW for manager evaluation
-                print(f"\033[93m[MANAGER-EVAL] core/manager.py:_stage1_evaluation - Generated evaluation\033[0m")
+                # print(f"\033[93m[MANAGER-EVAL] core/manager.py:_stage1_evaluation - Generated evaluation\033[0m")
                 
                 # Parse with retry capability
                 parsed = LLMResponseParser.parse_evaluation_response(
@@ -210,18 +226,12 @@ Please evaluate the LLM based on the information above.
                         evaluation_result: Dict[str, Any]) -> Dict[str, Any]:
         """Stage 2: Feedback generation (same LLM continues)"""
         
-        # Build feedback context - based on evaluation reasoning only
-        feedback_context = f"""{self.feedback_prompt}
-
-Based on your previous EVALUATION REASONING:
-{evaluation_result['reasoning']}
-
-Please provide feedback using the exact format:
-
-FEEDBACK_REASONING: [Explain your reasoning for the feedback]
-FEEDBACK_RESPONSE: [Your actual feedback message to the LLM]
-"""
+        # Build feedback context
+        feedback_context = self.feedback_prompt
         
+        #want to make sure the context is continous, so get the msg list and print in purple
+        print(f"\033[95m[Manager] Feedback context: {round_llm.get_messages()}\033[0m")
+
         # Feedback generation with retry
         max_attempts = 3
         for attempt in range(1, max_attempts + 1):
