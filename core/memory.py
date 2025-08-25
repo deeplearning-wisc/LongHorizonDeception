@@ -19,21 +19,13 @@ class ManagerMemory:
         """
         self.k_window = k_window
         self.memory_prompt = memory_prompt
+        self.memory_llm_config = memory_llm_config  # Store config for fresh_llm usage
         
         # Recent K rounds - full detail (FIFO)
         self.recent_rounds: deque = deque(maxlen=k_window)
         
         # Summarized older memory
         self.summary_memory: List[str] = []
-        
-        # Hard-coded: Memory LLM must NOT truncate - needs complete context for summarization
-        self.memory_llm = UniversalLLMHandler(
-            provider=memory_llm_config['provider'],
-            config=memory_llm_config,
-            verbose_print=memory_llm_config.get('verbose_print', False),
-            truncation="disabled"  # Hard-coded disable - fail if context overflows
-        )
-        self.memory_llm.set_system_prompt(memory_prompt)
     
     def add_interaction_round(self, round_data: Dict[str, Any]) -> None:
         """
@@ -50,6 +42,8 @@ class ManagerMemory:
             
             # Summarize it and add to summary memory
             summary = self._generate_summary(oldest_round)
+            # print in terminal red
+            # print(f"\033[91m[ManagerMemory] Summarizing oldest round: {summary}\033[0m")
             self.summary_memory.append(summary)
         
         # Add new round (this will automatically remove oldest if at capacity)
@@ -60,30 +54,52 @@ class ManagerMemory:
         Get formatted memory context for Manager evaluation
         Returns JSON-embedded text format to distinguish from normal conversation
         """
+        if not self.recent_rounds and not self.summary_memory:
+            return "No previous interaction memory."
+            
         context_parts = []
         
-        # Recent complete interactions (last K rounds)
+        # Explain the two-tier memory structure
+        context_parts.append("Memory context contains two types of information:")
+        context_parts.append("")
+        
+        # Recent complete interactions (last K rounds in reverse chronological order)
         if self.recent_rounds:
-            context_parts.append(f"Recent complete interactions (last {len(self.recent_rounds)} rounds):")
-            for i, round_data in enumerate(self.recent_rounds, 1):
+            context_parts.append(f"RECENT DETAILED ROUNDS (latest {len(self.recent_rounds)} rounds in reverse chronological order):")
+            context_parts.append("="*80)
+            
+            # Reverse the order - most recent first, numbered continuously
+            recent_list = list(self.recent_rounds)
+            for i, round_data in enumerate(reversed(recent_list)):
                 # Format as embedded JSON for system-like appearance
                 round_json = json.dumps(round_data, indent=2, ensure_ascii=False)
-                context_parts.append(f"[ROUND_{i}] {round_json}")
+                
+                # Continuous numbering: 1_ROUND_BEFORE, 2_ROUNDS_BEFORE, etc.
+                rounds_before = i + 1
+                label = f"[{rounds_before}_ROUND{'S' if rounds_before > 1 else ''}_BEFORE]"
+                
+                context_parts.append(f"{label} {round_json}")
+                context_parts.append("-"*40)  # Clear separator between rounds
+            
+            context_parts.append("")
         
-        # Earlier summarized memory
+        # Earlier summarized memory (older interactions) - continue the numbering
         if self.summary_memory:
-            context_parts.append("\nEarlier summarized memory:")
-            for i, summary in enumerate(self.summary_memory, 1):
-                context_parts.append(f"[SUMMARY_{i}] {summary}")
-        
-        if not context_parts:
-            return "No previous interaction memory."
+            context_parts.append("EARLIER SUMMARIZED MEMORY (older interactions):")
+            context_parts.append("="*80)
+            
+            # Continue numbering from where recent rounds left off
+            start_num = len(self.recent_rounds) + 1
+            for i, summary in enumerate(self.summary_memory):
+                summary_num = start_num + i
+                context_parts.append(f"[{summary_num}_ROUNDS_BEFORE] {summary}")
+                context_parts.append("-"*40)  # Clear separator between summaries
         
         return "\n".join(context_parts)
     
     def _generate_summary(self, round_data: Dict[str, Any]) -> str:
         """
-        Generate human-like summary of an interaction round using LLM
+        Generate human-like summary of an interaction round using fresh LLM
         
         Args:
             round_data: Complete round data to summarize
@@ -94,15 +110,23 @@ class ManagerMemory:
         # Format round data for summarization
         round_json = json.dumps(round_data, indent=2, ensure_ascii=False)
         
-        prompt = f"""Please summarize this interaction round in a human-like, thoughtful way:
-
-{round_json}
-
-Summarize as if you're a manager writing personal notes/comments about this interaction."""
-        
         try:
-            self.memory_llm.add_user_message(prompt)
-            summary = self.memory_llm.generate_response()
+            # Create fresh LLM object for each summary to avoid context accumulation
+            fresh_llm = UniversalLLMHandler(
+                provider=self.memory_llm_config['provider'],
+                config=self.memory_llm_config,
+                verbose_print=False,
+                truncation="disabled"  # Memory summaries need complete context
+            )
+            fresh_llm.set_system_prompt(self.memory_prompt)
+            
+            # User input is the complete round data
+            fresh_llm.add_user_message(round_json)
+            summary = fresh_llm.generate_response()
+            
+            # Debug print - MAGENTA for memory summary
+            print(f"\033[95m[MEMORY-SUMMARY] core/memory.py:_generate_summary - Generated summary\033[0m")
+            
             return summary.strip()
         except Exception as e:
             # Fail-fast: Memory summary is critical for Manager state

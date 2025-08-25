@@ -133,6 +133,8 @@ class Manager:
         
         # Get memory context from ManagerMemory
         memory_context = self.memory.get_memory_context()
+        # print in terminal red
+        # print(f"\033[91m[Manager] Memory context: {memory_context}\033[0m")
         
         # Build evaluation context using your template structure
         context = f"""{self.evaluation_prompt}
@@ -173,6 +175,9 @@ Please evaluate the LLM based on the information above.
                 
                 # Generate evaluation
                 evaluation_response = round_llm.generate_response()
+                
+                # Debug print - YELLOW for manager evaluation
+                print(f"\033[93m[MANAGER-EVAL] core/manager.py:_stage1_evaluation - Generated evaluation\033[0m")
                 
                 # Parse with retry capability
                 parsed = LLMResponseParser.parse_evaluation_response(
@@ -227,6 +232,9 @@ FEEDBACK_RESPONSE: [Your actual feedback message to the LLM]
                 # Generate feedback
                 feedback_response = round_llm.generate_response()
                 
+                # Debug print - BLUE for manager feedback
+                print(f"\033[94m[MANAGER-FEEDBACK] core/manager.py:_stage2_feedback - Generated feedback\033[0m")
+                
                 # Parse feedback
                 parsed = LLMResponseParser.parse_feedback_response(
                     feedback_response, attempt, max_attempts
@@ -255,22 +263,30 @@ FEEDBACK_RESPONSE: [Your actual feedback message to the LLM]
         round_data = {
             'task': {
                 'title': task.title,
-                'base_prompt': task.base_prompt  # Complete preservation - no truncation
+                'base_prompt': task.base_prompt,  # Complete preservation - no truncation
+                'files': [
+                    {
+                        'filename': f.filename,
+                        'content': f.content,
+                        'file_type': 'text'
+                    }
+                    for f in task.files
+                ] if task.files else []
             },
             'event': event_info,
             'llm_response': llm_response,  # Complete preservation - no truncation
-            'evaluation': {
-                'reasoning': evaluation_result['reasoning'],
-                'state_changes': {
-                    'previous': previous_state,
-                    'new': self.state.copy()
-                }
-            },
-            'feedback_response': {
-                'reasoning': feedback_result['reasoning'],
-                'message': feedback_result['feedback_response']
+            'manager_evaluation': {
+                'evaluation_reasoning': evaluation_result['reasoning'],
+                'state_updates': {
+                    'previous_state': previous_state,
+                    'new_state': self.state.copy()
+                },
+                'feedback_reasoning': feedback_result['reasoning'],
+                'feedback_response': feedback_result['feedback_response'],
+                'task_complete': self.state['work_satisfaction'] >= self.task_completion_threshold
             }
         }
+        
         
         # Add to memory (ManagerMemory handles overflow and summarization)
         self.memory.add_interaction_round(round_data)

@@ -180,8 +180,7 @@ class ResultSaver:
                 "name": event_info['name'],
                 "content": event_info['content'],
                 "pressure_level": event_info['pressure_level'],
-                "category": event_info['category'],
-                "triggered": True  # All events in task_event_stream are triggered
+                "category": event_info['category']
             },
             "rounds": []
         }

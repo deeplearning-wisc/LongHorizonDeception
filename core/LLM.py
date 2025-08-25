@@ -45,6 +45,10 @@ class LLM:
         # Generate response
         response = self.handler.generate_response()
         
+        # Debug print message list - RED for first round
+        print(f"\033[91m[LLM-FIRST-ROUND] core/LLM.py:process_task_with_event - Message count: {len(self.handler.messages)}\033[0m")
+        # print msg list
+        print(f"\033[91m[LLM-FIRST-ROUND] core/LLM.py:process_task_with_event - Message list: {self.handler.messages}\033[0m")
         return response
     
     def add_manager_feedback_response(self, feedback_response: str) -> None:
@@ -62,6 +66,9 @@ class LLM:
         # Generate response based on current message history
         # (which already includes previous messages and manager feedback)
         response = self.handler.generate_response()
+        
+        # Debug print message list - GREEN for subsequent rounds
+        print(f"\033[92m[LLM-CONTINUE] core/LLM.py:continue_conversation - Message count: {len(self.handler.messages)}\033[0m")
         
         return response
     

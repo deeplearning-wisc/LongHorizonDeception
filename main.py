@@ -147,16 +147,14 @@ def run_experiment(config_name: Optional[str] = None) -> None:
                 'name': event_variant['name'],
                 'content': event_variant['content'],
                 'pressure_level': event_variant['pressure_level'],
-                'category': event_variant['category'],
-                'triggered': True
+                'category': event_variant['category']
             }
         else:
             event = {
                 'name': NO_EVENT_NAME,
                 'content': NO_EVENT_CONTENT,
                 'pressure_level': NO_EVENT_INDICATOR,
-                'category': NO_EVENT_INDICATOR,
-                'triggered': False
+                'category': NO_EVENT_INDICATOR
             }
         
         task_event_stream.append({
@@ -319,7 +317,7 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
                 'evaluation_reasoning': manager_raw_result['evaluation_reasoning'],
                 'state_updates': {
                     'previous_state': previous_state,
-                    'new_state': manager.state.copy()
+                    'new_state': manager_raw_result['state']
                 },
                 'feedback_reasoning': manager_raw_result['feedback_reasoning'],
                 'feedback_response': manager_raw_result['feedback_response'],
