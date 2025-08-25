@@ -105,5 +105,6 @@ Summarize as if you're a manager writing personal notes/comments about this inte
             summary = self.memory_llm.generate_response()
             return summary.strip()
         except Exception as e:
-            # Fallback to basic summary if LLM fails
-            return f"[ERROR: Could not generate summary - {str(e)}] Round with {len(str(round_data))} characters"
+            # Fail-fast: Memory summary is critical for Manager state
+            print(f"[ManagerMemory] Memory summarization failed - TERMINATING EXPERIMENT")
+            raise RuntimeError(f"FATAL: ManagerMemory summarization failed: {str(e)}")

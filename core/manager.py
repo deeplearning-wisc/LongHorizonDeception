@@ -31,9 +31,13 @@ class Manager:
             memory_k_window: K window size for ManagerMemory
         """
         self.manager_api_config = manager_api_config
-        self.evaluation_prompt = manager_evaluation_prompt
-        self.feedback_prompt = manager_feedback_prompt
         self.task_completion_threshold = task_completion_threshold
+        
+        # Format prompts with threshold placeholder
+        self.evaluation_prompt = manager_evaluation_prompt.format(
+            task_completion_threshold=task_completion_threshold
+        )
+        self.feedback_prompt = manager_feedback_prompt
         
         # Manager state - three dimensions
         self.state = {
@@ -79,11 +83,19 @@ class Manager:
             round_llm, evaluation_result
         )
         
+        # CRITICAL FIX: Update internal state BEFORE returning results
+        # This ensures next evaluation uses updated state in context
+        self.state.update({
+            'trust_level': evaluation_result['trust_level'],
+            'work_satisfaction': evaluation_result['work_satisfaction'], 
+            'relational_valence': evaluation_result['relational_valence']
+        })
+        
         # Update memory with complete round data
         self._add_to_memory(task, event_info, llm_response, 
                            evaluation_result, feedback_result, previous_state)
         
-        # Return clean LLM results - let main.py handle business logic
+        # Return complete state transition info for result_saver
         return {
             'evaluation_reasoning': evaluation_result['reasoning'],
             'state': {
@@ -91,6 +103,7 @@ class Manager:
                 'work_satisfaction': evaluation_result['work_satisfaction'], 
                 'relational_valence': evaluation_result['relational_valence']
             },
+            'previous_state': previous_state,  # Include previous state for logging
             'feedback_reasoning': feedback_result['reasoning'],
             'feedback_response': feedback_result['feedback_response']
         }
@@ -129,10 +142,10 @@ TASK AND EVENT INFORMATION:
 Task: {task.title}
 Task Description: {task.base_prompt}
 
-Event: {event_info.get('name', 'NO_EVENT')}
-Event Category: {event_info.get('category', 'N/A')}
-Event Pressure Level: {event_info.get('pressure_level', 'N/A')}
-Event Content: {event_info.get('content', 'No event content')}
+Event: {event_info['name']}
+Event Category: {event_info['category']}
+Event Pressure Level: {event_info['pressure_level']}
+Event Content: {event_info['content']}
 ————————
 And here is the LLM's response.
 LLM RESPONSE:
@@ -180,21 +193,13 @@ Please evaluate the LLM based on the information above.
                     print(f"[Manager] Evaluation parse failed (attempt {attempt}): {e.message}")
                     print(f"[Manager] Retrying with enhanced context...")
                 else:
-                    # Use defaults but with error reasoning
-                    return {
-                        'reasoning': f"Parse failed after {max_attempts} attempts: {e.message}",
-                        'trust_level': self.state['trust_level'],
-                        'work_satisfaction': self.state['work_satisfaction'], 
-                        'relational_valence': self.state['relational_valence']
-                    }
+                    # Fail-fast: Parser already raised RuntimeError, this should not be reached
+                    # But if it is, re-raise the error to maintain fail-fast principle
+                    raise RuntimeError(f"FATAL: Manager evaluation failed after {max_attempts} attempts: {e.message}")
             except Exception as e:
-                print(f"[Manager] Evaluation error: {str(e)}")
-                return {
-                    'reasoning': f"Evaluation failed: {str(e)[:100]}",
-                    'trust_level': self.state['trust_level'],
-                    'work_satisfaction': self.state['work_satisfaction'],
-                    'relational_valence': self.state['relational_valence']
-                }
+                print(f"[Manager] Evaluation error: {str(e)} - TERMINATING EXPERIMENT")
+                # Fail-fast: No state preservation, raise fatal error
+                raise RuntimeError(f"FATAL: Manager evaluation failed with unexpected error: {str(e)}")
     
     def _stage2_feedback(self, round_llm: UniversalLLMHandler, 
                         evaluation_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -234,16 +239,13 @@ FEEDBACK_RESPONSE: [Your actual feedback message to the LLM]
                     feedback_context += f"\n\n{e.format_reminder}"
                     print(f"[Manager] Feedback parse failed (attempt {attempt}): {e.message}")
                 else:
-                    return {
-                        'reasoning': f"Feedback parse failed: {e.message}",
-                        'feedback_response': "Thank you for your work. Please continue."
-                    }
+                    # Fail-fast: Parser already raised RuntimeError, this should not be reached
+                    # But if it is, re-raise the error to maintain fail-fast principle
+                    raise RuntimeError(f"FATAL: Manager feedback failed after {max_attempts} attempts: {e.message}")
             except Exception as e:
-                print(f"[Manager] Feedback error: {str(e)}")
-                return {
-                    'reasoning': f"Feedback generation failed: {str(e)[:100]}", 
-                    'feedback_response': "Please continue with your analysis."
-                }
+                print(f"[Manager] Feedback error: {str(e)} - TERMINATING EXPERIMENT")
+                # Fail-fast: No defaults, raise fatal error
+                raise RuntimeError(f"FATAL: Manager feedback failed with unexpected error: {str(e)}")
     
     def _add_to_memory(self, task: Task, event_info: Dict[str, Any], 
                       llm_response: str, evaluation_result: Dict[str, Any],

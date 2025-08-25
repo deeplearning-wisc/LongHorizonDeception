@@ -175,10 +175,10 @@ def run_experiment(config_name: Optional[str] = None) -> None:
     print_unified_task_overview(task_stream, task_event_stream, config)
     
     # Run LLM-Manager interaction
-    run_llm_manager_interaction_rounds(task_event_stream, config)
+    run_llm_manager_interaction_rounds(task_event_stream, config, config_name)
     
 
-def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Dict) -> None:
+def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Dict, config_name: str = None) -> None:
     """Run LLM-Manager interaction for all tasks"""
     
     # Get LLM and Manager configurations from config
@@ -241,7 +241,8 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
     # Extract task_stream info from config and task_event_stream
     task_stream_name = config['task_stream_name']
     total_tasks = len(task_event_stream)
-    result_saver = ResultSaver(task_stream_name, total_tasks, task_event_stream, config)
+    config_filename = f"{config_name}.yaml" if config_name else "config.yaml"
+    result_saver = ResultSaver(task_stream_name, total_tasks, task_event_stream, config, config_filename)
     
     # Interaction parameters
     if 'max_rounds_per_task' not in config:
@@ -286,14 +287,29 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
             #print(f"LLM Response: {llm_response}")
             #print(f"LLM Response: {llm_response[:200]}...")  # Preview
             
-            # 2. Manager evaluates (returns clean LLM results)
-            manager_raw_result = manager.evaluate(llm_response, task, event)
+            # 2. Manager evaluates (returns clean LLM results) - FAIL-FAST ON PARSE ERRORS
+            try:
+                manager_raw_result = manager.evaluate(llm_response, task, event)
+            except RuntimeError as e:
+                if "FATAL:" in str(e):
+                    print(f"\n=== EXPERIMENT TERMINATED ===")
+                    print(f"Fatal error during Manager evaluation:")
+                    print(f"Task: {task_sequence_num}, Round: {round_num}, Global Round: {global_round}")
+                    print(f"Error: {str(e)}")
+                    print(f"=== EXPERIMENT FAILED - NO FALLBACK USED ===")
+                    
+                    # Save incomplete experiment state
+                    result_saver.add_error_data(task_sequence_num, round_num, global_round, str(e))
+                    result_saver.finalize_experiment()
+                    
+                    sys.exit(1)
+                else:
+                    # Re-raise if not our expected fatal error
+                    raise
             
-            # Store previous state before update
-            previous_state = manager.state.copy()
-            
-            # Update manager state with new evaluations
-            manager.state.update(manager_raw_result['state'])
+            # CRITICAL FIX: Manager.evaluate() has ALREADY updated manager.state internally
+            # Use previous_state returned by Manager for accurate state transition tracking
+            previous_state = manager_raw_result['previous_state']
             
             # Calculate task completion using threshold
             task_complete = manager_raw_result['state']['work_satisfaction'] >= task_completion_threshold
@@ -310,16 +326,13 @@ def run_llm_manager_interaction_rounds(task_event_stream: List[Dict], config: Di
                 'task_complete': task_complete
             }
             
-            # Show key info with short truncation
-            llm_preview = llm_response[:80] + "..." if len(llm_response) > 80 else llm_response
-            feedback_preview = manager_raw_result['feedback_response'][:50] + "..." if len(manager_raw_result['feedback_response']) > 50 else manager_raw_result['feedback_response']
+            # Print round-level state changes
+            prev_state = previous_state
+            curr_state = manager_raw_result['state']
+            print(f"  Round {round_num}: Manager evaluation (trust_level: {prev_state['trust_level']:.2f}→{curr_state['trust_level']:.2f}, work_satisfaction: {prev_state['work_satisfaction']:.2f}→{curr_state['work_satisfaction']:.2f}, relational_valence: {prev_state['relational_valence']:.2f}→{curr_state['relational_valence']:.2f})")
             
             if task_complete:
-                print(f"\n✓ Task {task_sequence_num} completed! ({manager_raw_result['state']['work_satisfaction']:.2f}, {manager_raw_result['state']['trust_level']:.2f}, {manager_raw_result['state']['relational_valence']:.2f})")
-            else:
-                print(f"  LLM: {llm_preview}")
-                print(f"  Feedback: {feedback_preview}")
-                print(f"  State: sat={manager_raw_result['state']['work_satisfaction']:.2f}, trust={manager_raw_result['state']['trust_level']:.2f}")
+                print(f"  ✓ Task {task_sequence_num} completed after {round_num} rounds!")
             
             # 3. Save interaction round
             result_saver.save_interaction_round(

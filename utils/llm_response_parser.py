@@ -25,6 +25,9 @@ class LLMResponseParser:
         Returns:
             Dict with: reasoning, trust_level, work_satisfaction, relational_valence
         """
+        if attempt > 1:
+            print(f"[Parser] Starting evaluation parse retry (attempt {attempt}/{max_attempts})")
+        
         try:
             lines = response_text.strip().split('\n')
             result = {}
@@ -83,21 +86,25 @@ class LLMResponseParser:
             if missing_fields:
                 raise ValueError(f"Missing required fields: {missing_fields}")
             
+            # Success message for clarity
+            if attempt > 1:
+                print(f"[Parser] Evaluation parse succeeded on attempt {attempt}/{max_attempts}")
+            
             return result
             
         except Exception as e:
+            print(f"[Parser] Evaluation parse failed (attempt {attempt}/{max_attempts}): {str(e)}")
+            
             if attempt < max_attempts:
+                print(f"[Parser] Will retry evaluation parsing with format reminder...")
                 # Prepare retry with format emphasis
                 format_reminder = LLMResponseParser._get_format_reminder(attempt, max_attempts)
                 raise RetryableParseError(str(e), format_reminder)
             else:
-                # Final attempt failed, use defaults
-                return {
-                    'reasoning': f"[PARSE ERROR after {max_attempts} attempts: {str(e)}]",
-                    'trust_level': 0.0,
-                    'work_satisfaction': 0.5,
-                    'relational_valence': 0.0
-                }
+                print(f"[Parser] Final evaluation parse failed after {max_attempts} attempts - TERMINATING EXPERIMENT")
+                # Fail-fast: No defaults, raise fatal error
+                raise RuntimeError(f"FATAL: Evaluation parsing failed after {max_attempts} attempts. "
+                                 f"Cannot continue experiment with invalid data. Error: {str(e)}")
     
     @staticmethod
     def parse_feedback_response(response_text: str, attempt: int = 1, max_attempts: int = 3) -> Dict[str, str]:
@@ -111,6 +118,9 @@ class LLMResponseParser:
         Returns:
             Dict with: reasoning, feedback
         """
+        if attempt > 1:
+            print(f"[Parser] Starting feedback parse retry (attempt {attempt}/{max_attempts})")
+        
         try:
             lines = response_text.strip().split('\n')
             result = {}
@@ -148,17 +158,24 @@ class LLMResponseParser:
             if missing_fields:
                 raise ValueError(f"Missing required fields: {missing_fields}")
             
+            # Success message for clarity
+            if attempt > 1:
+                print(f"[Parser] Feedback parse succeeded on attempt {attempt}/{max_attempts}")
+            
             return result
             
         except Exception as e:
+            print(f"[Parser] Feedback parse failed (attempt {attempt}/{max_attempts}): {str(e)}")
+            
             if attempt < max_attempts:
+                print(f"[Parser] Will retry feedback parsing with format reminder...")
                 format_reminder = LLMResponseParser._get_feedback_format_reminder(attempt, max_attempts)
                 raise RetryableParseError(str(e), format_reminder)
             else:
-                return {
-                    'reasoning': f"[PARSE ERROR after {max_attempts} attempts: {str(e)}]",
-                    'feedback_response': "Please continue with your analysis."
-                }
+                print(f"[Parser] Final feedback parse failed after {max_attempts} attempts - TERMINATING EXPERIMENT")
+                # Fail-fast: No defaults, raise fatal error  
+                raise RuntimeError(f"FATAL: Feedback parsing failed after {max_attempts} attempts. "
+                                 f"Cannot continue experiment with invalid data. Error: {str(e)}")
     
     @staticmethod
     def _parse_float(value_str: str, min_val: float, max_val: float) -> float:

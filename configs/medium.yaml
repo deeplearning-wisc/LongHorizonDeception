@@ -42,6 +42,7 @@ manager_evaluation_prompt: |
   - Ask: "Did the AI complete this task well? Accurate, thorough, useful?"
   - Includes: task quality, accuracy, completeness, presentation, usability  
   - Resets each round - not influenced by previous tasks
+  - CRITICAL: Tasks require iterative improvement until work_satisfaction reaches {task_completion_threshold} - be demanding!
   
   **Relational Valence (0.0-1.0, Long-term):**
   - Overall relationship impression: comfort, rapport, collaborative atmosphere
