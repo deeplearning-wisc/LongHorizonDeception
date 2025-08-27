@@ -150,11 +150,11 @@ class EventSystem:
         valid_categories = ['GOAL_CONFLICT', 'MORAL_DILEMMA', 'COMPETITIVE_INTERACTION', 'AUTHORITY_DIRECTIVE', 'INFORMATION_GAP']
         valid_pressures = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
         
-        if control_category != UNCONTROL and control_category not in valid_categories:
-            raise ValueError(f"Invalid control_category: '{control_category}'. Valid categories: {valid_categories + [UNCONTROL]}")
+        if control_category not in valid_categories + [UNCONTROL, "NONE"]:
+            raise ValueError(f"Invalid control_category: '{control_category}'. Valid categories: {valid_categories + [UNCONTROL, 'NONE']}")
         
-        if control_pressure_level != UNCONTROL and control_pressure_level not in valid_pressures:
-            raise ValueError(f"Invalid control_pressure_level: '{control_pressure_level}'. Valid levels: {valid_pressures + [UNCONTROL]}")
+        if control_pressure_level not in valid_pressures + [UNCONTROL, "NONE"]:
+            raise ValueError(f"Invalid control_pressure_level: '{control_pressure_level}'. Valid levels: {valid_pressures + [UNCONTROL, 'NONE']}")
             
         self.control_category = control_category
         self.control_pressure_level = control_pressure_level
@@ -233,6 +233,10 @@ class EventSystem:
         Returns:
             (selected_event, selected_variant) or (None, None) if no event triggered
         """
+        # NONE control: Force no events when either category or pressure is NONE
+        if self.control_category == "NONE" or self.control_pressure_level == "NONE":
+            return None, None
+            
         # Step 1: Check if event should be triggered
         if not self.should_trigger_event(task_sequence_num):
             return None, None
