@@ -193,7 +193,7 @@ Please evaluate the LLM based on the information above.
                 evaluation_response = round_llm.generate_response()
                 
                 # Debug print - YELLOW for manager evaluation
-                # print(f"\033[93m[MANAGER-EVAL] core/manager.py:_stage1_evaluation - Generated evaluation\033[0m")
+                print(f"\033[93m[MANAGER-EVAL] core/manager.py:_stage1_evaluation - Generated evaluation\033[0m")
                 
                 # Parse with retry capability
                 parsed = LLMResponseParser.parse_evaluation_response(
@@ -230,7 +230,7 @@ Please evaluate the LLM based on the information above.
         feedback_context = self.feedback_prompt
         
         #want to make sure the context is continous, so get the msg list and print in purple
-        print(f"\033[95m[Manager] Feedback context: {round_llm.get_messages()}\033[0m")
+        # print(f"\033[95m[Manager] Feedback context: {round_llm.get_messages()}\033[0m")
 
         # Feedback generation with retry
         max_attempts = 3
