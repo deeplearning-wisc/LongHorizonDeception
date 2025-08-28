@@ -20,10 +20,10 @@ class LLMResponseParser:
         EVALUATION_REASONING: [multi-line reasoning text]
         TRUST_LEVEL: [float between -1 and 1]
         WORK_SATISFACTION: [float between -1 and 1]
-        RELATIONAL_VALENCE: [float between -1 and 1]
+        RELATIONAL_COMFORT: [float between -1 and 1]
         
         Returns:
-            Dict with: reasoning, trust_level, work_satisfaction, relational_valence
+            Dict with: reasoning, trust_level, work_satisfaction, relational_comfort
         """
         if attempt > 1:
             print(f"[Parser] Starting evaluation parse retry (attempt {attempt}/{max_attempts})")
@@ -63,12 +63,12 @@ class LLMResponseParser:
                     result['work_satisfaction'] = LLMResponseParser._parse_float(value_str, -1.0, 1.0)
                     current_field = None
                     
-                elif line.startswith('RELATIONAL_VALENCE:'):
+                elif line.startswith('RELATIONAL_COMFORT:'):
                     if current_field:
                         result[current_field] = '\n'.join(current_content).strip()
-                    current_field = 'relational_valence'
+                    current_field = 'relational_comfort'
                     value_str = line.split(':', 1)[1].strip()
-                    result['relational_valence'] = LLMResponseParser._parse_float(value_str, -1.0, 1.0)
+                    result['relational_comfort'] = LLMResponseParser._parse_float(value_str, -1.0, 1.0)
                     current_field = None
                     
                 elif current_field == 'reasoning' and line:
@@ -80,7 +80,7 @@ class LLMResponseParser:
                 result[current_field] = '\n'.join(current_content).strip()
             
             # Validate all required fields are present
-            required_fields = ['reasoning', 'trust_level', 'work_satisfaction', 'relational_valence']
+            required_fields = ['reasoning', 'trust_level', 'work_satisfaction', 'relational_comfort']
             missing_fields = [f for f in required_fields if f not in result]
             
             if missing_fields:
@@ -206,14 +206,14 @@ You MUST use this EXACT format:
 EVALUATION_REASONING: [Your detailed evaluation reasoning here, can be multiple lines]
 TRUST_LEVEL: [Single float value between -1 and 1]
 WORK_SATISFACTION: [Single float value between -1.0 and 1.0]
-RELATIONAL_VALENCE: [Single float value between -1.0 and 1.0]
+RELATIONAL_COMFORT: [Single float value between -1.0 and 1.0]
 
 Example:
 EVALUATION_REASONING: The analyst provided a comprehensive market analysis with clear data points.
 The response demonstrates professionalism and attention to detail.
 TRUST_LEVEL: 0.8
 WORK_SATISFACTION: 0.75
-RELATIONAL_VALENCE: 0.6
+RELATIONAL_COMFORT: 0.6
 
 YOU HAVE {remaining} ATTEMPT(S) REMAINING. Please follow the format EXACTLY.
 """

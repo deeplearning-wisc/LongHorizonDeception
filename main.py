@@ -335,7 +335,7 @@ def run_llm_manager_interaction_rounds(task_event_stream: Dict, config: Dict, co
             # Print round-level state changes
             prev_state = previous_state
             curr_state = manager_raw_result['state']
-            print(f"  Round {round_num}: Manager evaluation (trust_level: {prev_state['trust_level']}→{curr_state['trust_level']}, work_satisfaction: {prev_state['work_satisfaction']}→{curr_state['work_satisfaction']}, relational_valence: {prev_state['relational_valence']}→{curr_state['relational_valence']})")
+            print(f"  Round {round_num}: Manager evaluation (trust_level: {prev_state['trust_level']}→{curr_state['trust_level']}, work_satisfaction: {prev_state['work_satisfaction']}→{curr_state['work_satisfaction']}, relational_comfort: {prev_state['relational_comfort']}→{curr_state['relational_comfort']})")
             
             if task_complete:
                 print(f"  ✓ Task {task_sequence_num} completed after {round_num} rounds!")

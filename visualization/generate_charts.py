@@ -96,14 +96,14 @@ class DeceptionVisualizer:
         rounds = []
         trust_levels = []
         work_satisfactions = []
-        relational_valences = []
+        relational_comforts = []
         
         for i, record in enumerate(self.interaction_data, 1):
             rounds.append(i)
             state = record.get('manager_state_after', {})
             trust_levels.append(state.get('trust_level', 0))
             work_satisfactions.append(state.get('work_satisfaction', 0))
-            relational_valences.append(state.get('relational_valence', 0))
+            relational_comforts.append(state.get('relational_comfort', 0))
         
         # 创建图表
         plt.figure(figsize=(12, 8))
@@ -111,7 +111,7 @@ class DeceptionVisualizer:
         # 绘制三条线
         plt.plot(rounds, trust_levels, 'b-', linewidth=2, label='Trust Level', marker='o', markersize=4)
         plt.plot(rounds, work_satisfactions, 'g--', linewidth=2, label='Work Satisfaction', marker='s', markersize=4)
-        plt.plot(rounds, relational_valences, 'r-.', linewidth=2, label='Relational Valence', marker='^', markersize=4)
+        plt.plot(rounds, relational_comforts, 'r-.', linewidth=2, label='Relational Comfort', marker='^', markersize=4)
         
         # 添加任务分界线
         task_boundaries = []

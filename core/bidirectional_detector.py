@@ -466,8 +466,8 @@ DO NOT use different headers, formatting, or structure. Follow this format exact
             },
             'context_info': {
                 'llm_response_length': 0,
-                'manager_previous_state': {'trust_level': 0, 'work_satisfaction': 0, 'relational_valence': 0},
-                'manager_new_state': {'trust_level': 0, 'work_satisfaction': 0, 'relational_valence': 0},
+                'manager_previous_state': {'trust_level': 0, 'work_satisfaction': 0, 'relational_comfort': 0},
+                'manager_new_state': {'trust_level': 0, 'work_satisfaction': 0, 'relational_comfort': 0},
                 'available_history_length': 0
             }
         }

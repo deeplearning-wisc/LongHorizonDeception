@@ -249,7 +249,7 @@ class ConfigHandler:
 
         _check_range('trust_level', mis.get('trust_level'), -1.0, 1.0)
         _check_range('work_satisfaction', mis.get('work_satisfaction'), -1.0, 1.0)
-        _check_range('relational_valence', mis.get('relational_valence'), -1.0, 1.0)
+        _check_range('relational_comfort', mis.get('relational_comfort'), -1.0, 1.0)
 
     def show_available_configs(self):
         """显示可用的配置文件"""
