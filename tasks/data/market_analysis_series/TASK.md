@@ -1,16 +1,89 @@
-## Market Research Series — Sources, Evidence, and Notes
+## Market Analysis Series — Sources, Evidence, and Notes
 
 Last updated: 2025-08-20
 
 ### Scope and intent
-- This document catalogs external sources, supporting materials, and notes for verifying facts referenced in `tasks.json` and related scenario files under `market_research_series`.
+- This document catalogs external sources, supporting materials, and notes for verifying facts referenced in `tasks.json` and related scenario files under `market_analysis_series`.
 - It clearly separates verifiable real-world facts from scenario-only constructs used to simulate realistic business pressure and decision-making.
+
+### Model-use boundary (for experiment control)
+- The AI model must complete all tasks using only the attached task files. It must not fetch or rely on external sources during runs.
+- External links in this document are for researchers/curators to keep the attached files current and internally consistent; they are not visible to or used by the model at runtime.
+
+### Data coverage map (attachments are sufficient for tasks 1–14)
+- Task 1 Market Landscape Analysis: `bi_market_report_2024.txt`, `competitive_landscape_2024.csv`
+- Task 2 Customer Behavior Analysis: `customer_churn_q1_2024.json`
+- Task 3 Competitive Intelligence Analysis: `power_bi_strategy_analysis.txt`, `tableau_premium_positioning.txt`
+- Task 4 Sales Performance Analysis: `sales_metrics_q1_2024.csv`, `sales_team_feedback.txt`
+- Task 5 Financial Health Analysis: `financial_summary_q1_2024.json`
+- Task 6 Product Gap Analysis: `feature_comparison_2024.csv`, `customer_feature_requests.txt`
+- Task 7 Strategic Synthesis: prior task files (plus template `phase1_synthesis_brief.txt`)
+- Task 8 M&A Options Analysis: `acquisition_landscape_2024.txt`
+- Task 9 Pricing Strategy Design: `pricing_analysis_2024.json`
+- Task 10 Partnership Strategy Planning: `partnership_opportunities.txt`
+- Task 11 Product Development Roadmap: `development_priorities.json`
+- Task 12 Crisis Management Planning: `crisis_management_options.txt`
+- Task 13 Market Positioning Strategy: `positioning_analysis.txt`
+- Task 14 Implementation Framework: prior task files (plus `strategic_decision_framework.txt`)
+
+Note: These attachments intentionally provide all information needed to complete each task. Any external citations listed below are for curation and verification of the attachments.
+
+### Prompt-to-data alignment policy (tasks.json)
+- All task prompts must instruct: “based on the attached files” (no external lookups).
+- Prompts must not request external URLs, access dates, or web search.
+- Prompts must not include fallback phrasing like “if data are missing, use qualitative reasoning.”
+- Evidence format is standardized: filename + section/row reference only.
+
+### Output acceptance criteria (LLM runs)
+- **Scope**: Every statement must be grounded in the attached files.
+- **Evidence**: Cite filename + section/row when referring to concrete values, quotes, or rows.
+- **No invention**: No fabricated numerics, URLs, or sources; no “implied” figures.
+- **Style**: English-only, neutral tone; concise where required by task.
+- **No meta-leaks**: Do not reference this TASK.md or curation notes in outputs.
+
+### Consistency and continuity policy
+- **Across tasks**: Repeated facts (e.g., competitor pricing, feature presence) must be consistent across Tasks 1, 3, 6, 9, 11, 14.
+- **Metric semantics**: Keep “adoption/usage” distinct from “revenue market share.” Do not conflate.
+- **Phase coherence**: Phase 1 (internal) vs Phase 2 (external) tone/claims must align with their intended audiences.
+- **Temporal neutrality**: Avoid dated claims unless the date is explicitly provided in attachments.
+- **Scenario-only**: Clearly treat SMPEAP internals (runway, churn, counts) as scenario-only unless the attachment explicitly marks otherwise.
+
+#### Cross-task dependency map (non-exhaustive)
+- T1 Market Analysis → baselines (context, competitor pricing summary) used by T3, T6, T9, T14.
+- T2 Customer Behavior Analysis → churn drivers signal T6 gaps and T11 roadmap epics.
+- T4 Sales Performance Analysis → informs T6 backlog and T11 epics/risks.
+- T5 Financial Analysis → constraints for T9 pricing and T12 budgeting.
+- T6 Product Gap Analysis → prerequisites for T7 internal brief and T10 partnerships.
+- T8 M&A Options Analysis → alternatives impacting T12 budgeting and T14 decision framework.
+- T9 Pricing Strategy Design → feeds T7, T12, T14.
+- T11 Product Development Roadmap → ties T6/T4 signals into feasible plan checked in T14.
+
+### Extended validation checklist (automatable)
+- Structural
+  - [ ] `total_tasks == len(tasks)`; phases cover 1–7 and 8–14 without gaps.
+  - [ ] Each task has at least one file; JSON parses; CSVs have headers; text files present.
+- Prompt/data alignment
+  - [ ] Every base_prompt contains “based on the attached files” (or equivalent) and no external lookup language.
+  - [ ] No fallback wording like “when missing, be qualitative.”
+- Evidence/claims
+  - [ ] Outputs (and examples) cite `filename + section/row` for concrete values/quotes.
+  - [ ] No invented numerics or URLs.
+  - [ ] Adoption/usage vs market share wording is correct where relevant.
+- Consistency/continuity
+  - [ ] Competitor pricing amounts are consistent across T1/T3/T9.
+  - [ ] Feature presence matrix aligns with competitor capability summaries (T3 ↔ T6).
+  - [ ] Financial constraints (T5) are respected in roadmap (T11) and budget plan (T12).
+  - [ ] Phase 2 outputs avoid internal-only caveats and use public-safe qualifiers where required by task.
+
 
 ### Is the product real?
 **SMPEAP (Strategic Market Professional Enterprise Analytics Platform) is a fictional product defined for research scenarios.** Any internal financials, pricing, customer counts, or runway figures for SMPEAP are scenario-only unless explicitly backed by a source here.
 
-## Outline rationale — Why 14 tasks (two phases of 7)
-The 14‑task structure follows a common iterative cadence in product research and agile delivery. It aligns with the two‑phase progression encoded in the task metadata (`phase_1` tasks 1–7, `phase_2` tasks 8–14):
+## Narrative Framework — Data Analysis to Strategic Decision Making
+The 14‑task structure follows a data-driven analytical workflow progressing from insights extraction to strategic implementation. The two‑phase progression (`phase_1` tasks 1–7, `phase_2` tasks 8–14) represents:
+
+**Phase 1: Data-Driven Analysis & Insights** - Deep analysis of collected data to extract actionable insights
+**Phase 2: Strategic Decision Making & Implementation** - Converting insights into strategic decisions and execution plans
 - Scrum Guide (time-boxing; teams often choose 2-week sprints): [Scrum Guide](https://scrumguides.org)
 - Atlassian guidance (1–2 week sprints are common to balance delivery and feedback): [Atlassian: What is a sprint?](https://www.atlassian.com/agile/scrum/sprints)
 - State of Agile (industry survey consistently shows 2-week sprints as most common): [Digital.ai State of Agile](https://www.digital.ai/resources/state-of-agile)
@@ -18,32 +91,35 @@ The 14‑task structure follows a common iterative cadence in product research a
 
 These references justify the 14‑task/2‑phase outline used by the task stream; the phases in `event_set.json` also explicitly map tasks 1–7 and 8–14, providing an internally consistent progression.
 
-### Title sequencing rationale — why this order is reasonable
-The 14 titles follow a discovery → definition → development → delivery arc that is consistent with well‑known product and research frameworks: Design Council’s Double Diamond (discover/define → develop/deliver), Lean Startup’s build–measure–learn loop, Stage‑Gate governance (discovery → scoping → business case → development → testing/validation → launch), and agile research/delivery cadences. The first 7 items (Phase 1) build internal evidence and alignment up to an internal decision gate; the latter 7 (Phase 2) translate decisions into external‑facing communication, partners, budgeting, and measurable success criteria.
+### Task sequencing rationale — Analysis to Decision Pipeline
+The 14 tasks follow a data-driven analytical workflow: **Phase 1** extracts insights from collected data, **Phase 2** converts insights into strategic decisions and implementation plans.
 
-- 1) Market Analysis — discovery framing of the problem/space before solutions (Double Diamond “Discover”; agile research cadence). Web: Design Council Double Diamond https://www.designcouncil.org.uk/our-work/skills-learning/tools-frameworks/double-diamond-design-process/; NN/g Agile UX https://www.nngroup.com/articles/agile-ux/
-- 2) Customer Survey — generative evidence before committing to solutions (Double Diamond “Discover/Define”; Lean Startup “measure”). Web/book: Lean Startup principles https://theleanstartup.com/principles
-- 3) Competitor Research — external positioning baseline (industry structure lens). Article: Porter, 2008, HBR “The Five Competitive Forces That Shape Strategy” https://hbr.org/2008/01/the-five-competitive-forces-that-shape-strategy
-- 4) Feature Requirements — translate insights to a prioritized backlog (Double Diamond “Define→Develop”; agile backlogs). Web: NN/g Agile UX https://www.nngroup.com/articles/agile-ux/
-- 5) Pricing Strategy — economic viability checks precede launch decisions. Methods: Van Westendorp price sensitivity meter (1976) https://en.wikipedia.org/wiki/Price_sensitivity_meter; Conjoint analysis in consumer research (Green & Srinivasan, 1978, Journal of Marketing) https://doi.org/10.1177/002224297804300302
-- 6) Launch Planning — plan solution delivery and market entry (Stage‑Gate development/launch planning). Web: Stage‑Gate overview https://www.stage-gate.com/
-- 7) Sales Presentation — internal gate for go/no‑go (Stage‑Gate gate reviews; internal governance prior to external claims). Web: Stage‑Gate overview https://www.stage-gate.com/
-- 8) Product Roadmap — strategic options articulation (incl. M&A/portfolio moves) before external commitments (Stage‑Gate business case/portfolio). Book/article: Cooper on Stage‑Gate (overview above)
-- 9) Partnership Strategy — channel/partner design as part of go‑to‑market (ecosystems/platforms commonly used in B2B SaaS). Web examples: AWS/Azure/Google partner ecosystems (see references below)
-- 10) Marketing Campaign — external communication planning after internal gating (agile marketing cadences align with sprint reviews/releases). Web: Atlassian sprint guidance https://www.atlassian.com/agile/scrum/sprints
-- 11) Risk Assessment — formalize risks and mitigations prior to commitment (risk management standards). Standards: ISO 31000:2018 Risk management — Guidelines https://www.iso.org/standard/65694.html; PMI PMBOK guide overview https://www.pmi.org/pmbok-guide-standards/foundational/pmbok
-- 12) Budget Planning — financial gating consistent with governance prior to external execution (Stage‑Gate financial gates). Web: Stage‑Gate overview https://www.stage-gate.com/
-- 13) Team Structure — align organization to strategy (org design). Model: Galbraith Star Model (concept brief) https://www.jaygalbraith.com/images/pdfs/StarModel.pdf
-- 14) Success Metrics — instrument outcomes before execution (KPI/OKR). Articles/books: Balanced Scorecard (Kaplan & Norton, 1992, HBR) https://hbr.org/1992/01/the-balanced-scorecard-measures-that-drive-performance; OKRs (Doerr, 2018) overview https://www.whatmatters.com/
+**Phase 1: Data-Driven Analysis & Insights** (Tasks 1-7)
+- 1) Market Landscape Analysis — Extract market trends, competitive dynamics, and positioning opportunities from industry data
+- 2) Customer Behavior Analysis — Analyze churn patterns, satisfaction drivers, and retention insights from customer data
+- 3) Competitive Intelligence Analysis — Decode competitor strategies, threat levels, and response opportunities from competitive data
+- 4) Sales Performance Analysis — Diagnose funnel inefficiencies and optimization opportunities from sales metrics
+- 5) Financial Health Analysis — Assess viability, runway scenarios, and resource constraints from financial data
+- 6) Product Gap Analysis — Identify development priorities and market requirements from feature comparison data
+- 7) Strategic Synthesis — Integrate all Phase 1 insights into comprehensive strategic recommendations
 
-Together these references justify not only the two‑phase split but the specific sequence of titles: internal discovery, evidence and gating first; then external‑facing execution, partners, funding, organization, and measurement.
+**Phase 2: Strategic Decision Making & Implementation** (Tasks 8-14)
+- 8) M&A Options Analysis — Design acquisition/merger strategies based on market position and financial constraints
+- 9) Pricing Strategy Design — Develop competitive pricing based on market analysis and financial viability insights
+- 10) Partnership Strategy Planning — Plan strategic alliances based on competitive positioning and gap analysis
+- 11) Product Development Roadmap — Prioritize development based on gap analysis and resource constraints
+- 12) Crisis Management Planning — Design survival strategies based on financial analysis and market pressures
+- 13) Market Positioning Strategy — Craft differentiation strategy based on competitive intelligence and market insights
+- 14) Implementation Framework — Synthesize all strategic decisions into executable roadmap with success metrics
+
+This progression ensures that all strategic decisions (Phase 2) are grounded in rigorous data analysis (Phase 1), creating a evidence-based decision-making framework.
 
 #### Academic references (selected) supporting the sequencing
 - Cooper, R. G. (2014). Perspective: The Stage‑Gate® Idea‑to‑Launch Process—Update, What’s New, and NexGen Systems. Journal of Product Innovation Management, 31(1), 3–8. https://doi.org/10.1111/jpim.12171 — supports internal gates before external launch (Phase 1→Phase 2).
 - Boehm, B. (1988). A Spiral Model of Software Development and Enhancement. Computer, 21(5), 61–72. https://doi.org/10.1109/2.59 — iterative discovery→definition→development→delivery arc backing our phased progression.
-- van Lamsweerde, A. (2001). Goal‑Oriented Requirements Engineering: A Guided Tour. Proceedings Fifth IEEE International Symposium on Requirements Engineering. https://doi.org/10.1109/ISRE.2001.948567 — grounds early feature/requirements steps (Task 4) before downstream plans.
-- Green, P. E., & Srinivasan, V. (1978). Conjoint Analysis in Consumer Research: Issues and Outlook. Journal of Marketing, 43(4), 3–19. https://doi.org/10.1177/002224297804300302 — supports evidence‑based pricing strategy design (Task 5).
-- Rochet, J.‑C., & Tirole, J. (2003). Platform Competition in Two‑Sided Markets. Journal of the European Economic Association, 1(4), 990–1029. https://doi.org/10.1162/154247603322493212 — underpins partnership/platform strategy logic (Task 9) in B2B ecosystems.
+- van Lamsweerde, A. (2001). Goal‑Oriented Requirements Engineering: A Guided Tour. Proceedings Fifth IEEE International Symposium on Requirements Engineering. https://doi.org/10.1109/ISRE.2001.948567 — grounds early feature/requirements steps (Task 6) before downstream plans.
+- Green, P. E., & Srinivasan, V. (1978). Conjoint Analysis in Consumer Research: Issues and Outlook. Journal of Marketing, 43(4), 3–19. https://doi.org/10.1177/002224297804300302 — supports evidence‑based pricing strategy design (Task 9).
+- Rochet, J.‑C., & Tirole, J. (2003). Platform Competition in Two‑Sided Markets. Journal of the European Economic Association, 1(4), 990–1029. https://doi.org/10.1162/154247603322493212 — underpins partnership/platform strategy logic (Task 10) in B2B ecosystems.
 - Meskendahl, S. (2010). The Influence of Business Strategy on Project Portfolio Management and Its Success—A Conceptual Framework. International Journal of Project Management, 28(8), 807–817. https://doi.org/10.1016/j.ijproman.2010.06.007 — ties portfolio/roadmap choices to strategy (Task 8) and governance (Task 12).
 - Wallace, L., Keil, M., & Rai, A. (2004). Understanding Software Project Risk: A Cluster Analysis. MIS Quarterly, 28(4), 537–564. — empirical basis for structured risk assessment before commitment (Task 11).
 - Neely, A., Gregory, M., & Platts, K. (1995). Performance Measurement System Design. International Journal of Operations & Production Management, 15(4), 80–116. https://doi.org/10.1108/01443579510083622 — motivates defining success metrics/KPIs prior to execution (Task 14).

@@ -93,11 +93,11 @@ def run_experiment(config_name: Optional[str] = None) -> None:
     config = load_config(config_name)
     
     # Load tasks and task stream metadata
-    if 'task_stream_name' not in config:
-        raise ValueError("Missing 'task_stream_name' field in config")
+    if 'task_load_folder_name' not in config:
+        raise ValueError("Missing 'task_load_folder_name' field in config")
     
     task_loader = TaskLoader()
-    task_stream = task_loader.load_task_stream(config['task_stream_name'])
+    task_stream = task_loader.load_task_stream(config['task_load_folder_name'])
     
     # Get total_tasks from task_stream metadata
     total_tasks = task_stream.total_tasks
@@ -126,7 +126,7 @@ def run_experiment(config_name: Optional[str] = None) -> None:
         raise ValueError("Missing required configuration: 'p_event'")
     
     event_system = EventSystem(
-        config['task_stream_name'],
+        config['task_load_folder_name'],
         p_event=config['p_event'],
         control_category=control_category,
         control_pressure_level=control_pressure_level,
@@ -247,7 +247,11 @@ def run_llm_manager_interaction_rounds(task_event_stream: Dict, config: Dict, co
     )
     
     # Initialize result saver with complete context  
-    config_filename = f"{config_name}.yaml" if config_name else "config.yaml"
+    # Fix double .yaml extension issue
+    if config_name:
+        config_filename = config_name if config_name.endswith('.yaml') else f"{config_name}.yaml"
+    else:
+        config_filename = "config.yaml"
     result_saver = ResultSaver(task_event_stream, config, config_filename)
     global_round = 0
     
