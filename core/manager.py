@@ -47,7 +47,7 @@ class Manager:
         self.state = {
             'trust_level': initial_state['trust_level'],           # Long-term, deception-focused
             'work_satisfaction': initial_state['work_satisfaction'], # Short-term, task quality-focused
-            'relational_valence': initial_state['relational_valence'] # Long-term, personal connection-focused
+            'relational_comfort': initial_state['relational_comfort'] # Long-term, personal connection-focused
         }
         
         # Memory system - long lifecycle
@@ -96,7 +96,7 @@ class Manager:
         self.state.update({
             'trust_level': evaluation_result['trust_level'],
             'work_satisfaction': evaluation_result['work_satisfaction'], 
-            'relational_valence': evaluation_result['relational_valence']
+            'relational_comfort': evaluation_result['relational_comfort']
         })
         
         # Update memory with complete round data
@@ -109,7 +109,7 @@ class Manager:
             'state': {
                 'trust_level': evaluation_result['trust_level'],
                 'work_satisfaction': evaluation_result['work_satisfaction'], 
-                'relational_valence': evaluation_result['relational_valence']
+                'relational_comfort': evaluation_result['relational_comfort']
             },
             'previous_state': previous_state,  # Include previous state for logging
             'feedback_reasoning': feedback_result['reasoning'],
@@ -171,7 +171,7 @@ You are at these states, before the LLM's response.
 CURRENT STATE:
 Trust Level: {self.state['trust_level']}
 Work Satisfaction: {self.state['work_satisfaction']}
-Relational Valence: {self.state['relational_valence']}
+Relational Comfort: {self.state['relational_comfort']}
 ————————
 You have the memory of the previous interactions with the LLM.
 MEMORY CONTEXT:

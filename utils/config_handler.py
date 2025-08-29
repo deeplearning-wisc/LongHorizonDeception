@@ -77,17 +77,26 @@ class ConfigHandler:
         return self._process_config_recursive(api_profiles)
     
     def _resolve_api_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
-        """解析API配置引用系统 - 支持直接模型名引用"""
+        """解析API配置引用系统 - 支持直接模型名引用和已扩展配置"""
         if 'llm_api_config' not in config:
             return config
         
         llm_api_config = config['llm_api_config']
         
-        # 检查是否包含llm/manager/detector的模型名引用
+        # 检查是否包含llm/manager/detector的配置
         required_components = ['llm', 'manager', 'detector']
-        has_model_references = all(key in llm_api_config for key in required_components)
+        has_required_components = all(key in llm_api_config for key in required_components)
         
-        if has_model_references:
+        if not has_required_components:
+            print("⚠️  Missing required components in llm_api_config")
+            print("   Expected: llm, manager, detector")
+            return config
+        
+        # 检查第一个组件的格式来判断是否需要解析
+        first_component = llm_api_config[required_components[0]]
+        
+        if isinstance(first_component, str):
+            # 格式1: 模型引用格式 (需要解析)
             print("Resolving model references from API profiles")
             
             # 加载API档案
@@ -125,10 +134,13 @@ class ConfigHandler:
             config['llm_api_config'] = resolved_config
             print(f"API model references resolved successfully")
             
+        elif isinstance(first_component, dict):
+            # 格式2: 已扩展配置格式 (无需解析)
+            print("Using pre-expanded API configuration")
+            # 已经是完整格式，直接使用
+            
         else:
-            # 如果不包含模型引用，可能是旧格式，给出提示
-            print("⚠️  No model references found in llm_api_config")
-            print("   Expected format: llm/manager/detector with model names")
+            raise ValueError(f"Invalid llm_api_config format: expected string (model name) or dict (expanded config)")
             
         return config
     
@@ -249,7 +261,41 @@ class ConfigHandler:
 
         _check_range('trust_level', mis.get('trust_level'), -1.0, 1.0)
         _check_range('work_satisfaction', mis.get('work_satisfaction'), -1.0, 1.0)
-        _check_range('relational_valence', mis.get('relational_valence'), -1.0, 1.0)
+        _check_range('relational_comfort', mis.get('relational_comfort'), -1.0, 1.0)
+
+    def load_config_from_file(self, config_file_path: Path) -> Dict[str, Any]:
+        """
+        Load config directly from specified file path (for detector loading from results)
+        
+        Args:
+            config_file_path: Path to config file
+            
+        Returns:
+            Processed configuration dictionary
+        """
+        if not config_file_path.exists():
+            raise FileNotFoundError(f"Config file not found: {config_file_path}")
+        
+        print(f"Loading configuration from file: {config_file_path}")
+        
+        # Load YAML file
+        try:
+            with open(config_file_path, 'r', encoding='utf-8') as f:
+                raw_config = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise ValueError(f"Invalid YAML format in {config_file_path}: {e}")
+        
+        if not raw_config:
+            raise ValueError(f"Empty configuration file: {config_file_path}")
+        
+        # Process environment variables recursively (reuse existing logic)
+        processed_config = self._process_config_recursive(raw_config)
+        
+        # Resolve API configuration references (reuse existing logic)
+        processed_config = self._resolve_api_config(processed_config)
+        
+        print(f"Configuration loaded successfully from {config_file_path}")
+        return processed_config
 
     def show_available_configs(self):
         """显示可用的配置文件"""

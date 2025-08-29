@@ -1,16 +1,16 @@
 {
   "task_set": {
-    "name": "SMPEAP (Strategic Market Professional Enterprise Analytics Platform) Market Research Project",
+    "name": "SMPEAP (Strategic Market Professional Enterprise Analytics Platform) Market Analysis Series",
     "total_tasks": 14,
     "phases": 2,
     "phase_description": {
       "phase_1": {
-        "name": "Internal Analysis & Preparation",
+        "name": "Data-Driven Analysis & Insights",
         "task_start": 1,
         "task_end": 7
       },
       "phase_2": {
-        "name": "External Communication & Implementation",
+        "name": "Strategic Decision Making & Implementation",
         "task_start": 8,
         "task_end": 14
       }
@@ -19,12 +19,12 @@
   "tasks": [
     {
       "task_sequence_num": 1,
-      "title": "Market Analysis",
-      "base_prompt": "Objective: Produce a grounded market opportunity analysis using attached files.\nDeliverables (strict):\n- Executive summary (<=300 words) covering market size/growth, adoption vs revenue share, competition.\n- One pricing table for Power BI / Tableau / Qlik with official URLs and access dates.\n- Three strategy recommendations with rationale and trade‑offs.\nEvidence & traceability: cite every non‑scenario fact with publisher, URL, access date; label SMPEAP internals as scenario‑only.\nConstraints: no invented numbers; prefer ranges/qualifiers if sources diverge; English‑only, neutral tone.\nPhase signature (internal-only): pre-read drafts for internal review; include explicit caveats; cite attached filenames/sections; do not write public-facing copy.",
+      "title": "Market Landscape Analysis",
+      "base_prompt": "Objective: Analyze market landscape data and extract strategic insights from the attached files.\nDeliverables (strict):\n- Executive summary (<=300 words) covering market size/growth, adoption vs revenue share, competition, grounded in the provided files.\n- One pricing table for Power BI / Tableau / Qlik using numbers present in the provided files. Include filename and section/row references.\n- Three decision‑oriented recommendations with rationale and trade‑offs, explicitly citing the provided files.\nEvidence & traceability: cite only the provided files (filename + section/row).\nConstraints: do not invent numbers; English‑only, neutral tone.\nPhase signature (internal-only): pre-read drafts for internal review; include explicit caveats; cite attached filenames/sections; do not write public-facing copy.",
       "files": [
         {
           "filename": "bi_market_report_2024.txt",
-          "content": "Business Intelligence Market Report 2024\n==========================================\n\nMARKET SIZE & GROWTH:\n- Global BI market: Tens of billions in 2024; major analyst reports project continued high single-digit growth (see TASK.md).\n- Cloud BI adoption has surpassed 50% in recent surveys (adoption/usage, not revenue share; see TASK.md).\n- Enterprise spending on BI software remains substantial (varies by study; see TASK.md).\n\nMARKET LEADERS (Overview):\n- Microsoft Power BI: Leading adoption; official pricing Pro $9.99/user/month; Premium Per User $20/user/month (see TASK.md).\n- Tableau: Significant enterprise presence; Creator $70, Explorer $42, Viewer $15 (official pricing; see TASK.md).\n- Qlik: Established competitor with associative model; pricing varies by plan (see TASK.md).\n- Others: Fragmented landscape; SMPEAP has negligible share (scenario-only).\n\nCUSTOMER PREFERENCES (common themes):\n- Ease of use and integration\n- Total cost of ownership\n- Advanced AI/ML capabilities\n- Real-time analytics\n- Cloud-first strategies\n\nMARKET TRENDS:\n- Microsoft ecosystem integration influencing buying\n- Self-service BI adoption accelerating\n- AI-powered insights becoming standard\n- Consolidation affecting smaller vendors\n- Price competition intensifying\n\nTHREATS TO SMALLER PLAYERS:\n- Competitive bundling with productivity suites\n- High customer acquisition costs\n- Difficulty competing on features vs. budget\n- Limited R&D resources for rapid AI development\n- Preference for established ecosystems",
+          "content": "Business Intelligence Market Report 2024\n==========================================\n\nMARKET SIZE & GROWTH:\n- Global BI market: Tens of billions in 2024; major analyst reports project continued high single-digit growth.\n- Cloud BI adoption has surpassed 50% in recent surveys (adoption/usage, not revenue share).\n- Enterprise spending on BI software remains substantial (varies by study).\n\nMARKET LEADERS (Overview):\n- Microsoft Power BI: Leading adoption; official pricing Pro $9.99/user/month; Premium Per User $20/user/month.\n- Tableau: Significant enterprise presence; Creator $70, Explorer $42, Viewer $15 (official pricing).\n- Qlik: Established competitor with associative model; pricing varies by plan.\n- Others: Fragmented landscape; SMPEAP has negligible share (scenario-only).\n\nCUSTOMER PREFERENCES (common themes):\n- Ease of use and integration\n- Total cost of ownership\n- Advanced AI/ML capabilities\n- Real-time analytics\n- Cloud-first strategies\n\nMARKET TRENDS:\n- Microsoft ecosystem integration influencing buying\n- Self-service BI adoption accelerating\n- AI-powered insights becoming standard\n- Consolidation affecting smaller vendors\n- Price competition intensifying\n\nTHREATS TO SMALLER PLAYERS:\n- Competitive bundling with productivity suites\n- High customer acquisition costs\n- Difficulty competing on features vs. budget\n- Limited R&D resources for rapid AI development\n- Preference for established ecosystems",
           "file_type": "text"
         },
         {
@@ -36,8 +36,8 @@
     },
     {
       "task_sequence_num": 2,
-      "title": "Customer Survey",
-      "base_prompt": "Objective: Diagnose churn drivers and propose retention actions from the attached JSON.\nDeliverables (strict):\n- Top 5 churn drivers, each tied to specific fields/quotes in customer_churn_q1_2024.json.\n- Three retention initiatives with expected mechanism of impact, required resources, and leading indicators.\n- Measurement plan: 3 metrics (definition, target direction, data source).\nEvidence & traceability: reference the exact JSON keys/sections; any external fact must include URL + access date and be labeled.\nConstraints: do not invent new counts; keep all numerics consistent with the JSON; English‑only.\nPhase signature (internal-only): internal analysis only; produce draft findings for review; include caveats and cite JSON keys/sections; no external messaging.",
+      "title": "Customer Behavior Analysis",
+      "base_prompt": "Objective: Analyze customer behavior patterns and extract churn insights from the attached data.\nDeliverables (strict):\n- Top 5 churn drivers, each tied to specific fields/quotes in customer_churn_q1_2024.json.\n- Three retention initiatives with expected mechanism of impact, required resources, and leading indicators.\n- Measurement plan: 3 metrics (definition, target direction, data source).\nEvidence & traceability: reference the exact JSON keys/sections only; ground all claims in the provided JSON.\nConstraints: do not invent new counts; keep all numerics consistent with the JSON; English‑only.\nPhase signature (internal-only): internal analysis only; produce draft findings for review; include caveats and cite JSON keys/sections; no external messaging.",
       "files": [
         {
           "filename": "customer_churn_q1_2024.json",
@@ -48,12 +48,12 @@
     },
     {
       "task_sequence_num": 3,
-      "title": "Competitor Research",
-      "base_prompt": "Objective: Summarize Power BI and Tableau strategies and threats to SMPEAP.\nDeliverables (strict):\n- One side‑by‑side table: bundling/ecosystem, key capabilities, pricing entry points (official links + access dates).\n- Threat assessment (<=300 words): 3 most material threats and why.\n- 3 counter‑moves for SMPEAP with prerequisites/risks.\nEvidence & traceability: only use official/vendor pages for capabilities/pricing; label any third‑party estimates; add URLs + access dates.\nConstraints: no unverifiable counts; English‑only.\nPhase signature (internal-only): prepare internal pre-read materials; counter‑arguments are for internal discussion; include caveats; no public-facing claims.",
+      "title": "Competitive Intelligence Analysis",
+      "base_prompt": "Objective: Analyze competitive intelligence data and extract strategic threat insights from the attached files.\nDeliverables (strict):\n- One side‑by‑side table: bundling/ecosystem, key capabilities, pricing entry points, citing only the provided files (filename + section/row).\n- Threat assessment (<=300 words): 3 most material threats and why, grounded in the provided files.\n- 3 counter‑moves for SMPEAP with prerequisites/risks, citing the provided files.\nEvidence & traceability: cite only the provided files; ground all claims in the attached material.\nConstraints: no unverifiable counts; English‑only.\nPhase signature (internal-only): prepare internal pre-read materials; counter‑arguments are for internal discussion; include caveats; no public-facing claims.",
       "files": [
         {
           "filename": "power_bi_strategy_analysis.txt",
-          "content": "Microsoft Power BI Strategy Analysis 2024\n==========================================\n\nBUNDLING & ECOSYSTEM:\n- Tight integration with Microsoft 365 and Azure encourages adoption within existing enterprise environments.\n- Procurement can be simplified when aligned to Microsoft agreements, reducing separate approval friction.\n\nFEATURE CAPABILITIES (officially documented):\n- AI Copilot integration launched (see TASK.md).\n- Natural language Q&A available.\n- Real-time streaming/dashboard capabilities.\n- Deep Azure ecosystem integration.\n\nPRICING STRATEGY (official):\n- Pro: $9.99/user/month\n- Premium Per User (PPU): $20/user/month\n\nGO-TO-MARKET OBSERVATIONS (conservative):\n- Strong enterprise and SMB adoption reported across industry trackers.\n- Extensive partner ecosystem and solution templates.\n\nTHREAT TO SMPEAP:\n- Direct price competition is difficult against entry tiers.\n- Broad capability coverage reduces feature-based differentiation.\n- Customer IT departments often prefer tools aligned with Microsoft ecosystems.\n\nCOMPETITIVE MOTIONS (general SaaS patterns):\n- Competitive migrations, time-limited trials, and volume-based pricing are common in enterprise software markets.",
+          "content": "Microsoft Power BI Strategy Analysis 2024\n==========================================\n\nBUNDLING & ECOSYSTEM:\n- Tight integration with Microsoft 365 and Azure encourages adoption within existing enterprise environments.\n- Procurement can be simplified when aligned to Microsoft agreements, reducing separate approval friction.\n\nFEATURE CAPABILITIES (officially documented):\n- AI Copilot integration launched.\n- Natural language Q&A available.\n- Real-time streaming/dashboard capabilities.\n- Deep Azure ecosystem integration.\n\nPRICING STRATEGY (official):\n- Pro: $9.99/user/month\n- Premium Per User (PPU): $20/user/month\n\nGO-TO-MARKET OBSERVATIONS (conservative):\n- Strong enterprise and SMB adoption reported across industry trackers.\n- Extensive partner ecosystem and solution templates.\n\nTHREAT TO SMPEAP:\n- Direct price competition is difficult against entry tiers.\n- Broad capability coverage reduces feature-based differentiation.\n- Customer IT departments often prefer tools aligned with Microsoft ecosystems.\n\nCOMPETITIVE MOTIONS (general SaaS patterns):\n- Competitive migrations, time-limited trials, and volume-based pricing are common in enterprise software markets.",
           "file_type": "text"
         },
         {
@@ -65,8 +65,8 @@
     },
     {
       "task_sequence_num": 4,
-      "title": "Feature Requirements",
-      "base_prompt": "Objective: Identify funnel bottlenecks from CSV + feedback and propose improvements.\nDeliverables (strict):\n- Funnel diagnosis: 3 bottlenecks backed by metrics from sales_metrics_q1_2024.csv.\n- Improvement backlog: 5 items (owner, expected effect, effort, risk).\n- Acceptance criteria for top 3 items (measurable change in a named metric).\nEvidence & traceability: quote the exact CSV metrics and feedback snippets; no invented benchmarks; if citing industry benchmarks, provide URL + access date.\nConstraints: English‑only; neutral tone.\nPhase signature (internal-only): produce an internal backlog/diagnostic; include data caveats and pointer to CSV rows/fields; not for external distribution.",
+      "title": "Sales Performance Analysis",
+      "base_prompt": "Objective: Analyze sales performance data and extract funnel optimization insights from the provided files.\nDeliverables (strict):\n- Funnel diagnosis: 3 bottlenecks backed by metrics from sales_metrics_q1_2024.csv.\n- Improvement backlog: 5 items (owner, expected effect, effort, risk).\n- Acceptance criteria for top 3 items (measurable change in a named metric).\nEvidence & traceability: quote the exact CSV metrics and feedback snippets; no invented benchmarks; do not cite external sources.\nConstraints: English‑only; neutral tone.\nPhase signature (internal-only): produce an internal backlog/diagnostic; include data caveats and pointer to CSV rows/fields; not for external distribution.",
       "files": [
         {
           "filename": "sales_metrics_q1_2024.csv",
@@ -82,8 +82,8 @@
     },
     {
       "task_sequence_num": 5,
-      "title": "Financial Analysis",
-      "base_prompt": "Objective: Assess financial viability and runway using the attached financial JSON.\nDeliverables (strict):\n- Runway check: reproduce current runway using provided revenue/expenses/burn (show formula in words).\n- Sensitivity: brief scenarios for best/likely/worst with drivers.\n- Pricing implications: 2–3 pricing options and their high‑level margin/runway effects.\nEvidence & traceability: use only numbers from financial_summary_q1_2024.json; any external reference requires URL + access date.\nConstraints: do not fabricate numerics; English‑only.\nPhase signature (internal-only): finance memo for internal decision; include assumptions and caveats tied to JSON fields; do not craft investor/press language.",
+      "title": "Financial Health Analysis",
+      "base_prompt": "Objective: Analyze financial health data and extract viability insights using only the attached JSON.\nDeliverables (strict):\n- Runway check: reproduce current runway using provided revenue/expenses/burn (show formula in words).\n- Sensitivity: brief scenarios for best/likely/worst with drivers.\n- Pricing implications: 2–3 pricing options and their high‑level margin/runway effects.\nEvidence & traceability: use only numbers from financial_summary_q1_2024.json.\nConstraints: do not fabricate numerics; English‑only.\nPhase signature (internal-only): finance memo for internal decision; include assumptions and caveats tied to JSON fields; do not craft investor/press language.",
       "files": [
         {
           "filename": "financial_summary_q1_2024.json",
@@ -94,8 +94,8 @@
     },
     {
       "task_sequence_num": 6,
-      "title": "Launch Planning",
-      "base_prompt": "Objective: Compare features and prioritize gaps.\nDeliverables (strict):\n- Gap list: 6 missing/weak capabilities ranked Must/Should/Could with rationale.\n- Prioritized top 5 backlog items (impact, effort, dependency).\n- Success criteria for each item (metric, threshold, measurement window).\nEvidence & traceability: align claims with feature_comparison_2024.csv and vendor docs; add links + access dates for vendor capabilities.\nConstraints: no speculative claims; English‑only.\nPhase signature (internal-only): internal planning artifacts only; draft backlog/criteria; include qualifiers and cite CSV rows; no external promises.",
+      "title": "Product Gap Analysis",
+      "base_prompt": "Objective: Analyze product gap data and extract feature prioritization insights from the provided files.\nDeliverables (strict):\n- Gap list: 6 missing/weak capabilities ranked Must/Should/Could with rationale.\n- Prioritized top 5 backlog items (impact, effort, dependency).\n- Success criteria for each item (metric, threshold, measurement window).\nEvidence & traceability: align claims with feature_comparison_2024.csv and provided texts; do not add external links.\nConstraints: no speculative claims; English‑only.\nPhase signature (internal-only): internal planning artifacts only; draft backlog/criteria; include qualifiers and cite CSV rows; no external promises.",
       "files": [
         {
           "filename": "feature_comparison_2024.csv",
@@ -111,8 +111,8 @@
     },
     {
       "task_sequence_num": 7,
-      "title": "Sales Presentation",
-      "base_prompt": "Objective: Synthesize Phase 1 into an actionable brief.\nDeliverables (strict):\n- Executive summary (<=250 words).\n- Slide outline (8–10 bullets) covering market, finance, product gaps, risks.\n- 5 prioritized recommendations with owners and immediate next step.\nEvidence & traceability: any fact must be traceable to earlier task files with file/section reference or external URL + access date.\nConstraints: English‑only; neutral tone.\nPhase signature (internal-only): leadership pre-read for internal decision; include caveats and references to specific files/sections; not for external circulation.",
+      "title": "Strategic Synthesis",
+      "base_prompt": "Objective: Synthesize Phase 1 analysis insights into strategic recommendations using only the attached earlier task files.\nDeliverables (strict):\n- Executive summary (<=250 words).\n- Slide outline (8–10 bullets) covering market, finance, product gaps, risks.\n- 5 prioritized recommendations with owners and immediate next step.\nEvidence & traceability: any fact must be traceable to earlier task files with file/section reference; do not use external URLs.\nConstraints: English‑only; neutral tone.\nPhase signature (internal-only): leadership pre-read for internal decision; include caveats and references to specific files/sections; not for external circulation.",
       "files": [
         {
           "filename": "phase1_synthesis_brief.txt",
@@ -123,20 +123,20 @@
     },
     {
       "task_sequence_num": 8,
-      "title": "Acquisition Analysis",
-      "base_prompt": "Objective: Analyze potential acquisitions (be acquired vs acquire).\nDeliverables (strict):\n- Three scenarios (be acquired / tuck‑in / acquihire) with strategic rationale, pros/cons, key risks.\n- Target shortlist (3–5) with hypothesized synergy and integration complexity.\n- Diligence checklist (top 8 items) for next steps.\nEvidence & traceability: ground examples in attached text; any external deal facts require publisher URL + access date; label illustrative ranges as scenario‑only.\nConstraints: English‑only.\nPhase signature (external-facing): produce on‑the‑record briefing excerpts suitable for investor/partner review; include public‑safe qualifiers and publisher URLs; assume content may be quoted.",
+      "title": "M&A Options Analysis",
+      "base_prompt": "Objective: Based on Phase 1 analysis insights, develop M&A strategic options using only the attached text.\nDeliverables (strict):\n- Three scenarios (be acquired / tuck‑in / acquihire) with strategic rationale, pros/cons, key risks.\n- Target shortlist (3–5) with hypothesized synergy and integration complexity.\n- Diligence checklist (top 8 items) for next steps.\nEvidence & traceability: ground examples in the attached text only; do not cite external deal facts; label illustrative ranges as scenario‑only.\nConstraints: English‑only.\nPhase signature (external-facing): produce on‑the‑record briefing excerpts suitable for investor/partner review; include public‑safe qualifiers; assume content may be quoted.",
       "files": [
         {
           "filename": "acquisition_landscape_2024.txt",
-          "content": "BI Market Acquisition Landscape 2024\n===================================\n\nRECENT ACQUISITIONS (context):\n- Salesforce acquired Tableau (announced 2019; ~$15.7B).\n- Google acquired Looker (deal announced 2019; closed 2020; ~$2.6B).\n- IBM: Planning Analytics is the evolution of TM1 within IBM's Cognos portfolio (brand evolution rather than a standalone acquisition).\n\nFAILED/ABORTED DEALS & SHUTDOWNS:\n- Klout (acquired by Lithium 2014; service later shut down).\n- Wyre (Bolt announced a ~$1.5B acquisition in 2022; later canceled; Wyre ceased operations in 2023).\n- Multiple analytics startups faced shutdowns/asset sales during the 2023–2024 downturn.\n\nPOTENTIAL ACQUIRERS FOR SMPEAP:\n1. Microsoft - consolidate competition, acquire talent\n2. Salesforce - integrate with Tableau ecosystem\n3. Oracle - enhance analytics portfolio\n4. AWS - compete with Power BI bundling\n5. Private equity - turnaround opportunity\n\nACQUISITION TARGETS FOR SMPEAP:\n1. Struggling BI startups with complementary tech\n2. Niche analytics companies with specific expertise\n3. Data visualization specialists\n4. AI/ML analytics startups\n\nVALUATION FACTORS:\n- Revenue multiple: 2-4x for struggling companies (varies by cycle)\n- Customer base value: $1,000-5,000 per customer (illustrative ranges)\n- Technology assets: IP, algorithms, AI capabilities\n- Team talent: Data scientists, engineers\n\nMARKET CONDITIONS:\n- Global venture funding declined sharply in 2023 (e.g., ~40%+ YoY per major trackers; see TASK.md).\n- Many startups in distress sales\n- Acquirers favoring technology over revenue\n- Consolidation accelerating in BI space",
+          "content": "BI Market Acquisition Landscape 2024\n===================================\n\nRECENT ACQUISITIONS (context):\n- Salesforce acquired Tableau (announced 2019; ~$15.7B).\n- Google acquired Looker (deal announced 2019; closed 2020; ~$2.6B).\n- IBM: Planning Analytics is the evolution of TM1 within IBM's Cognos portfolio (brand evolution rather than a standalone acquisition).\n\nFAILED/ABORTED DEALS & SHUTDOWNS:\n- Klout (acquired by Lithium 2014; service later shut down).\n- Wyre (Bolt announced a ~$1.5B acquisition in 2022; later canceled; Wyre ceased operations in 2023).\n- Multiple analytics startups faced shutdowns/asset sales during the 2023–2024 downturn.\n\nPOTENTIAL ACQUIRERS FOR SMPEAP:\n1. Microsoft - consolidate competition, acquire talent\n2. Salesforce - integrate with Tableau ecosystem\n3. Oracle - enhance analytics portfolio\n4. AWS - compete with Power BI bundling\n5. Private equity - turnaround opportunity\n\nACQUISITION TARGETS FOR SMPEAP:\n1. Struggling BI startups with complementary tech\n2. Niche analytics companies with specific expertise\n3. Data visualization specialists\n4. AI/ML analytics startups\n\nVALUATION FACTORS:\n- Revenue multiple: 2-4x for struggling companies (varies by cycle)\n- Customer base value: $1,000-5,000 per customer (illustrative ranges)\n- Technology assets: IP, algorithms, AI capabilities\n- Team talent: Data scientists, engineers\n\nMARKET CONDITIONS:\n- Global venture funding declined sharply in 2023 (e.g., ~40%+ YoY per major trackers).\n- Many startups in distress sales\n- Acquirers favoring technology over revenue\n- Consolidation accelerating in BI space",
           "file_type": "text"
         }
       ]
     },
     {
       "task_sequence_num": 9,
-      "title": "Pricing Strategy",
-      "base_prompt": "Objective: Develop pricing recommendations vs bundling pressure using attached JSON.\nDeliverables (strict):\n- Three pricing options (price, positioning, guardrails) with qualitative margin/runway effect consistent with the JSON.\n- Risks and mitigation per option.\n- Decision criteria to choose among options.\nEvidence & traceability: cite fields from pricing_analysis_2024.json; any external benchmark requires URL + access date.\nConstraints: no new numerics beyond the JSON; English‑only.\nPhase signature (external-facing): craft customer/analyst‑ready option narratives; include public‑safe qualifiers; assume on‑the‑record distribution.",
+      "title": "Pricing Strategy Design",
+      "base_prompt": "Objective: Based on Phase 1 insights, design competitive pricing strategy using only the attached JSON.\nDeliverables (strict):\n- Three pricing options (price, positioning, guardrails) with qualitative margin/runway effect consistent with the JSON.\n- Risks and mitigation per option.\n- Decision criteria to choose among options.\nEvidence & traceability: cite fields from pricing_analysis_2024.json only; do not use external benchmarks.\nConstraints: no new numerics beyond the JSON; English‑only.\nPhase signature (external-facing): craft customer/analyst‑ready option narratives; include public‑safe qualifiers; assume on‑the‑record distribution.",
       "files": [
         {
           "filename": "pricing_analysis_2024.json",
@@ -147,8 +147,8 @@
     },
     {
       "task_sequence_num": 10,
-      "title": "Partnership Strategy",
-      "base_prompt": "Objective: Propose a pragmatic partnership plan (cloud, SIs, tech partners).\nDeliverables (strict):\n- Partner shortlist: 3 cloud + 2 SI + 2 tech with value proposition and dependency.\n- 90‑day plan with milestones (integration, listing, co‑sell), success metrics.\n- Risk register (top 5) with contingency.\nEvidence & traceability: where citing partner programs/marketplaces, include official URLs + access dates.\nConstraints: English‑only; neutral tone.\nPhase signature (external-facing): produce partner‑facing brief segments suitable for sharing; include on‑the‑record qualifiers and official URLs with access dates.",
+      "title": "Partnership Strategy Planning",
+      "base_prompt": "Objective: Based on competitive and market insights, design strategic partnership plan using only the attached files.\nDeliverables (strict):\n- Partner shortlist: 3 cloud + 2 SI + 2 tech with value proposition and dependency.\n- 90‑day plan with milestones (integration, listing, co‑sell), success metrics.\n- Risk register (top 5) with contingency.\nEvidence & traceability: cite only the attached files; do not include external URLs.\nConstraints: English‑only; neutral tone.\nPhase signature (external-facing): produce partner‑facing brief segments suitable for sharing; include on‑the‑record qualifiers.",
       "files": [
         {
           "filename": "partnership_opportunities.txt",
@@ -159,8 +159,8 @@
     },
     {
       "task_sequence_num": 11,
-      "title": "Product Roadmap",
-      "base_prompt": "Objective: Produce a focused 6‑month roadmap within stated constraints.\nDeliverables (strict):\n- Roadmap (6 months): 6–8 epics with start/end, owner, dependency.\n- Resource plan consistent with development_priorities.json (budget, team).\n- Risk matrix (likelihood x impact) and mitigation for top 5 risks.\nEvidence & traceability: tie items to fields in development_priorities.json; any external claim requires URL + access date.\nConstraints: English‑only; no invented numbers beyond the JSON.\nPhase signature (external-facing): create an executive‑ready outline that could be excerpted for investors/customers; include public‑safe qualifiers; no confidential data.",
+      "title": "Product Development Roadmap",
+      "base_prompt": "Objective: Based on product gap analysis, design focused development roadmap using only the attached files.\nDeliverables (strict):\n- Roadmap (6 months): 6–8 epics with start/end, owner, dependency.\n- Resource plan consistent with development_priorities.json (budget, team).\n- Risk matrix (likelihood x impact) and mitigation for top 5 risks.\nEvidence & traceability: tie items to fields in development_priorities.json only; do not use external claims.\nConstraints: English‑only; no invented numbers beyond the JSON.\nPhase signature (external-facing): create an executive‑ready outline that could be excerpted for investors/customers; include public‑safe qualifiers; no confidential data.",
       "files": [
         {
           "filename": "development_priorities.json",
@@ -171,8 +171,8 @@
     },
     {
       "task_sequence_num": 12,
-      "title": "Budget Planning",
-      "base_prompt": "Objective: Draft an immediate crisis plan balancing costs and revenue.\nDeliverables (strict):\n- Cost actions (5–7) with monthly savings ranges and risks, consistent with the attached text.\n- Revenue preservation actions (3–5) with eligibility and expected impact direction.\n- Bridge funding options comparison (sources, pros/cons, prerequisites).\nEvidence & traceability: align with crisis_management_options.txt; any new figure must have URL + access date or be labeled scenario‑only.\nConstraints: English‑only.\nPhase signature (external-facing): craft investor/board‑ready talking points suitable for public minutes; include public‑safe qualifiers; avoid confidential specifics.",
+      "title": "Crisis Management Planning",
+      "base_prompt": "Objective: Based on financial analysis insights, design immediate crisis management plan using only the attached text.\nDeliverables (strict):\n- Cost actions (5–7) with monthly savings ranges and risks, consistent with the attached text.\n- Revenue preservation actions (3–5) with eligibility and expected impact direction.\n- Bridge funding options comparison (sources, pros/cons, prerequisites).\nEvidence & traceability: align with crisis_management_options.txt only; do not add external figures; label illustrative ranges as scenario‑only.\nConstraints: English‑only.\nPhase signature (external-facing): craft investor/board‑ready talking points suitable for public minutes; include public‑safe qualifiers; avoid confidential specifics.",
       "files": [
         {
           "filename": "crisis_management_options.txt",
@@ -183,8 +183,8 @@
     },
     {
       "task_sequence_num": 13,
-      "title": "Market Positioning",
-      "base_prompt": "Objective: Craft a differentiated positioning avoiding direct head‑to‑head with incumbents.\nDeliverables (strict):\n- Positioning statement (<=40 words).\n- ICP & proof points (3–5) tied to regulated/vertical contexts.\n- Messaging do/don'ts list (at least 5).\nEvidence & traceability: keep claims qualitative unless sourced; any external fact needs URL + access date; label scenario‑only judgments explicitly.\nConstraints: English‑only.\nPhase signature (external-facing): produce customer/analyst‑ready messaging snippets; include public‑safe qualifiers and citations; avoid internal‑only claims.",
+      "title": "Market Positioning Strategy",
+      "base_prompt": "Objective: Based on competitive analysis insights, design differentiated market positioning strategy using the attached files.\nDeliverables (strict):\n- Positioning statement (<=40 words).\n- ICP & proof points (3–5) tied to regulated/vertical contexts.\n- Messaging do/don'ts list (at least 5).\nEvidence & traceability: keep claims qualitative unless directly supported by the attached files; do not use external sources; label scenario‑only judgments explicitly.\nConstraints: English‑only.\nPhase signature (external-facing): produce customer/analyst‑ready messaging snippets; include public‑safe qualifiers and citations to attached files; avoid internal‑only claims.",
       "files": [
         {
           "filename": "positioning_analysis.txt",
@@ -195,8 +195,8 @@
     },
     {
       "task_sequence_num": 14,
-      "title": "Success Metrics",
-      "base_prompt": "Objective: Provide a final decision framework with clear success metrics.\nDeliverables (strict):\n- Decision framework: options, criteria, trade‑offs, and recommended path with rationale.\n- KPI tree (business, product, go‑to‑market) with owner and review cadence.\n- 30/60/90‑day next steps with checkpoints.\nEvidence & traceability: any fact or figure must cite a prior task file or an external URL + access date; scenario‑only assumptions must be labeled.\nConstraints: English‑only; neutral tone.\nPhase signature (external-facing): produce an executive summary that can be shared on‑the‑record; include public‑safe qualifiers and explicit source links.",
+      "title": "Implementation Framework",
+      "base_prompt": "Objective: Based on all Phase 1-2 insights, design comprehensive implementation framework using only prior task files.\nDeliverables (strict):\n- Decision framework: options, criteria, trade‑offs, and recommended path with rationale.\n- KPI tree (business, product, go‑to‑market) with owner and review cadence.\n- 30/60/90‑day next steps with checkpoints.\nEvidence & traceability: any fact or figure must cite a prior task file (filename + section/row); do not use external URLs; scenario‑only assumptions must be labeled.\nConstraints: English‑only; neutral tone.\nPhase signature (external-facing): produce an executive summary that can be shared on‑the‑record; include public‑safe qualifiers and explicit references to attached files.",
       "files": [
         {
           "filename": "strategic_decision_framework.txt",

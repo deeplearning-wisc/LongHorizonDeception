@@ -33,7 +33,10 @@ class ResultSaver:
         stream_data = task_event_stream['stream']
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.session_name = f"{task_stream_name}_{timestamp}"
+        
+        # Use config's task_load_folder_name as folder name (short name like "market_research_series")
+        folder_name = config['task_load_folder_name']
+        self.session_name = f"{folder_name}_{timestamp}"
         
         # Store core objects
         self.task_stream_name = task_stream_name
@@ -145,13 +148,21 @@ class ResultSaver:
             f.write(f"Additional runtime information will be appended below:\n\n")
     
     def _create_stream_config_yaml(self) -> None:
-        """Create config backup with original filename"""
+        """Save original config file without environment variable expansion"""
         config_file = self.results_dir / self.config_name
         
-        with open(config_file, 'w', encoding='utf-8') as f:
-            yaml.dump(self.config, f, default_flow_style=False, indent=2)
+        # Find original config file - must exist, no fallback allowed
+        configs_dir = Path(__file__).parent.parent / 'configs'
+        original_config_path = configs_dir / self.config_name
         
-        print(f"[RESULT_SAVER] Config snapshot saved: {config_file}")
+        if not original_config_path.exists():
+            raise FileNotFoundError(f"Original config file not found: {original_config_path}. Cannot save config without exposing API keys.")
+        
+        # Directly copy original file without environment variable expansion
+        import shutil
+        shutil.copy2(original_config_path, config_file)
+        
+        print(f"[RESULT_SAVER] Original config saved: {config_file}")
     
     def _create_initial_result_json(self) -> None:
         """Create initial result.json with metadata"""

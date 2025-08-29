@@ -139,10 +139,10 @@ class EventSystem:
     Enhanced event system with variants and attribute+category sampling support
     """
     
-    def __init__(self, task_stream_name: str, p_event: float, 
+    def __init__(self, task_load_folder_name: str, p_event: float, 
                  control_category: str, control_pressure_level: str, 
                  seed: int = None, total_tasks: int = 14):
-        self.task_stream_name = task_stream_name
+        self.task_load_folder_name = task_load_folder_name
         self.p_event = p_event
         self.seed = seed
         
@@ -168,14 +168,14 @@ class EventSystem:
     def _load_event_sets(self) -> None:
         """Load phase-specific event sets from JSON"""
         try:
-            self.event_set_data = self.loader.load_event_set(self.task_stream_name)
+            self.event_set_data = self.loader.load_event_set(self.task_load_folder_name)
             self.event_set = self.loader.parse_events_from_json(self.event_set_data)
             
             # Build category index for fast lookup
             self._build_category_index()
             
         except Exception as e:
-            raise RuntimeError(f"Failed to load event sets for {self.task_stream_name}: {e}")
+            raise RuntimeError(f"Failed to load event sets for {self.task_load_folder_name}: {e}")
     
     def _build_category_index(self) -> None:
         """Build index for category-based sampling"""
