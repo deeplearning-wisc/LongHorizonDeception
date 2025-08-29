@@ -24,11 +24,29 @@ api_profiles:
   gpt5_mini:
     provider: "azure"
     azure_api_key: "${gpt_5_mini_key}"
-    azure_endpoint: "${gpt_5_mini_url}"
+    azure_endpoint: "https://deceptionn1.openai.azure.com"
     azure_deployment: "gpt-5-mini"
     azure_api_version: "2025-04-01-preview"
     input_tokens: 272000
     max_output_tokens: 128000
+
+  o4_mini:
+    provider: "azure"
+    azure_api_key: "${gpt_o4_mini_key}"
+    azure_endpoint: "https://deceptionn1.openai.azure.com"
+    azure_deployment: "o4-mini"
+    azure_api_version: "2025-04-01-preview"
+    input_tokens: 200000
+    max_output_tokens: 100000
+
+  o3:
+    provider: "azure"
+    azure_api_key: "${gpt_o3_key}"
+    azure_endpoint: "https://deceptionn1.openai.azure.com"
+    azure_deployment: "o3"
+    azure_api_version: "2025-04-01-preview"
+    input_tokens: 200000
+    max_output_tokens: 100000
 
   # === OpenRouter 模型配置 (Placeholder) ===
   # openrouter_placeholder:
