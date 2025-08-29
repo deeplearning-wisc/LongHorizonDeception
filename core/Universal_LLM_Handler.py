@@ -1,35 +1,41 @@
 # core/Universal_LLM_Handler.py
-# 统一的LLM处理器 - 支持Azure OpenAI和自动截断
+# 统一的LLM处理器 - 支持Azure OpenAI和OpenRouter
 import logging
+import requests
 from typing import Dict, Any, List, Optional
 from openai.lib.azure import AzureOpenAI
 
 class UniversalLLMHandler:
     """
-    统一的LLM客户端 - 支持Azure和自动截断
+    统一的LLM客户端 - 支持Azure OpenAI和OpenRouter
     """
     
-    def __init__(self, provider: str, config: Dict[str, Any], verbose_print: bool = False, truncation: str = "auto"):
+    # 统一的续写提示词 - 确保Azure和OpenRouter行为一致
+    CONTINUATION_PROMPT = "Continue exactly from where you left off. Do not restart, do not repeat any content, do not add any preamble or introduction. Continue the response seamlessly as if there was no interruption."
+    
+    def __init__(self, provider: str, config: Dict[str, Any], verbose_print: bool = False, overflow_truncate: bool = True):
         """
         初始化统一客户端
         
         Args:
-            provider: "azure" 
+            provider: "azure" 或 "openrouter"
             config: 提供商特定的配置
             verbose_print: 是否打印详细信息，False时只打印错误
+            overflow_truncate: 是否允许自动处理输入溢出
+                - False: 严格模式，超限直接报错（Manager/Memory必须用）
+                - True: 自动处理模式，provider自动处理溢出（默认）
         """
         self.provider = provider.lower()
         self.config = config
         self.verbose_print = verbose_print
-        self.truncation = truncation
+        self.overflow_truncate = overflow_truncate
         
         if self.provider == "azure":
             self._init_azure()
         elif self.provider == "openrouter":
-            # OpenRouter placeholder - 暂时不支持
-            raise NotImplementedError("OpenRouter support is planned but not yet implemented")
+            self._init_openrouter()
         else:
-            raise ValueError(f"Unsupported provider: {provider}. Supported: azure")
+            raise ValueError(f"Unsupported provider: {provider}. Supported: azure, openrouter")
     
     def _init_azure(self):
         """直接初始化Azure客户端 - 使用配置参数"""
@@ -60,6 +66,26 @@ class UniversalLLMHandler:
         
         if self.verbose_print:
             print(f"[UniHandler] Initialized Azure client with deployment: {self.azure_deployment}")
+
+    def _init_openrouter(self):
+        """初始化OpenRouter配置"""
+        # 检查必需的配置项
+        required_keys = ['api_key', 'model', 'base_url', 'max_tokens']
+        for key in required_keys:
+            if key not in self.config:
+                raise ValueError(f"[UniHandler] Missing required config key: {key}")
+        
+        # 从配置中获取OpenRouter参数
+        self.api_key = self.config['api_key']
+        self.model = self.config['model']
+        self.base_url = self.config['base_url']
+        self.max_tokens = self.config['max_tokens']
+        
+        # 内部维护的消息列表
+        self.messages = []
+        
+        if self.verbose_print:
+            print(f"[UniHandler] Initialized OpenRouter client with model: {self.model}")
     
     def _print(self, message: str, force: bool = False):
         """控制打印输出"""
@@ -74,12 +100,20 @@ class UniversalLLMHandler:
         """添加用户消息"""
         self.messages.append({"role": "user", "content": content})
     
-    def generate_response(self, max_iterations=5, retry=3):
+    def generate_response(self, max_iterations: int = 5, retry: int = 3):
         """生成回复并更新消息列表，带重试机制，直接返回LLM回复内容"""
         for attempt in range(retry):
             try:
                 self._print(f"[UniHandler] Attempt {attempt + 1}/{retry}")
-                final_messages, info = self.auto_continue_response(self.messages, max_iterations)
+                
+                # 根据provider路由到不同的续写方法
+                if self.provider == "azure":
+                    final_messages, info = self.auto_continue_response(self.messages, max_iterations)
+                elif self.provider == "openrouter":
+                    final_messages, info = self.auto_continue_openrouter(self.messages, max_iterations)
+                else:
+                    raise ValueError(f"Unsupported provider for generate_response: {self.provider}")
+                
                 self.messages = final_messages
                 
                 # 提取实际的LLM回复内容
@@ -122,7 +156,7 @@ class UniversalLLMHandler:
         """获取当前消息列表"""
         return self.messages.copy()
     
-    def auto_continue_response(self, messages, max_iterations=5):
+    def auto_continue_response(self, messages, max_iterations: int = 5):
         """
         自动处理 Responses API 输出截断并续写
         
@@ -146,10 +180,15 @@ class UniversalLLMHandler:
             # 构建请求参数
             request_params = {
                 "model": self.azure_deployment,
-                "truncation": self.truncation,  # Set via constructor parameter
                 "max_output_tokens": self.config["max_output_tokens"],
                 "store": True  # 必须存储以支持续写
             }
+            
+            # 根据overflow_truncate设置truncation值
+            if self.overflow_truncate:
+                request_params["truncation"] = "auto"  # 启用中段压缩
+            else:
+                request_params["truncation"] = "disabled"  # 默认值，显式禁用，超限报400
             
             if previous_response_id is None:
                 # 首次调用：传入完整消息列表
@@ -159,7 +198,7 @@ class UniversalLLMHandler:
                 # 续写调用：使用 previous_response_id + continuation input (industry standard)
                 request_params["previous_response_id"] = previous_response_id
                 # Azure OpenAI requires input parameter even for continuations
-                continuation_input = [{"role": "user", "content": "Please continue where you left off."}]
+                continuation_input = [{"role": "user", "content": self.CONTINUATION_PROMPT}]
                 request_params["input"] = continuation_input
                 self._print(f"[UniHandler] Continuation call with previous_response_id: {previous_response_id}")
             
@@ -202,6 +241,137 @@ class UniversalLLMHandler:
             "total_responses": len(responses),
             "final_length": len(full_output),
             "response_ids": [r.id for r in responses]
+        }
+        
+        return final_messages, continuation_info
+
+    def auto_continue_openrouter(self, messages, max_iterations: int = 5):
+        """
+        OpenRouter自动续写处理
+        
+        Args:
+            messages: 原始消息列表
+            max_iterations: 最大续写次数
+            
+        Returns:
+            tuple: (完整消息列表, 续写详情)
+        """
+        full_output = ""
+        current_messages = messages.copy()
+        iteration = 0
+        
+        self._print(f"[UniHandler] OpenRouter processing started with {len(messages)} messages")
+        
+        while iteration < max_iterations:
+            self._print(f"\n[UniHandler] === OpenRouter API call {iteration + 1} ===")
+            
+            # 构造请求参数
+            request_body = {
+                "model": self.model,
+                "messages": current_messages,
+                "max_tokens": self.max_tokens
+            }
+            
+            # 根据overflow_truncate设置transforms
+            if self.overflow_truncate:
+                request_body["transforms"] = ["middle-out"]  # 自动处理模式
+            else:
+                request_body["transforms"] = []  # 严格模式，明确禁用
+            
+            try:
+                # 发送请求
+                response = requests.post(
+                    f"{self.base_url}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json=request_body,
+                    timeout=180
+                )
+                
+                self._print(f"[DEBUG] HTTP Status: {response.status_code}")
+                if response.status_code != 200:
+                    # 科研代码要求：完整错误记录，绝不截断
+                    self._print(f"[DEBUG] HTTP Error Response (Full): {response.text}")
+                response.raise_for_status()
+                
+                # 健壮解析OpenRouter响应
+                data = response.json()
+                
+                # 1) 错误优先 - 严格检查不使用.get()
+                if "error" in data:
+                    err = data["error"]
+                    self._print(f"[DEBUG] Full error response: {data}")
+                    
+                    # 严格验证错误结构，不允许默认值
+                    if "message" not in err:
+                        raise Exception(f"OpenRouter Error: Invalid error format - missing 'message' field")
+                    
+                    error_msg = err["message"]
+                    error_type = err["type"] if "type" in err else "unknown_type"
+                    error_code = err["code"] if "code" in err else "unknown_code"
+                    
+                    raise Exception(f"OpenRouter Error: {error_msg} | Type: {error_type} | Code: {error_code}")
+                
+                # 2) 标准主路径 - 严格验证不使用.get()
+                if "choices" in data and data["choices"]:
+                    choice = data["choices"][0]
+                    
+                    # 严格验证message结构
+                    if "message" not in choice:
+                        raise Exception(f"OpenRouter Response Error: Missing 'message' in choice")
+                    msg = choice["message"]
+                    
+                    # 严格验证content - 科研代码不允许任何妥协
+                    if "content" not in msg:
+                        raise Exception(f"OpenRouter Response Error: Missing 'content' in message")
+                    content = msg["content"]
+                    if content is None:
+                        raise Exception(f"OpenRouter Response Error: 'content' is null")
+                    if not isinstance(content, str):
+                        raise Exception(f"OpenRouter Response Error: 'content' must be string, got {type(content)}")
+                    
+                    # 严格验证finish_reason
+                    if "finish_reason" not in choice:
+                        raise Exception(f"OpenRouter Response Error: Missing 'finish_reason' in choice")
+                    finish_reason = choice["finish_reason"]
+                    
+                else:
+                    raise Exception(f"OpenRouter Response Error: Missing or empty 'choices' field. Available keys: {list(data.keys())}")
+                
+                # 累积输出
+                full_output += content
+                
+                self._print(f"[UniHandler] Response finish_reason: {finish_reason}")
+                self._print(f"[UniHandler] Current output length: {len(content)} characters")
+                self._print(f"[UniHandler] Total output length: {len(full_output)} characters")
+                
+                # 检查是否需要续写
+                if finish_reason != "length":
+                    self._print("[UniHandler] Response completed, no continuation needed")
+                    break
+                
+                # 需要续写：构造新的消息列表（包含完整历史）
+                self._print("[UniHandler] Output truncated by length, preparing continuation...")
+                current_messages = messages + [
+                    {"role": "assistant", "content": full_output},
+                    {"role": "user", "content": self.CONTINUATION_PROMPT}
+                ]
+                iteration += 1
+                
+            except Exception as e:
+                self._print(f"[UniHandler] OpenRouter API call failed: {e}", force=True)
+                raise
+        
+        # 构建最终消息列表
+        final_messages = messages + [{"role": "assistant", "content": full_output}]
+        
+        # 返回续写信息
+        continuation_info = {
+            "total_iterations": iteration + 1,
+            "was_continued": iteration > 0,
+            "final_length": len(full_output)
         }
         
         return final_messages, continuation_info

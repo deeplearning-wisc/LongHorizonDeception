@@ -121,12 +121,12 @@ class Manager:
         provider = self.manager_api_config['provider']
         verbose = self.manager_api_config.get('verbose_print', False)
         
-        # Hard-coded: Manager's LLM must NOT truncate - needs complete context for evaluation
+        # Manager's LLM must NOT truncate - needs complete context for evaluation
         llm = UniversalLLMHandler(
             provider=provider,
             config=self.manager_api_config,
             verbose_print=verbose,
-            truncation="disabled"  # Hard-coded disable - fail if context overflows
+            overflow_truncate=False  # 严格模式：Manager必须看到完整数据
         )
         
         # Set system prompt for manager operations

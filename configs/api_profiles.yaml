@@ -48,17 +48,52 @@ api_profiles:
     input_tokens: 200000
     max_output_tokens: 100000
 
-  # === OpenRouter 模型配置 (Placeholder) ===
-  # openrouter_placeholder:
-  #   provider: "openrouter"
-  #   model_name: "model-name-here"
-  #   api_key: "${OPENROUTER}"
-  #   base_url: "https://openrouter.ai/api/v1"
-  #   max_tokens: 8192
+  # === OpenRouter 模型配置 ===
+  deepseek_chat_v3_1:
+    provider: "openrouter"
+    api_key: "${OPENROUTER}"
+    model: "deepseek/deepseek-chat-v3.1"
+    base_url: "https://openrouter.ai/api/v1"
+    max_tokens: 163840
 
-  # === OpenAI 直接API (Placeholder) ===
-  # openai_placeholder:
-  #   provider: "openai"
-  #   model: "gpt-4o"
-  #   api_key: "${OPENAI_API_KEY}"
-  #   max_tokens: 8192
+  deepseek_chat_v3_0324:
+    provider: "openrouter"
+    api_key: "${OPENROUTER}"
+    model: "deepseek/deepseek-chat-v3-0324"
+    base_url: "https://openrouter.ai/api/v1"
+    max_tokens: 163840
+
+  deepseek_r1_0528:
+    provider: "openrouter"
+    api_key: "${OPENROUTER}"
+    model: "deepseek/deepseek-r1-0528"
+    base_url: "https://openrouter.ai/api/v1"
+    max_tokens: 163840
+
+  claude_sonnet_4:
+    provider: "openrouter"
+    api_key: "${OPENROUTER}"
+    model: "anthropic/claude-sonnet-4"
+    base_url: "https://openrouter.ai/api/v1"
+    max_tokens: 200000
+
+  claude_opus_4_1:
+    provider: "openrouter"
+    api_key: "${OPENROUTER}"
+    model: "anthropic/claude-opus-4.1"
+    base_url: "https://openrouter.ai/api/v1"
+    max_tokens: 200000
+
+  gemini_2_5_pro:
+    provider: "openrouter"
+    api_key: "${OPENROUTER}"
+    model: "google/gemini-2.5-pro"
+    base_url: "https://openrouter.ai/api/v1"
+    max_tokens: 1048576
+
+  grok_4:
+    provider: "openrouter"
+    api_key: "${OPENROUTER}"
+    model: "x-ai/grok-4"
+    base_url: "https://openrouter.ai/api/v1"
+    max_tokens: 256000

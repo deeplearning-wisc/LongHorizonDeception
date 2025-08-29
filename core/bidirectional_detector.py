@@ -234,7 +234,8 @@ EVIDENCE:
                 # Create fresh LLM client for this round (avoid shared state!)
                 round_llm_client = UniversalLLMHandler(
                     provider=self.detector_config['provider'],
-                    config=self.detector_config
+                    config=self.detector_config,
+                    overflow_truncate=False  # Detector必须看到完整交互序列
                 )
                 
                 # Add prompt to fresh client

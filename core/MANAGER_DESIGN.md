@@ -1,72 +1,173 @@
-## Manager 机制学术支持（按论文组织）
+# Manager Design: Two-Stage Architecture with ManagerMemory Integration
 
-仅列出“论文如何具体支持我们的实现”，不讨论设计哲学。
+This document describes the current Manager implementation in core/manager.py, focusing on the two-stage evaluation architecture and ManagerMemory integration.
 
-### Reflexion: Language Agents with Verbal Reinforcement Learning (Shinn et al., 2023) — `https://arxiv.org/abs/2303.11366`
-- 支持点：两阶段“评估→反馈”的语言反思循环；反思写入情景记忆缓冲区；无需参数更新。
-- 对应：我们每轮先做评估推理、更新内部状态，再基于评估推理生成反馈，复用同一轮的LLM上下文。
+## Current Architecture Overview
 
-### MemoryBank: Enhancing Large Language Models with Long-Term Memory (Zhong et al., 2023) — `https://arxiv.org/abs/2305.10250`
-- 支持点：长期记忆通过“条目级独立摘要 + 更新/遗忘”维护；短期窗口内保留细节，远期以压缩表征保留可用性。
-- 对应：K-window保留最近K轮完整交互；溢出时对最早一轮做“单轮独立摘要”并移入长期摘要列表；评估期组合“近期原始JSON + 早期摘要”。
+The Manager class implements a clean two-stage design with integrated ManagerMemory system:
 
-### Generative Agents: Interactive Simulacra of Human Behavior (Park et al., 2023) — `https://arxiv.org/abs/2304.03442`
-- 支持点：内部记忆/反思驱动行为，但不直接暴露；记忆检索遵循重要性/新近性/相关性。
-- 对应：内部状态变量不对外，只输出反馈；内存上下文只在Manager私域使用。
+### Stage 1: Evaluation
+- Creates fresh LLM for each round (short lifecycle)
+- Processes LLM response with task/event context and memory history
+- Updates three-dimensional internal state
+- Generates detailed evaluation reasoning
 
-### Augmenting Language Models with Long-Term Memory (LongMem) (Wang et al., 2023) — `https://arxiv.org/abs/2306.07174`
-- 支持点：短期上下文与长期记忆解耦，通过检索/压缩组合使用以降低上下文负担。
-- 对应：我们将“最近K轮原文 + 更早摘要”在评估时合并使用，保持可达性并防溢出。
+### Stage 2: Feedback  
+- Same LLM continues conversation (context preservation)
+- Generates feedback response for the LLM
+- Uses evaluation results to guide feedback generation
 
-### Self-Refine: Iterative Refinement with Feedback (Shinn et al., 2023) — `https://arxiv.org/abs/2303.17651`
-- 支持点：利用迭代反馈进行自我修正，提升结构化输出的一致性。
-- 对应：评估与反馈均由解析器强制格式；失败时追加格式提醒并重试（最多3次）。
+## Core Components
 
-### RecallM: An Adaptable Memory Mechanism with Temporal Understanding (Kynoch et al., 2023) — `https://arxiv.org/abs/2307.02738`
-- 支持点：带时间理解的可适应记忆更新；强调记忆随着交互演化。
-- 对应：我们对溢出轮做摘要并追加到长期记忆，保持跨轮时间线索。
+### Three-Dimensional State System
+```python
+self.state = {
+    'trust_level': float,           # Long-term, deception-focused (-1.0 to 1.0)
+    'work_satisfaction': float,     # Short-term, task quality-focused (-1.0 to 1.0)
+    'relational_comfort': float     # Long-term, personal connection-focused (-1.0 to 1.0)
+}
+```
 
-### LaMemo: Language Modeling with Look-Ahead Memory (Ji et al., 2022) — `https://arxiv.org/abs/2204.07341`
-- 支持点：前瞻记忆与当前上下文的动态交互，提升长文本一致性。
-- 对应：近期原文与早期摘要共同参与评估推理，提供“当下 + 远期压缩”的联合上下文。
+**State Evolution**:
+- States update after **every round**, not per task
+- Previous state preserved for logging and comparison
+- State updates occur before returning results to ensure next evaluation uses updated context
 
-### Enhancing Large Language Model with Self-Controlled Memory Framework (Wang et al., 2023) — `https://arxiv.org/abs/2304.13343`
-- 支持点：记忆流与记忆控制器决定何时/如何读写与利用记忆。
-- 对应：Manager决定何时生成摘要、如何把记忆注入评估，而不直接暴露给工作LLM。
+### ManagerMemory Integration
+```python
+self.memory = ManagerMemory(
+    k_window=memory_k_window,              # Recent rounds kept in full detail
+    memory_llm_config=manager_api_config,  # LLM for generating summaries
+    memory_prompt=manager_memory_prompt    # Prompt for summarization
+)
+```
 
-### MemLong: Memory-Augmented Retrieval for Long-Text Modeling (2024, method family)
-- 参考：技术评述 `https://www.51cto.com/aigc/2126.html`
-- 支持点：外部检索 + 可控注意力，提升长上下文处理能力。
-- 对应：我们在评估期同时检索“近期原文 + 远期摘要”，等价于在短/长记忆层进行信息聚合。
+**Memory Lifecycle**:
+- K-window recent rounds stored in full detail
+- Overflow rounds automatically summarized and moved to long-term memory
+- Memory context injected into every evaluation
+- Complete round data preservation (no truncation)
 
-### Relational Recurrent Neural Networks (Santoro et al., 2018) — `https://arxiv.org/abs/1806.01822`
-- 支持点：关系记忆核心（RMC）展示显式记忆模块可增强长期依赖与关系推理。
-- 对应：从理论上支持“显式记忆结构 + 读取/写入策略”能稳定长期信息利用。
+## Implementation Details
 
-### Learning to Remember More with Less Memorization (Rae et al., 2019) — `https://arxiv.org/abs/1901.01347`
-- 支持点：统一写入/减少冗余的思想，强调选择性持久化关键内容。
-- 对应：我们以摘要形式压缩并只保留关键信息，减少冗余上下文。
+### Manager.__init__()
+**Purpose**: Initialize Manager with clean architecture and ManagerMemory system
+- Stores configuration and prompts
+- Initializes three-dimensional state with initial values
+- Creates ManagerMemory instance with K-window configuration
+- Formats evaluation prompt with completion threshold and max rounds
 
-### MemOS: A Memory OS for AI System（立场/综述类资料）
-- 参考：`https://cloud.tencent.com/developer/article/2540464`
-- 支持点：把记忆视为可治理的系统资源（生命周期、权限、结构抽象）。
-- 对应：与我们“短期窗口 + 长期摘要 + 私域使用”的治理思路一致。
+### Manager.evaluate()
+**Purpose**: Main evaluation method implementing two-stage processing
 
-### From Human Memory to AI Memory: A Survey（综述）
-- 参考：`https://www.themoonlight.io/zh/review/from-human-memory-to-ai-memory-a-survey-on-memory-mechanisms-in-the-era-of-llms`
-- 支持点：对AI记忆的分类与实践汇总，背书K-window与摘要压缩是主流路线之一。
-- 对应：为我们的K-window + 摘要提供综述层面的背景支持。
+**Input**: 
+- `llm_response`: Complete LLM response text
+- `task_event`: Unified task and event information
+- `current_round`: Current round number within task
 
-### Structured Memory Mechanisms for Stable Context Representation（评述）
-- 参考：`https://www.themoonlight.io/zh/review/structured-memory-mechanisms-for-stable-context-representation-in-large-language-models`
-- 支持点：显式记忆单元、门控写入、基于注意力的读取等结构化机制。
-- 对应：与我们的“显式持久摘要 + 读取时组合”一致。
+**Output**: Complete state transition information for result_saver
 
-### MemEngine: A Unified and Modular Memory Library（工程评述）
-- 参考：`https://www.themoonlight.io/zh/review/memengine-a-unified-and-modular-library-for-developing-advanced-memory-of-llm-based-agents`
-- 支持点：模块化记忆操作（写入/更新/检索）的工程化总结。
-- 对应：从工程角度背书我们把“生成摘要/读取记忆/组合上下文”拆分为清晰步骤。
+**Process Flow**:
+1. Extract task and event from unified object
+2. Store previous state for comparison
+3. Create fresh LLM for this round
+4. Stage 1: Evaluation with memory context
+5. Stage 2: Feedback generation (same LLM)
+6. **Critical**: Update internal state before returning
+7. Add complete round data to memory
+8. Return structured results
 
+### Two-Stage Processing Details
 
+#### Stage 1: _stage1_evaluation()
+- Retrieves memory context from ManagerMemory
+- Builds comprehensive evaluation context with task info, event info, LLM response, current state, and memory
+- Uses retry mechanism (max 3 attempts) with format reminders
+- Returns parsed evaluation results with state updates
 
+#### Stage 2: _stage2_feedback() 
+- Continues same LLM conversation (context preserved)
+- Generates feedback based on evaluation results
+- Uses retry mechanism for robust parsing
+- Returns structured feedback results
 
+### Memory Management Integration
+
+#### _add_to_memory()
+**Purpose**: Add complete round data to ManagerMemory system
+- Preserves complete task information (no truncation)
+- Stores full LLM response (complete preservation)
+- Records evaluation and feedback results
+- Includes previous and new state information
+
+**Data Structure**:
+```python
+round_data = {
+    'task': {
+        'title': task.title,
+        'base_prompt': task.base_prompt,  # Complete preservation
+        'files': [complete file data]    # All file content preserved
+    },
+    'event': event_info,                  # Complete event information
+    'llm_response': llm_response,         # Complete preservation - no truncation
+    'manager_evaluation': {               # Complete evaluation record
+        'evaluation_reasoning': str,
+        'state_updates': {...},
+        'feedback_reasoning': str,
+        'feedback_response': str,
+        'task_complete': bool
+    }
+}
+```
+
+## Academic Foundations
+
+### Reflexion: Language Agents with Verbal Reinforcement Learning (Shinn et al., 2023)
+**Implementation Mapping**:
+- Two-stage "evaluation→feedback" matches verbal reinforcement learning
+- Internal state updates correspond to agent self-reflection
+- Memory integration enables cross-temporal learning
+
+### MemoryBank: Enhancing Large Language Models with Long-Term Memory (Zhong et al., 2023)  
+**Implementation Mapping**:
+- K-window mechanism preserves recent detailed context
+- Automatic summarization compresses older interactions
+- Combined context (recent + summarized) provides comprehensive memory
+
+### Generative Agents: Interactive Simulacra of Human Behavior (Park et al., 2023)
+**Implementation Mapping**:
+- Internal state evolution drives behavior changes
+- Memory system enables pattern recognition across interactions
+- Private memory context not exposed to evaluated LLM
+
+## Error Handling and Scientific Standards
+
+### Fail-Fast Principle
+- All parsing failures result in RuntimeError after retry exhaustion
+- No silent failures or default values
+- Complete error context preservation for debugging
+
+### Scientific Data Integrity
+- Complete data preservation (no truncation of LLM responses or task content)
+- Strict key checking (no .get() with defaults)
+- Atomic memory operations
+- Comprehensive logging of all state transitions
+
+## Key Differences from Legacy Implementation
+
+### Removed Components
+- **ManagerHistory class**: Replaced by ManagerMemory
+- **summary_level configuration**: Replaced by K-window mechanism
+- **truncation parameters**: Completely removed for scientific integrity
+
+### Enhanced Components  
+- **Two-stage evaluation**: Single LLM context across evaluation and feedback
+- **Memory summarization**: Automatic LLM-powered compression of overflow rounds
+- **State persistence**: Three-dimensional state with explicit lifecycle management
+- **Error resilience**: Retry mechanisms with format guidance
+
+## Current Status
+- **Implementation**: Complete and functional
+- **Integration**: Fully integrated with main.py experiment flow
+- **Testing**: Verified with scientific coding standards compliance
+- **Memory**: K-window=3 default, configurable per experiment

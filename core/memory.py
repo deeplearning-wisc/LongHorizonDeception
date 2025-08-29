@@ -116,7 +116,7 @@ class ManagerMemory:
                 provider=self.memory_llm_config['provider'],
                 config=self.memory_llm_config,
                 verbose_print=False,
-                truncation="disabled"  # Memory summaries need complete context
+                overflow_truncate=False  # 严格模式：Memory摘要需要完整数据
             )
             fresh_llm.set_system_prompt(self.memory_prompt)
             
