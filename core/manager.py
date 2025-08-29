@@ -229,8 +229,6 @@ Please evaluate the LLM based on the information above.
         # Build feedback context
         feedback_context = self.feedback_prompt
         
-        #want to make sure the context is continous, so get the msg list and print in purple
-        # print(f"\033[95m[Manager] Feedback context: {round_llm.get_messages()}\033[0m")
 
         # Feedback generation with retry
         max_attempts = 3
@@ -249,7 +247,9 @@ Please evaluate the LLM based on the information above.
                 parsed = LLMResponseParser.parse_feedback_response(
                     feedback_response, attempt, max_attempts
                 )
-                
+                # #want to make sure the context is continous, so get the msg list and print in purple
+                # print(f"\033[95m[Manager] Feedback context: {round_llm.get_messages()}\033[0m")
+
                 return parsed
                 
             except RetryableParseError as e:

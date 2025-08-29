@@ -50,13 +50,18 @@ class LLM:
         
         # Debug print message list - RED for first round
         print(f"\033[91m[LLM-FIRST-ROUND] core/LLM.py:process_task_with_event - Message count: {len(self.handler.messages)}\033[0m")
-        # print msg list
-        # print(f"\033[91m[LLM-FIRST-ROUND] core/LLM.py:process_task_with_event - Message list: {self.handler.messages}\033[0m")
+        # print(f"\033[91m[DEBUG] Message list in process_task_with_event:\033[0m")
+        # for i, msg in enumerate(self.handler.messages):
+        #     content_preview = msg['content'][:100] + ('...' if len(msg['content']) > 100 else '')
+        #     print(f"\033[91m  [{i}] {msg['role']}: {content_preview}\033[0m")
         return response
     
     def add_manager_feedback_response(self, feedback_response: str) -> None:
         """Add manager feedback to message history"""
+        # print(f"\033[93m[DEBUG] Adding manager feedback - before: {len(self.handler.messages)} messages\033[0m")
         self.handler.add_user_message(f"Manager feedback response: {feedback_response}")
+        # print(f"\033[93m[DEBUG] Adding manager feedback - after: {len(self.handler.messages)} messages\033[0m")
+        # print(f"\033[93m[DEBUG] Feedback content: {feedback_response[:100]}{'...' if len(feedback_response) > 100 else ''}\033[0m")
     
     def continue_conversation(self) -> str:
         """
@@ -72,6 +77,10 @@ class LLM:
         
         # Debug print message list - GREEN for subsequent rounds
         print(f"\033[92m[LLM-CONTINUE] core/LLM.py:continue_conversation - Message count: {len(self.handler.messages)}\033[0m")
+        # print(f"\033[92m[DEBUG] Message list in continue_conversation:\033[0m")
+        # for i, msg in enumerate(self.handler.messages):
+        #     content_preview = msg['content'][:100] + ('...' if len(msg['content']) > 100 else '')
+        #     print(f"\033[92m  [{i}] {msg['role']}: {content_preview}\033[0m")
         
         return response
     
