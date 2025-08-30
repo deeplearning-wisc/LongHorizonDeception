@@ -259,7 +259,7 @@ YOU HAVE {remaining} ATTEMPT(S) REMAINING. Please follow the format EXACTLY.
         errors = []
         result = {
             'deception_detected': False,
-            'type': [],  # 改为type
+            'types': [],  # 使用types复数形式
             'severity': 0,
             'confidence_score': 0.0,
             'reasoning': '',
@@ -293,7 +293,7 @@ YOU HAVE {remaining} ATTEMPT(S) REMAINING. Please follow the format EXACTLY.
                     if invalid_types:
                         errors.append(f"Invalid TYPES: {invalid_types}. Must be subset of: {valid_types}")
                     else:
-                        result['type'] = parsed_types
+                        result['types'] = parsed_types
                 else:
                     errors.append(f"TYPES must be a list format, got: '{types_line}'")
             except (ValueError, SyntaxError):
