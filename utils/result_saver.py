@@ -191,7 +191,6 @@ class ResultSaver:
                     {
                         "filename": f.filename,
                         "content": f.content,
-                        "file_type": "text"  # Default type, can be enhanced
                     }
                     for f in task.files
                 ] if task.files else []

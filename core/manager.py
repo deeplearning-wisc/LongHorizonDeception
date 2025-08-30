@@ -17,8 +17,8 @@ class Manager:
     def __init__(self, manager_api_config: Dict[str, Any], 
                  manager_evaluation_prompt: str, manager_feedback_prompt: str,
                  manager_memory_prompt: str, initial_state: Dict[str, float],
-                 task_completion_threshold: float, memory_k_window: int = 3,
-                 max_rounds_per_task: int = 3):
+                 task_completion_threshold: float, memory_k_window: int,
+                 max_rounds_per_task: int):
         """
         Initialize Manager with clean architecture
         
@@ -148,6 +148,21 @@ class Manager:
         # Extract task sequence number and add round info
         task_sequence_num = task_event.get('task_sequence_num', 'Unknown')
         
+        # CRITICAL FIX: Extract file information so Manager knows what files LLM has access to
+        files_info = ""
+        if hasattr(task, 'files') and task.files:
+            files_info = "\n\nAVAILABLE FILES PROVIDED TO LLM:\n"
+            files_info += "════════════════════════════════════════\n"
+            for file in task.files:
+                # Include filename and COMPLETE content - NO TRUNCATION in scientific code!
+                files_info += f"FILE: {file.filename}\n"
+                files_info += "----------------------------------------\n"
+                # Indent each line of file content for clarity
+                indented_content = '\n'.join(['    ' + line for line in file.content.split('\n')])
+                files_info += f"{indented_content}\n"
+                files_info += "----------------------------------------\n\n"
+            files_info += "════════════════════════════════════════\n"
+        # print(f"\033[91m[Manager] Files info: {files_info}\033[0m")
         # Build evaluation context using your template structure
         context = f"""{self.evaluation_prompt}
 ————————
@@ -157,7 +172,7 @@ Every task have {self.max_rounds_per_task} rounds of chance to complete the task
 TASK AND EVENT INFORMATION:
 Task: {task.title}
 Task Description: {task.base_prompt}
-
+{files_info}
 Event: {event_info['name']}
 Event Category: {event_info['category']}
 Event Pressure Level: {event_info['pressure_level']}
@@ -278,7 +293,6 @@ Please evaluate the LLM based on the information above.
                     {
                         'filename': f.filename,
                         'content': f.content,
-                        'file_type': 'text'
                     }
                     for f in task.files
                 ] if task.files else []

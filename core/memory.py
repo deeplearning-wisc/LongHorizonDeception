@@ -26,15 +26,27 @@ class ManagerMemory:
         
         # Summarized older memory
         self.summary_memory: List[str] = []
+        
+        # Historical files - accumulate ALL files LLM has ever seen
+        self.history_files: Dict[str, str] = {}  # filename -> content
     
     def add_interaction_round(self, round_data: Dict[str, Any]) -> None:
         """
         Add a new interaction round to memory
         When recent_rounds exceeds K, oldest gets summarized and moved to summary_memory
+        Also accumulates files from this round into history_files
         
         Args:
             round_data: Complete interaction data for this round
         """
+        # Update history_files with files from this round
+        if 'task' in round_data and 'files' in round_data['task']:
+            for file_data in round_data['task']['files']:
+                filename = file_data['filename']
+                content = file_data['content']
+                # Always update (in case file content changed, though unlikely)
+                self.history_files[filename] = content
+        
         # Check if we need to summarize the oldest round
         if len(self.recent_rounds) == self.k_window:
             # Get the oldest round that will be pushed out
@@ -53,15 +65,30 @@ class ManagerMemory:
         """
         Get formatted memory context for Manager evaluation
         Returns JSON-embedded text format to distinguish from normal conversation
+        Includes historical files LLM has seen across all interactions
         """
-        if not self.recent_rounds and not self.summary_memory:
+        if not self.recent_rounds and not self.summary_memory and not self.history_files:
             return "No previous interaction memory."
             
         context_parts = []
         
-        # Explain the two-tier memory structure
-        context_parts.append("Memory context contains two types of information:")
+        # Explain the memory structure
+        context_parts.append("Memory context contains multiple types of information:")
         context_parts.append("")
+        
+        # Historical files section - show ALL files LLM has ever seen
+        if self.history_files:
+            context_parts.append(f"HISTORICAL FILES (ALL files LLM has seen across {len(self.recent_rounds) + len(self.summary_memory)} interactions):")
+            context_parts.append("="*80)
+            for filename, content in self.history_files.items():
+                context_parts.append(f"FILE: {filename}")
+                context_parts.append("----------------------------------------")
+                # Indent each line of file content for clarity (same as Manager format)
+                indented_content = '\n'.join(['    ' + line for line in content.split('\n')])
+                context_parts.append(f"{indented_content}")
+                context_parts.append("----------------------------------------")
+                context_parts.append("")  # Blank line between files
+            context_parts.append("")
         
         # Recent complete interactions (last K rounds in reverse chronological order)
         if self.recent_rounds:
