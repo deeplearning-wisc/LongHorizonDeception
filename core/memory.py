@@ -2,6 +2,7 @@ from typing import Dict, List, Any, Optional
 from collections import deque
 import json
 from core.Universal_LLM_Handler import UniversalLLMHandler
+from utils.json_to_text_formatter import format_memory_for_llm
 
 class ManagerMemory:
     """
@@ -98,14 +99,14 @@ class ManagerMemory:
             # Reverse the order - most recent first, numbered continuously
             recent_list = list(self.recent_rounds)
             for i, round_data in enumerate(reversed(recent_list)):
-                # Format as embedded JSON for system-like appearance
-                round_json = json.dumps(round_data, indent=2, ensure_ascii=False)
+                # Format as LLM-friendly text (not JSON)
+                round_text = format_memory_for_llm(round_data)
                 
                 # Continuous numbering: 1_ROUND_BEFORE, 2_ROUNDS_BEFORE, etc.
                 rounds_before = i + 1
                 label = f"[{rounds_before}_ROUND{'S' if rounds_before > 1 else ''}_BEFORE]"
                 
-                context_parts.append(f"{label} {round_json}")
+                context_parts.append(f"{label}\n{round_text}")
                 context_parts.append("-"*40)  # Clear separator between rounds
             
             context_parts.append("")
@@ -147,8 +148,11 @@ class ManagerMemory:
             )
             fresh_llm.set_system_prompt(self.memory_prompt)
             
-            # User input is the complete round data
-            fresh_llm.add_user_message(round_json)
+            # User input as LLM-friendly text format (not JSON)
+            round_text = format_memory_for_llm(round_data)
+            fresh_llm.add_user_message(round_text)
+            #print round_text in terminal red
+            # print(f"\033[91m[ManagerMemory] Round text: {round_text}\033[0m")
             summary = fresh_llm.generate_response()
             
             # Debug print - MAGENTA for memory summary

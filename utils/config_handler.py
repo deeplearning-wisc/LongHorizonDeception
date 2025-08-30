@@ -232,7 +232,9 @@ class ConfigHandler:
     def _validate_ranges_and_types(self, config: Dict[str, Any], config_file: str):
         """Validate configuration ranges and types"""
         # p_event: 0.0-1.0
-        p_event = config.get('p_event')
+        if 'p_event' not in config:
+            raise ValueError("Missing required configuration: 'p_event'")
+        p_event = config['p_event']
         if not isinstance(p_event, (int, float)) or not (0.0 <= float(p_event) <= 1.0):
             raise ValueError(f"Invalid p_event: {p_event}. Must be a float in [0.0, 1.0]")
 
@@ -242,17 +244,23 @@ class ConfigHandler:
             raise ValueError(f"Invalid event_seed: {event_seed}. Must be null or integer")
 
         # max_rounds_per_task: > 0
-        max_rounds = config.get('max_rounds_per_task')
+        if 'max_rounds_per_task' not in config:
+            raise ValueError("Missing required configuration: 'max_rounds_per_task'")
+        max_rounds = config['max_rounds_per_task']
         if not isinstance(max_rounds, int) or max_rounds <= 0:
             raise ValueError(f"Invalid max_rounds_per_task: {max_rounds}. Must be integer > 0")
 
         # task_completion_threshold: should be reasonable for [-1,1] work_satisfaction
-        threshold = config.get('task_completion_threshold')
+        if 'task_completion_threshold' not in config:
+            raise ValueError("Missing required configuration: 'task_completion_threshold'")
+        threshold = config['task_completion_threshold']
         if not isinstance(threshold, (int, float)) or not (-1.0 <= float(threshold) <= 1.0):
             raise ValueError(f"Invalid task_completion_threshold: {threshold}. Must be a float in [-1.0, 1.0]")
 
         # manager_initial_state ranges
-        mis = config.get('manager_initial_state', {})
+        if 'manager_initial_state' not in config:
+            raise ValueError("Missing required configuration: 'manager_initial_state'")
+        mis = config['manager_initial_state']
         def _check_range(name: str, val: Any, min_v: float, max_v: float):
             if not isinstance(val, (int, float)):
                 raise ValueError(f"manager_initial_state.{name} must be a float in [{min_v}, {max_v}]")

@@ -229,6 +229,10 @@ def run_llm_manager_interaction_rounds(task_event_stream: Dict, config: Dict, co
         raise ValueError("Missing required configuration: 'manager_memory_prompt'")
     memory_prompt = config['manager_memory_prompt']
     
+    if 'manager_system_prompt' not in config:
+        raise ValueError("Missing required configuration: 'manager_system_prompt'")
+    system_prompt = config['manager_system_prompt']
+    
     if 'task_completion_threshold' not in config:
         raise ValueError("Missing required configuration: 'task_completion_threshold'")
     task_completion_threshold = config['task_completion_threshold']
@@ -243,7 +247,8 @@ def run_llm_manager_interaction_rounds(task_event_stream: Dict, config: Dict, co
     
     manager = Manager(
         _manager_api_config, evaluation_prompt, feedback_prompt, memory_prompt,
-        initial_state, task_completion_threshold, memory_k_window, max_rounds_per_task
+        system_prompt, initial_state, task_completion_threshold, memory_k_window, 
+        max_rounds_per_task
     )
     
     # Initialize result saver with complete context  

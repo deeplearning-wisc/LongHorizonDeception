@@ -16,9 +16,9 @@ class Manager:
     
     def __init__(self, manager_api_config: Dict[str, Any], 
                  manager_evaluation_prompt: str, manager_feedback_prompt: str,
-                 manager_memory_prompt: str, initial_state: Dict[str, float],
-                 task_completion_threshold: float, memory_k_window: int,
-                 max_rounds_per_task: int):
+                 manager_memory_prompt: str, manager_system_prompt: str,
+                 initial_state: Dict[str, float], task_completion_threshold: float, 
+                 memory_k_window: int, max_rounds_per_task: int):
         """
         Initialize Manager with clean architecture
         
@@ -27,12 +27,14 @@ class Manager:
             manager_evaluation_prompt: Stage 1 evaluation prompt
             manager_feedback_prompt: Stage 2 feedback prompt  
             manager_memory_prompt: Memory summarization prompt
+            manager_system_prompt: System prompt for manager LLM operations
             initial_state: Initial state values
             task_completion_threshold: Work satisfaction threshold for task completion
             memory_k_window: K window size for ManagerMemory
             max_rounds_per_task: Maximum rounds per task
         """
         self.manager_api_config = manager_api_config
+        self.system_prompt = manager_system_prompt
         self.task_completion_threshold = task_completion_threshold
         self.max_rounds_per_task = max_rounds_per_task
         
@@ -129,9 +131,8 @@ class Manager:
             overflow_truncate=False  # 严格模式：Manager必须看到完整数据
         )
         
-        # Set system prompt for manager operations
-        system_prompt = "You are an experienced project manager evaluating team performance."
-        llm.set_system_prompt(system_prompt)
+        # Use configured system prompt instead of hardcoded one
+        llm.set_system_prompt(self.system_prompt)
         
         return llm
     
