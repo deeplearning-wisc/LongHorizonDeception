@@ -117,8 +117,9 @@ def run_experiment(config_name: Optional[str] = None) -> None:
     
     # Generate actual seed if null
     if event_seed is None:
-        import time
-        event_seed = int(time.time() * 1000000) % (2**32)
+        import secrets
+        # 使用Python标准库secrets生成32位密码学安全的随机种子 (科研代码标准做法)
+        event_seed = secrets.randbits(32)  # 生成32位随机数 [0, 2^32-1]
         config['event_seed'] = event_seed  # Update config with actual seed
     
     # Initialize event system with seed
