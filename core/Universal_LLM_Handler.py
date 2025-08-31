@@ -190,6 +190,13 @@ class UniversalLLMHandler:
             else:
                 request_params["truncation"] = "disabled"  # 默认值，显式禁用，超限报400
             
+            # 添加reasoning支持（GPT-5/o-series专属）
+            if "reasoning_effort" in self.config:
+                request_params["reasoning"] = {
+                    "effort": self.config["reasoning_effort"]
+                }
+                self._print(f"[UniHandler] Using reasoning effort: {self.config['reasoning_effort']}")
+            
             if previous_response_id is None:
                 # 首次调用：传入完整消息列表
                 request_params["input"] = messages

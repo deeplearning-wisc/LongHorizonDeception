@@ -177,10 +177,10 @@ class BidirectionalDetector:
         
         for attempt in range(1, max_attempts + 1):
             try:
-                # Create fresh LLM client for this round
+                # Create fresh LLM client for this round (using gpt5_azure_detector config with reasoning_effort="high")
                 round_llm_client = UniversalLLMHandler(
                     provider=self.detector_config['provider'],
-                    config=self.detector_config,
+                    config=self.detector_config,  # Already contains reasoning_effort="high" from gpt5_azure_detector
                     overflow_truncate=False
                 )
                 
@@ -191,7 +191,7 @@ class BidirectionalDetector:
                 round_llm_client.add_user_message(current_prompt)
                 response = round_llm_client.generate_response()
                 
-                print(f"\033[96m[DETECTOR] Generated detection for round {global_round}\033[0m")
+                print(f"\033[96m[DETECTOR] Generated detection for round {global_round} (reasoning_effort=high)\033[0m")
                 
                 # 使用统一的LLMResponseParser
                 analysis_result = LLMResponseParser.parse_detector_response(response, attempt, max_attempts)
@@ -382,18 +382,17 @@ def main():
     config_handler = ConfigHandler()
     config = config_handler.load_config_from_file(config_file)
     
-    # Hardcode detector to use gpt5_azure - override config  
-    # Load API profiles to get gpt5_azure config
+    # Hardcode detector to use gpt5_azure_detector - override config  
+    # Load API profiles to get gpt5_azure_detector config with reasoning_effort="high"
     config_handler_for_api = ConfigHandler()
     api_profiles = config_handler_for_api._load_api_profiles()
     
-    if 'gpt5_azure' not in api_profiles['api_profiles']:
-        raise ValueError("FATAL: gpt5_azure not found in api_profiles.yaml")
+    if 'gpt5_azure_detector' not in api_profiles['api_profiles']:
+        raise ValueError("FATAL: gpt5_azure_detector not found in api_profiles.yaml")
         
-    gpt5_config = api_profiles['api_profiles']['gpt5_azure'].copy()
-    detector_config = gpt5_config  # Direct gpt5_azure config
+    detector_config = api_profiles['api_profiles']['gpt5_azure_detector'].copy()
     
-    print(f"Detector model: gpt-5 (hardcoded, prompt hardcoded)")
+    print(f"Detector model: gpt-5 with reasoning_effort=high (hardcoded)")
     
     # Initialize detector with atomic parallel architecture
     detector = BidirectionalDetector(
@@ -404,16 +403,24 @@ def main():
     
     print(f"\nStarting atomic parallel analysis with {args.max_parallel} workers...")
     
-    # === 新的原子化流程 ===
+    # Phase 1: Parallel analysis across all rounds
+    all_analyses = detector.analyze_all_rounds_parallel()
     
-    # 步骤1: 并行分析所有轮次（原子操作）
-    analyses = detector.analyze_all_rounds_parallel()
+    # Phase 2: Generate statistics
+    statistics = detector.generate_statistics(all_analyses)
     
-    # 步骤2: 生成统计摘要（按修正的指标）
-    summary = detector.generate_statistics(analyses)
+    # Phase 3: Save results
+    detector.save_results(statistics, all_analyses)
     
-    # 步骤3: 保存结果（仅JSON格式）
-    detector.save_results(summary, analyses)
+    # Display summary
+    print(f"\n=== BIDIRECTIONAL DETECTOR SUMMARY ===")
+    print(f"Total rounds analyzed: {statistics['total_rounds']}")
+    print(f"Deception occurrences: {statistics['deception_occurrences']}")
+    print(f"Deception rate: {statistics['deception_rate']:.1%}")
+    print(f"Average severity (all rounds): {statistics['severity_average_all_rounds']:.2f}")
+    print(f"Average severity (deception only): {statistics['severity_average_deception_only']:.2f}")
+    
+    return statistics, all_analyses
 
 
 if __name__ == "__main__":

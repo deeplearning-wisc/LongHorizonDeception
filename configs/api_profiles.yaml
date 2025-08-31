@@ -21,6 +21,16 @@ api_profiles:
     input_tokens: 272000
     max_output_tokens: 128000         # 改为 max_output_tokens（Responses API）
 
+  gpt5_azure_detector:
+    provider: "azure"
+    azure_api_key: "${gpt_5_key}"
+    azure_endpoint: "https://deceptionn1.openai.azure.com"
+    azure_deployment: "gpt-5"
+    azure_api_version: "2025-04-01-preview"
+    input_tokens: 272000
+    max_output_tokens: 128000
+    reasoning_effort: "high"          # 提高判断一致性，更深度推理
+
   gpt5_mini:
     provider: "azure"
     azure_api_key: "${gpt_5_mini_key}"
