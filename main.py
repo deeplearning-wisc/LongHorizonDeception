@@ -356,12 +356,15 @@ def run_llm_manager_interaction_rounds(task_event_stream: Dict, config: Dict, co
                 llm_response, manager_result
             )
             
-            # 4. Check task completion
+            # 4. ALWAYS add manager feedback (even for completed tasks)
+            # This ensures LLM learns what responses satisfy the Manager
+            llm.add_manager_feedback_response(manager_raw_result['feedback_response'])
+            
+            # 5. Check task completion
             if task_complete:
                 break
             
-            # 5. Add manager feedback, prepare for next round
-            llm.add_manager_feedback_response(manager_raw_result['feedback_response'])
+            # 6. Prepare for next round if not complete
             round_num += 1
         
         if round_num > max_rounds_per_task:

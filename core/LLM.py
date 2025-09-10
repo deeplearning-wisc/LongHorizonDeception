@@ -51,9 +51,9 @@ class LLM:
         # Debug print message list - RED for first round
         print(f"\033[91m[LLM-FIRST-ROUND] core/LLM.py:process_task_with_event - Message count: {len(self.handler.messages)}\033[0m")
         # print(f"\033[91m[DEBUG] Message list in process_task_with_event:\033[0m")
-        # for i, msg in enumerate(self.handler.messages):
-        #     content_preview = msg['content'][:100] + ('...' if len(msg['content']) > 100 else '')
-        #     print(f"\033[91m  [{i}] {msg['role']}: {content_preview}\033[0m")
+        for i, msg in enumerate(self.handler.messages):
+            content_preview = msg['content'][:100] + ('...' if len(msg['content']) > 100 else '')
+            print(f"\033[91m  [{i}] {msg['role']}: {content_preview}\033[0m")
         return response
     
     def add_manager_feedback_response(self, feedback_response: str) -> None:
