@@ -6,3 +6,5 @@ pandas
 numpy
 tenacity
 pyyaml
+markdown-it-py
+mdit-py-plugins
