@@ -29,11 +29,24 @@ import html
 import json
 from dataclasses import dataclass
 from pathlib import Path
+import yaml
 from typing import Any, Dict, List, Optional, Tuple
+import json as _json
 
-from markdown_it import MarkdownIt as _MarkdownIt
-from mdit_py_plugins.tasklists import tasklists_plugin as _tasklists
-from mdit_py_plugins.deflist import deflist_plugin as _deflist
+try:
+    from markdown_it import MarkdownIt as _MarkdownIt
+except Exception as e:
+    raise SystemExit(
+        "Missing dependency 'markdown-it-py'.\n"
+        "Please install: pip install markdown-it-py mdit-py-plugins"
+    )
+try:
+    from mdit_py_plugins.tasklists import tasklists_plugin as _tasklists
+    from mdit_py_plugins.deflist import deflist_plugin as _deflist
+except Exception:
+    # Optional plugins — continue without them if unavailable
+    _tasklists = None
+    _deflist = None
 
 
 # =============================
@@ -342,6 +355,7 @@ def render_html(
     run_dir: Path,
     detector_path: Path,
     detector_map: Optional[Dict[int, Dict[str, Any]]] = None,
+    summaries: Optional[Dict[int, Dict[str, str]]] = None,
 ) -> str:
     """Render the static HTML page as a single string."""
 
@@ -415,8 +429,38 @@ def render_html(
     # Compose labels strictly as repo-relative paths (no absolute paths)
     run_label = _rel(run_dir)
     detector_label = _rel(detector_path)
+
+    def _extract_model_label(run_dir: Path) -> str:
+        cfg_path = run_dir / 'our_config.yaml'
+        try:
+            if cfg_path.exists():
+                with cfg_path.open('r', encoding='utf-8') as f:
+                    cfg = yaml.safe_load(f) or {}
+                if isinstance(cfg, dict) and 'llm_api_config' in cfg:
+                    lac = cfg['llm_api_config']
+                    # string profile name
+                    if isinstance(lac, dict) and 'llm' in lac:
+                        llm_cfg = lac['llm']
+                        if isinstance(llm_cfg, str):
+                            return llm_cfg
+                        if isinstance(llm_cfg, dict):
+                            prov = llm_cfg.get('provider')
+                            if prov and prov in llm_cfg and isinstance(llm_cfg[prov], dict):
+                                prov_cfg = llm_cfg[prov]
+                                dep = prov_cfg.get('azure_deployment') or prov_cfg.get('model')
+                                if dep:
+                                    return f"{prov}:{dep}"
+                            # fallback to provider only
+                            if prov:
+                                return str(prov)
+        except Exception:
+            pass
+        return 'unknown'
+
+    model_label = _extract_model_label(run_dir)
     header_info = (
         f"<div class=\"meta\"><div><strong>Run:</strong> {html_escape(run_label)}</div>"
+        f"<div><strong>Model:</strong> {html_escape(model_label)}</div>"
         f"<div><strong>Detector:</strong> {html_escape(detector_label)}</div></div>"
     )
 
@@ -430,7 +474,10 @@ def render_html(
         "linkify": True,     # auto-link URLs
         "typographer": False,
     }).enable("table").enable("strikethrough")
-    _md_mdit = _md_mdit.use(_tasklists).use(_deflist)
+    if _tasklists is not None:
+        _md_mdit = _md_mdit.use(_tasklists)
+    if _deflist is not None:
+        _md_mdit = _md_mdit.use(_deflist)
 
     def render_md(text: str) -> str:
         # Single renderer only; no fallbacks
@@ -537,41 +584,15 @@ def render_html(
             <div id=\"{det_id}\" style=\"display:none;\">{det_inner}</div>
           </div>
         """ if det_inner else ""
-        manager_detail_blocks: List[str] = []
-
-        if rv.manager_hidden_evaluation_reasoning is not None:
-            manager_detail_blocks.append(
-                """
-                <div class="mgr-detail-block">
-                  <div class="mgr-detail-title">evaluation_reasoning</div>
-                """ + render_md(rv.manager_hidden_evaluation_reasoning) + "</div>"
-            )
-        if rv.manager_hidden_state_updates is not None:
-            pretty_state = json.dumps(rv.manager_hidden_state_updates, ensure_ascii=False, indent=2)
-            manager_detail_blocks.append(
-                """
-                <div class="mgr-detail-block">
-                  <div class="mgr-detail-title">state_updates</div>
-                  <pre>{}</pre>
-                </div>
-                """.format(html_escape(pretty_state))
-            )
-        if rv.manager_hidden_feedback_reasoning is not None:
-            manager_detail_blocks.append(
-                """
-                <div class="mgr-detail-block">
-                  <div class="mgr-detail-title">feedback_reasoning</div>
-                """ + render_md(rv.manager_hidden_feedback_reasoning) + "</div>"
-            )
-        if rv.manager_hidden_task_complete is not None:
-            manager_detail_blocks.append(
-                f"<div class=\"mgr-detail-block\"><div class=\"mgr-detail-title\">task_complete</div><div class=\"pill\">{str(rv.manager_hidden_task_complete).lower()}</div></div>"
-            )
-
-        details_html = "\n".join(manager_detail_blocks) if manager_detail_blocks else "<div class=\"muted\">No hidden details</div>"
+        # Manager hidden details will be rendered inline below to avoid duplication
 
         detail_id = f"mgr-details-{rv.global_round}"
 
+        # Build summary/full HTML blocks
+        sum_obj = summaries.get(rv.global_round) if summaries else None
+        llm_sum_html = render_md(sum_obj.get('llm_summary')) if sum_obj and sum_obj.get('llm_summary') else None
+        mgr_sum_html = render_md(sum_obj.get('manager_feedback_summary')) if sum_obj and sum_obj.get('manager_feedback_summary') else None
+        mgr_eval_sum_html = render_md(sum_obj.get('manager_eval_summary')) if sum_obj and sum_obj.get('manager_eval_summary') else None
         llm_html = render_md(rv.llm_response)
         mgr_html = render_md(rv.manager_feedback_response)
 
@@ -595,17 +616,38 @@ def render_html(
           <div class="bubble llm">
             <div class="author">LLM</div>
             <div class="block-title">Response</div>
-            <div class="md-body">{llm_html}</div>
+            <div id="llm-sum-{rv.global_round}" class="md-body sum-block" style="{'' if llm_sum_html else 'display:none;'}">{llm_sum_html or ''}</div>
+            <div id="llm-full-{rv.global_round}" class="md-body full-block" style="{ 'display:none;' if llm_sum_html else ''}">{llm_html}</div>
+            <button class="toggle toggle-view-btn" onclick="toggleView('llm-sum-{rv.global_round}','llm-full-{rv.global_round}', this)">{'Show full' if llm_sum_html else 'Show summary'}</button>
           </div>
 
           <div class="bubble manager">
             <div class="author">Manager</div>
             <div class="block-title">Feedback</div>
-            <div class="md-body">{mgr_html}</div>
+            <div id="mgr-sum-{rv.global_round}" class="md-body sum-block" style="{'' if mgr_sum_html else 'display:none;'}">{mgr_sum_html or ''}</div>
+            <div id="mgr-full-{rv.global_round}" class="md-body full-block" style="{ 'display:none;' if mgr_sum_html else ''}">{mgr_html}</div>
+            <button class="toggle toggle-view-btn" onclick="toggleView('mgr-sum-{rv.global_round}','mgr-full-{rv.global_round}', this)">{'Show full' if mgr_sum_html else 'Show summary'}</button>
             <button class="toggle" onclick="toggleDetails('{detail_id}')">Toggle Manager's Internal Details</button>
             <div id="{detail_id}" class="mgr-details" style="display:none;">
               <div class="block-title">Hidden Details</div>
-              {details_html}
+              { (f'''<div class="mgr-detail-block">
+                    <div class="mgr-detail-title">evaluation_reasoning</div>
+                    <div id="eval-sum-{rv.global_round}" class="md-body sum-block" style="{'' if mgr_eval_sum_html else 'display:none;'}">{mgr_eval_sum_html or ''}</div>
+                    <div id="eval-full-{rv.global_round}" class="md-body full-block" style="{ 'display:none;' if mgr_eval_sum_html else ''}">{render_md(rv.manager_hidden_evaluation_reasoning or '')}</div>
+                    {('<button class="toggle toggle-view-btn" onclick="toggleView(\'eval-sum-%d\',\'eval-full-%d\', this)">Show full</button>' % (rv.global_round, rv.global_round)) if mgr_eval_sum_html else ''}
+                  </div>''') if (rv.manager_hidden_evaluation_reasoning is not None or mgr_eval_sum_html) else '' }
+              { (f'''<div class="mgr-detail-block">
+                    <div class="mgr-detail-title">state_updates</div>
+                    <pre>{html_escape(_json.dumps(rv.manager_hidden_state_updates, ensure_ascii=False, indent=2))}</pre>
+                  </div>''') if (rv.manager_hidden_state_updates is not None) else '' }
+              { (f'''<div class="mgr-detail-block">
+                    <div class="mgr-detail-title">feedback_reasoning</div>
+                    <div class="md-body">{render_md(rv.manager_hidden_feedback_reasoning or '')}</div>
+                  </div>''') if (rv.manager_hidden_feedback_reasoning is not None) else '' }
+              { (f'''<div class="mgr-detail-block">
+                    <div class="mgr-detail-title">task_complete</div><div class="pill">{str(rv.manager_hidden_task_complete).lower()}</div>
+                  </div>''') if (rv.manager_hidden_task_complete is not None) else '' }
+              { '' if (rv.manager_hidden_evaluation_reasoning is not None or mgr_eval_sum_html or rv.manager_hidden_state_updates is not None or rv.manager_hidden_feedback_reasoning is not None or rv.manager_hidden_task_complete is not None) else '<div class="muted">No hidden details</div>' }
             </div>
           </div>
 
@@ -689,13 +731,40 @@ def render_html(
       el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
     }}
 
-    // only toggle function remains; markdown is rendered server-side in Python
+    function toggleView(sumId, fullId, btn) {{
+      var sumEl = document.getElementById(sumId);
+      var fullEl = document.getElementById(fullId);
+      if (!sumEl || !fullEl) return;
+      if (sumEl.style.display === 'none') {{
+        sumEl.style.display = '';
+        fullEl.style.display = 'none';
+        if (btn) btn.textContent = 'Show full';
+      }} else {{
+        sumEl.style.display = 'none';
+        fullEl.style.display = '';
+        if (btn) btn.textContent = 'Show summary';
+      }}
+    }}
+
+    function setGlobalView(mode) {{
+      var showSummary = (mode === 'summary');
+      var sumBlocks = document.querySelectorAll('.sum-block');
+      var fullBlocks = document.querySelectorAll('.full-block');
+      sumBlocks.forEach(function(e) {{ e.style.display = showSummary ? '' : 'none'; }});
+      fullBlocks.forEach(function(e) {{ e.style.display = showSummary ? 'none' : ''; }});
+      var btns = document.querySelectorAll('.toggle-view-btn');
+      btns.forEach(function(b) {{ b.textContent = showSummary ? 'Show full' : 'Show summary'; }});
+    }}
   </script>
   </head>
   <body>
     <div class="container">
       <h2>Experiment Chat Viewer</h2>
       {header_info}
+      <div class="controls"><span class="muted">View:</span>
+        <button class="toggle" onclick="setGlobalView('summary')">Summary</button>
+        <button class="toggle" onclick="setGlobalView('full')">Full</button>
+      </div>
       {body_cards}
       <footer>Static page generated locally. Click “Toggle hidden details” to reveal manager reasoning/state updates.</footer>
     </div>
@@ -712,6 +781,7 @@ def main() -> None:
     parser.add_argument("--run", required=True, help="Path to the run directory containing result.json")
     parser.add_argument("--detector", required=True, help="Path to the detector JSON to align with (e.g., detector_*.json)")
     parser.add_argument("--out", required=False, help="Output HTML path (default: <run>/log_view.html)")
+    parser.add_argument("--no-summary", action="store_true", help="Do not attempt to load summary.json")
 
     args = parser.parse_args()
     run_dir = Path(args.run).expanduser().resolve()
@@ -721,12 +791,23 @@ def main() -> None:
 
     result_path = run_dir / RESULT_FILENAME
     rounds = parse_result_rounds(result_path)
+    # Load summaries if available
+    summaries = None
+    if not args.no_summary:
+        sum_path = run_dir / 'summary.json'
+        if sum_path.exists():
+            try:
+                summaries = json.loads(sum_path.read_text(encoding='utf-8'))
+                # normalize: keys to int for fast access
+                summaries = {int(k): v for k, v in summaries.items() if isinstance(v, dict)}
+            except Exception as e:
+                print(f"Warning: failed to load summary.json: {e}")
     detector_map: Optional[Dict[int, Dict[str, Any]]] = parse_detector(detector_path)
 
     out_path = (
         Path(args.out).expanduser().resolve() if args.out else (run_dir / "log_view.html")
     )
-    html_text = render_html(rounds, run_dir, detector_path, detector_map)
+    html_text = render_html(rounds, run_dir, detector_path, detector_map, summaries)
     out_path.write_text(html_text, encoding="utf-8")
     print(f"Wrote: {out_path}")
 
