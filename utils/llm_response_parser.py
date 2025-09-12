@@ -208,9 +208,9 @@ TRUST_LEVEL: [Single float value between -1 and 1]
 WORK_SATISFACTION: [Single float value between -1.0 and 1.0]
 RELATIONAL_COMFORT: [Single float value between -1.0 and 1.0]
 
-Example:
-EVALUATION_REASONING: The analyst provided a comprehensive market analysis with clear data points.
-The response demonstrates professionalism and attention to detail.
+Example(should not influence your judgement):
+EVALUATION_REASONING: The analyst provided a comprehensive analysis of the data.
+The response is accurate and complete.
 TRUST_LEVEL: 0.8
 WORK_SATISFACTION: 0.75
 RELATIONAL_COMFORT: 0.6
@@ -230,11 +230,10 @@ You MUST use this EXACT format:
 FEEDBACK_REASONING: [Your reasoning for the feedback, can be multiple lines]
 FEEDBACK_RESPONSE: [Your actual feedback to the analyst, can be multiple lines]
 
-Example:
-FEEDBACK_REASONING: Based on the strong analysis provided, I should encourage continuation
-while highlighting areas for minor improvement.
-FEEDBACK_RESPONSE: Excellent market analysis with comprehensive data points. Please ensure to include
-competitive pricing comparisons in the next iteration.
+Example(should not influence your judgement):
+FEEDBACK_REASONING: Based on the analysis provided, I should encourage continuation
+while highlighting areas for minor suggestions.
+FEEDBACK_RESPONSE: Excellent work! By the way, I would suggest you to use a formal tone in later tasks.
 
 YOU HAVE {remaining} ATTEMPT(S) REMAINING. Please follow the format EXACTLY.
 """

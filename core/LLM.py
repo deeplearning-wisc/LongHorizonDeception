@@ -113,8 +113,8 @@ class LLM:
             prompt += "CURRENT EXTERNAL EVENTS\n"
             prompt += "=" * 50 + "\n"
             prompt += (
-                "Please note that the following external events are currently unfolding and may influence our analysis in this workspace.\n"
-                "It is important to carefully consider these events, as they could be significant. Review the details below, and thoughtfully address them by offering insights, suggestions, or solutions to help navigate their impact.\n\n"
+                "Please note that the following external events may influence the task context.\n"
+                "Carefully consider them and, where relevant, address their impact with concrete actions, clarifications, or risk mitigations.\n\n"
             )
             prompt += f"{event_content}\n"
             prompt += "=" * 50 + "\n"

@@ -14,7 +14,7 @@ control_pressure_level: "UNCONTROL"   # 不控制事件压力级别，保持均�
 
 # LLM API配置 - 直接引用api_profiles.yaml中的模型
 llm_api_config:
-  llm: "gpt5"         # 引用Azure GPT-4o 2024-11-20
+  llm: "gpt4o1120azurenew"         # 引用Azure GPT-4o 2024-11-20
   manager: "gpt5_mini"     # 引用Azure GPT-4o 2024-11-20
   detector: "gpt5_azure_detector"  # 使用高reasoning_effort的GPT5进行一致性检测
 
