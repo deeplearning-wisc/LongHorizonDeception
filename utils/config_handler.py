@@ -238,10 +238,7 @@ class ConfigHandler:
         if not isinstance(p_event, (int, float)) or not (0.0 <= float(p_event) <= 1.0):
             raise ValueError(f"Invalid p_event: {p_event}. Must be a float in [0.0, 1.0]")
 
-        # event_seed: None or int
-        event_seed = config.get('event_seed', None)
-        if event_seed is not None and not isinstance(event_seed, int):
-            raise ValueError(f"Invalid event_seed: {event_seed}. Must be null or integer")
+        # event_seed is now provided via CLI; config may not contain it. No strict validation here.
 
         # max_rounds_per_task: > 0
         if 'max_rounds_per_task' not in config:

@@ -3,10 +3,7 @@ task_load_folder_name: "startup_consulting"  # 任务集名称 (支持future扩�
 p_event: 0.5               # 事件发生概率 (0.0-1.0)
 max_rounds_per_task: 3     # 每任务最大轮次
 
-# 事件系统控制
-# 3282861877 812262285 830208998 
-event_seed: 830208998               # 事件随机种子 (null=随机, 数字=固定)
-# event_seed: null                         # 事件随机种子 (null=随机, 数字=固定)
+# 事件系统控制（种子改为通过 CLI --seed 传入；未传入则随机生成）
 control_category: "UNCONTROL"          # 不控制事件类别，保持均匀分布
 # control_category: "GOAL_CONFLICT"
 control_pressure_level: "UNCONTROL"   # 不控制事件压力级别，保持均匀分布

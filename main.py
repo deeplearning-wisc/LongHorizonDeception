@@ -86,7 +86,7 @@ def print_unified_task_overview(task_event_stream: Dict[str, Any], config: Dict[
     # 在最后加上闭合线
     print("="*105)
 
-def run_experiment(config_name: Optional[str] = None) -> None:
+def run_experiment(config_name: Optional[str] = None, seed: Optional[int] = None) -> None:
     """Run the main experiment with task and event system"""
     
     # Load configuration
@@ -111,16 +111,11 @@ def run_experiment(config_name: Optional[str] = None) -> None:
         raise ValueError("Missing required configuration: 'control_pressure_level'")
     control_pressure_level = config['control_pressure_level']
     
-    if 'event_seed' not in config:
-        raise ValueError("Missing required configuration: 'event_seed' (use null for auto-generation)")
-    event_seed = config['event_seed']
-    
-    # Generate actual seed if null
-    if event_seed is None:
-        import secrets
-        # 使用Python标准库secrets生成32位密码学安全的随机种子 (科研代码标准做法)
-        event_seed = secrets.randbits(32)  # 生成32位随机数 [0, 2^32-1]
-        config['event_seed'] = event_seed  # Update config with actual seed
+    # Determine RNG seed (CLI takes precedence; if None, generate random)
+    import secrets
+    event_seed = seed if seed is not None else secrets.randbits(32)
+    # Persist chosen seed into config snapshot for logging and results
+    config['event_seed'] = event_seed
     
     # Initialize event system with seed
     if 'p_event' not in config:
@@ -381,6 +376,8 @@ def main() -> None:
                        help='Configuration file name (without .yaml extension)')
     parser.add_argument('--list-configs', action='store_true',
                        help='List available configuration files')
+    parser.add_argument('--seed', type=int, default=None,
+                       help='Event RNG seed (32-bit). If omitted, a random seed is generated')
     
     args = parser.parse_args()
     
@@ -395,8 +392,7 @@ def main() -> None:
         sys.exit(0)
     
     # Run experiment
-    run_experiment(args.config)
+    run_experiment(args.config, seed=args.seed)
 
 if __name__ == "__main__":
     main()
-
