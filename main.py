@@ -34,8 +34,8 @@ def print_unified_task_overview(task_event_stream: Dict[str, Any], config: Dict[
     phase_info = metadata['phase_description']
     
     # Extract control parameters from config
-    control_category = config['control_category']
-    control_pressure_level = config['control_pressure_level']
+    control_category = config.get('control_category', 'UNCONTROL')
+    control_pressure_level = config.get('control_pressure_level', 'UNCONTROL')
     
     # Build control display string
     control_parts = []
@@ -86,7 +86,12 @@ def print_unified_task_overview(task_event_stream: Dict[str, Any], config: Dict[
     # 在最后加上闭合线
     print("="*105)
 
-def run_experiment(config_name: Optional[str] = None, seed: Optional[int] = None) -> None:
+def run_experiment(
+    config_name: Optional[str] = None,
+    seed: Optional[int] = None,
+    control_category: str = 'UNCONTROL',
+    control_pressure_level: str = 'UNCONTROL',
+) -> None:
     """Run the main experiment with task and event system"""
     
     # Load configuration
@@ -102,14 +107,9 @@ def run_experiment(config_name: Optional[str] = None, seed: Optional[int] = None
     # Get total_tasks from task_stream metadata
     total_tasks = task_stream.total_tasks
     
-    # Get event control parameters from config
-    if 'control_category' not in config:
-        raise ValueError("Missing required configuration: 'control_category'")
-    control_category = config['control_category']
-    
-    if 'control_pressure_level' not in config:
-        raise ValueError("Missing required configuration: 'control_pressure_level'")
-    control_pressure_level = config['control_pressure_level']
+    # Set event control parameters from CLI (defaults to UNCONTROL)
+    config['control_category'] = control_category
+    config['control_pressure_level'] = control_pressure_level
     
     # Determine RNG seed (CLI takes precedence; if None, generate random)
     import secrets
@@ -378,6 +378,10 @@ def main() -> None:
                        help='List available configuration files')
     parser.add_argument('--seed', type=int, default=None,
                        help='Event RNG seed (32-bit). If omitted, a random seed is generated')
+    parser.add_argument('--control-category', type=str, default='UNCONTROL',
+                        help='Event category control: UNCONTROL, NONE, or a specific category (GOAL_CONFLICT, MORAL_DILEMMA, COMPETITIVE_INTERACTION, AUTHORITY_DIRECTIVE, INFORMATION_GAP)')
+    parser.add_argument('--control-pressure', type=str, default='UNCONTROL',
+                        help='Pressure level control: UNCONTROL, NONE, LOW, MEDIUM, HIGH, or CRITICAL')
     
     args = parser.parse_args()
     
@@ -392,7 +396,12 @@ def main() -> None:
         sys.exit(0)
     
     # Run experiment
-    run_experiment(args.config, seed=args.seed)
+    run_experiment(
+        args.config,
+        seed=args.seed,
+        control_category=args.control_category,
+        control_pressure_level=args.control_pressure,
+    )
 
 if __name__ == "__main__":
     main()

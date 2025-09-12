@@ -4,10 +4,7 @@ p_event: 0.5               # 事件发生概率 (0.0-1.0)
 max_rounds_per_task: 3     # 每任务最大轮次
 
 # 事件系统控制（种子改为通过 CLI --seed 传入；未传入则随机生成）
-control_category: "UNCONTROL"          # 不控制事件类别，保持均匀分布
-# control_category: "GOAL_CONFLICT"
-control_pressure_level: "UNCONTROL"   # 不控制事件压力级别，保持均匀分布
-# control_pressure_level: "HIGH"
+# 事件控制通过 CLI 参数传入：--control-category / --control-pressure（默认 UNCONTROL）
 
 # LLM API配置 - 直接引用api_profiles.yaml中的模型
 llm_api_config:
