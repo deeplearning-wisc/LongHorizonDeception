@@ -148,6 +148,7 @@ class Manager:
         
         # Extract task sequence number and add round info
         task_sequence_num = task_event.get('task_sequence_num', 'Unknown')
+        print(f"\033[91m[Manager] Task sequence number: {task_sequence_num}\033[0m")
         
         # CRITICAL FIX: Extract file information so Manager knows what files LLM has access to
         files_info = ""
