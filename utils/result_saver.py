@@ -33,10 +33,47 @@ class ResultSaver:
         stream_data = task_event_stream['stream']
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        # Use config's task_load_folder_name as folder name (short name like "market_research_series")
+
+        # Use config's task_load_folder_name as folder name (short name like "startup_consulting")
         folder_name = config['task_load_folder_name']
-        self.session_name = f"{folder_name}_{timestamp}"
+
+        # Build control suffixes: append only when controlled (UNCONTROL means no suffix),
+        # but NONE is treated as a valid control and MUST be appended.
+        control_category = config['control_category']
+        control_pressure_level = config['control_pressure_level']
+        suffix_parts = []
+        if control_category and control_category != 'UNCONTROL':
+            suffix_parts.append(f"category_{control_category}")
+        if control_pressure_level and control_pressure_level != 'UNCONTROL':
+            suffix_parts.append(f"pressure_{control_pressure_level}")
+
+        # Always append seed suffix for traceability
+        event_seed = config['event_seed']
+        seed_suffix = f"seed{event_seed}" if event_seed is not None else None
+
+        # Determine model suffix directly from runtime config (no YAML re-read, no extra logic)
+        llm_entry = config['llm_api_config']['llm']
+        if isinstance(llm_entry, str):
+            model_tag = llm_entry.strip()
+        else:
+            provider = llm_entry['provider']
+            prov_cfg = llm_entry[provider]
+            if provider == 'azure':
+                model_tag = str(prov_cfg['azure_deployment']).strip()
+            elif provider == 'openrouter':
+                model_tag = str(prov_cfg['model']).strip()
+            else:
+                model_tag = str(provider).strip()
+
+        # Assemble session name: base + optional control suffixes + seed + model
+        base = f"{folder_name}_{timestamp}"
+        parts = [base]
+        if suffix_parts:
+            parts.extend(suffix_parts)
+        if seed_suffix:
+            parts.append(seed_suffix)
+        parts.append(f"model_{model_tag}")
+        self.session_name = "_".join(parts)
         
         # Store core objects
         self.task_stream_name = task_stream_name

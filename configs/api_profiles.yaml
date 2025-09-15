@@ -108,53 +108,17 @@ api_profiles:
     base_url: "https://openrouter.ai/api/v1"
     max_tokens: 256000
   
-
-  # === OpenRouter ONLINE ===
-  deepseek_chat_v3_1_online:
+  qwen3:
     provider: "openrouter"
     api_key: "${OPENROUTER}"
-    model: "deepseek/deepseek-chat-v3.1:online"
+    model: "qwen/qwen3-235b-a22b-2507"
     base_url: "https://openrouter.ai/api/v1"
-    max_tokens: 163840
+    max_tokens: 262144
 
-  deepseek_chat_v3_0324_online:
+  oss:
     provider: "openrouter"
     api_key: "${OPENROUTER}"
-    model: "deepseek/deepseek-chat-v3-0324:online"
+    model: "openai/gpt-oss-120b"
     base_url: "https://openrouter.ai/api/v1"
-    max_tokens: 163840
+    max_tokens: 131000
 
-  deepseek_r1_0528_online:
-    provider: "openrouter"
-    api_key: "${OPENROUTER}"
-    model: "deepseek/deepseek-r1-0528:online"
-    base_url: "https://openrouter.ai/api/v1"
-    max_tokens: 163840
-
-  claude_sonnet_4_online:
-    provider: "openrouter"
-    api_key: "${OPENROUTER}"
-    model: "anthropic/claude-sonnet-4:online"
-    base_url: "https://openrouter.ai/api/v1"
-    max_tokens: 200000
-
-  claude_opus_4_1_online:
-    provider: "openrouter"
-    api_key: "${OPENROUTER}"
-    model: "anthropic/claude-opus-4.1:online"
-    base_url: "https://openrouter.ai/api/v1"
-    max_tokens: 200000
-
-  gemini_2_5_pro_online:
-    provider: "openrouter"
-    api_key: "${OPENROUTER}"
-    model: "google/gemini-2.5-pro:online"
-    base_url: "https://openrouter.ai/api/v1"
-    max_tokens: 1048576
-
-  grok_4_online:
-    provider: "openrouter"
-    api_key: "${OPENROUTER}"
-    model: "x-ai/grok-4:online"
-    base_url: "https://openrouter.ai/api/v1"
-    max_tokens: 256000

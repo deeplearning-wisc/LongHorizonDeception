@@ -252,33 +252,18 @@ def parse_result_rounds(result_path: Path) -> List[RoundView]:
                     f"'{MANAGER_EVAL_KEY}' must be an object (task index {task_idx}, round index {round_idx})"
                 )
 
-            # Required in manager_eval: feedback_response
-            if FEEDBACK_RESPONSE_KEY not in manager_eval:
-                raise KeyError(
-                    f"Missing key '{FEEDBACK_RESPONSE_KEY}' in manager_evaluation (task {task_idx}, round {round_idx})"
-                )
+            # Required in manager_eval: all core fields (no defaults, fail-fast)
+            for k in (EVAL_REASONING_KEY, STATE_UPDATES_KEY, FEEDBACK_REASONING_KEY, FEEDBACK_RESPONSE_KEY, TASK_COMPLETE_KEY):
+                if k not in manager_eval:
+                    raise KeyError(
+                        f"Missing key '{k}' in manager_evaluation (task {task_idx}, round {round_idx})"
+                    )
 
             manager_feedback_response = str(manager_eval[FEEDBACK_RESPONSE_KEY])
-            manager_hidden_evaluation_reasoning = (
-                str(manager_eval[EVAL_REASONING_KEY])
-                if EVAL_REASONING_KEY in manager_eval
-                else None
-            )
-            manager_hidden_feedback_reasoning = (
-                str(manager_eval[FEEDBACK_REASONING_KEY])
-                if FEEDBACK_REASONING_KEY in manager_eval
-                else None
-            )
-            manager_hidden_state_updates = (
-                manager_eval[STATE_UPDATES_KEY]
-                if STATE_UPDATES_KEY in manager_eval
-                else None
-            )
-            manager_hidden_task_complete = (
-                bool(manager_eval[TASK_COMPLETE_KEY])
-                if TASK_COMPLETE_KEY in manager_eval
-                else None
-            )
+            manager_hidden_evaluation_reasoning = str(manager_eval[EVAL_REASONING_KEY])
+            manager_hidden_feedback_reasoning = str(manager_eval[FEEDBACK_REASONING_KEY])
+            manager_hidden_state_updates = manager_eval[STATE_UPDATES_KEY]
+            manager_hidden_task_complete = bool(manager_eval[TASK_COMPLETE_KEY])
 
             round_views.append(
                 RoundView(
@@ -781,7 +766,6 @@ def main() -> None:
     parser.add_argument("--run", required=True, help="Path to the run directory containing result.json")
     parser.add_argument("--detector", required=True, help="Path to the detector JSON to align with (e.g., detector_*.json)")
     parser.add_argument("--out", required=False, help="Output HTML path (default: <run>/log_view.html)")
-    parser.add_argument("--no-summary", action="store_true", help="Do not attempt to load summary.json")
 
     args = parser.parse_args()
     run_dir = Path(args.run).expanduser().resolve()
@@ -792,16 +776,31 @@ def main() -> None:
     result_path = run_dir / RESULT_FILENAME
     rounds = parse_result_rounds(result_path)
     # Load summaries if available
-    summaries = None
-    if not args.no_summary:
-        sum_path = run_dir / 'summary.json'
-        if sum_path.exists():
-            try:
-                summaries = json.loads(sum_path.read_text(encoding='utf-8'))
-                # normalize: keys to int for fast access
-                summaries = {int(k): v for k, v in summaries.items() if isinstance(v, dict)}
-            except Exception as e:
-                print(f"Warning: failed to load summary.json: {e}")
+    # Strict mode: summary.json is mandatory and must cover all rounds with required fields
+    sum_path = run_dir / 'summary.json'
+    if not sum_path.exists():
+        raise SystemExit("summary.json not found in run directory (strict mode)")
+    try:
+        summaries = json.loads(sum_path.read_text(encoding='utf-8'))
+    except Exception as e:
+        raise SystemExit(f"Failed to load summary.json: {e}")
+    if not isinstance(summaries, dict):
+        raise SystemExit("summary.json must be a JSON object mapping global_round -> summary dict")
+    try:
+        summaries = {int(k): v for k, v in summaries.items()}
+    except Exception:
+        raise SystemExit("summary.json keys must be integers (global_round)")
+    required_sum_fields = ('llm_summary', 'manager_feedback_summary', 'manager_eval_summary')
+    missing_rounds = [rv.global_round for rv in rounds if rv.global_round not in summaries]
+    if missing_rounds:
+        raise SystemExit(f"summary.json missing summaries for rounds: {missing_rounds}")
+    for rv in rounds:
+        s = summaries[rv.global_round]
+        if not isinstance(s, dict):
+            raise SystemExit(f"summary for round {rv.global_round} must be an object")
+        for k in required_sum_fields:
+            if k not in s or not isinstance(s[k], str) or not s[k].strip():
+                raise SystemExit(f"summary.json missing '{k}' for round {rv.global_round}")
     detector_map: Optional[Dict[int, Dict[str, Any]]] = parse_detector(detector_path)
 
     out_path = (
