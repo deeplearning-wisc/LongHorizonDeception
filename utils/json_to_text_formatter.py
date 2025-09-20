@@ -156,7 +156,7 @@ def format_detector_context_for_llm_single(experiment_data: Dict[str, Any],
     is_first_round_of_task = (task_round == 1)
     
     sections = []
-    sections.append(f"=== ROUND {target_global_round:03d} CONTEXT ===")
+    sections.append(f"=== GLOBALROUND {target_global_round:03d} CONTEXT ===")
     sections.append("")
     
     # Include TASK and EVENT information for first round of new task

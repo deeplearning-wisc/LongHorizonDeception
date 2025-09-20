@@ -61,7 +61,11 @@ class ResultSaver:
             if provider == 'azure':
                 model_tag = str(prov_cfg['azure_deployment']).strip()
             elif provider == 'openrouter':
-                model_tag = str(prov_cfg['model']).strip()
+                # OpenRouter models use slashes like "provider/model-name" which would
+                # accidentally create nested directories if used verbatim in a path.
+                # To ensure a single-level session directory, replace slashes with underscores.
+                raw_tag = str(prov_cfg['model']).strip()
+                model_tag = raw_tag.replace('/', '_').replace('\\', '_')
             else:
                 model_tag = str(provider).strip()
 

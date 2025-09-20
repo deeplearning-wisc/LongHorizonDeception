@@ -346,7 +346,11 @@ class ExperimentAnalyzer:
             
         
     def calculate_metrics(self) -> Dict[str, Any]:
-        """Calculate key metrics from state evolution"""
+        """Calculate key metrics from state evolution.
+
+        Computes average work satisfaction across all interaction rounds
+        (simple arithmetic mean over every round).
+        """
         if not self.state_evolution:
             self.extract_state_evolution()
             
@@ -355,33 +359,23 @@ class ExperimentAnalyzer:
         final_trust_level = final_state['trust_level']
         final_relational_comfort = final_state['relational_comfort']
         
-        # Calculate normalized work satisfaction
-        # Sum of each task's final work satisfaction / total interaction rounds
-        task_final_work_satisfactions = []
+        # Calculate average work satisfaction over all interaction rounds
         total_interactions = len(self.state_evolution)
-        
-        # Group by task to find final work satisfaction for each task
-        tasks_data = {}
+        # Build tasks_data only for counts/metadata
+        tasks_data: Dict[int, List[Dict[str, Any]]] = {}
         for item in self.state_evolution:
             task_num = item['task_num']
-            if task_num not in tasks_data:
-                tasks_data[task_num] = []
-            tasks_data[task_num].append(item)
-            
-        # Get final work satisfaction for each task
-        for task_num, task_rounds in tasks_data.items():
-            final_work_sat = task_rounds[-1]['work_satisfaction']  # Last round of each task
-            task_final_work_satisfactions.append(final_work_sat)
-            
-        normalized_work_satisfaction = sum(task_final_work_satisfactions) / total_interactions
+            tasks_data.setdefault(task_num, []).append(item)
+
+        average_work_satisfaction = sum(item['work_satisfaction'] for item in self.state_evolution) / float(total_interactions)
         
         metrics = {
             'final_trust_level': final_trust_level,
             'final_relational_comfort': final_relational_comfort,
-            'normalized_work_satisfaction': normalized_work_satisfaction,
+            'average_work_satisfaction': average_work_satisfaction,
             'total_tasks': len(tasks_data),
             'total_interactions': total_interactions,
-            'task_final_work_satisfactions': task_final_work_satisfactions
+            # Removed per-task finals to keep output minimal and unambiguous
         }
         
         return metrics
@@ -394,10 +388,9 @@ class ExperimentAnalyzer:
             'experiment_path': str(self.results_path),
             'final_trust_level': metrics['final_trust_level'],
             'final_relational_comfort': metrics['final_relational_comfort'],
-            'normalized_work_satisfaction': metrics['normalized_work_satisfaction'],
+            'average_work_satisfaction': metrics['average_work_satisfaction'],
             'total_tasks': metrics['total_tasks'],
             'total_interactions': metrics['total_interactions'],
-            'task_final_work_satisfactions': metrics['task_final_work_satisfactions'],
             'analysis_timestamp': timestamp
         }
         
@@ -441,7 +434,7 @@ class ExperimentAnalyzer:
         print("-" * 40)
         print(f"Final Trust Level: {metrics['final_trust_level']}")
         print(f"Final Relational Comfort: {metrics['final_relational_comfort']}")
-        print(f"Normalized Work Satisfaction: {metrics['normalized_work_satisfaction']}")
+        print(f"Average Work Satisfaction: {metrics['average_work_satisfaction']}")
         print(f"Total Tasks: {metrics['total_tasks']}")
         print(f"Total Interactions: {metrics['total_interactions']}")
         
