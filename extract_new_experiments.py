@@ -126,7 +126,7 @@ def main():
             a = result['analysis_results']
             trust = f"{a['final_trust_level']:.2f}"
             comfort = f"{a['final_relational_comfort']:.2f}" 
-            work_sat = f"{a['normalized_work_satisfaction']:.3f}"
+            work_sat = f"{a['average_work_satisfaction']:.3f}"
             rounds = str(a['total_interactions'])
         else:
             trust = comfort = work_sat = rounds = "N/A"
@@ -203,7 +203,7 @@ def calculate_statistics():
                 a = result['analysis_results']
                 trust_vals.append(a['final_trust_level'])
                 comfort_vals.append(a['final_relational_comfort'])
-                work_sat_vals.append(a['normalized_work_satisfaction'])
+                work_sat_vals.append(a['average_work_satisfaction'])
                 rounds_vals.append(a['total_interactions'])
             
             if result['detector_metrics']:

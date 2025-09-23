@@ -56,7 +56,7 @@ def select_detector(session: Path) -> Path:
     raise FileNotFoundError(f"No detector JSON found under {session}")
 
 
-def run_session(session: Path, workers: int = 2) -> Tuple[Path, bool, str]:
+def run_session(session: Path, workers: int = 2, no_summary: bool = False) -> Tuple[Path, bool, str]:
     """Run summarizer then viewer for one session. Returns (session, ok, reason)."""
     result_json = session / 'result.json'
     if not result_json.exists():
@@ -64,19 +64,22 @@ def run_session(session: Path, workers: int = 2) -> Tuple[Path, bool, str]:
     log_path = session / 'summary_view_run.log'
     log_fh = log_path.open('a', encoding='utf-8')
     try:
-        # Summarizer (strict)
-        sum_cmd = [
-            sys.executable,
-            str(Path(__file__).parent / 'visualization' / 'summarizer.py'),
-            '--run', str(session),
-            '--workers', str(workers),
-        ]
-        log_fh.write(f"[RUN] {' '.join(sum_cmd)}\n")
-        ret = subprocess.run(sum_cmd, stdout=log_fh, stderr=subprocess.STDOUT)
-        if ret.returncode != 0:
-            return session, False, f'summarizer failed (exit={ret.returncode})'
+        # Summarizer (strict) - skip if --no-summary
+        if not no_summary:
+            sum_cmd = [
+                sys.executable,
+                str(Path(__file__).parent / 'visualization' / 'summarizer.py'),
+                '--run', str(session),
+                '--workers', str(workers),
+            ]
+            log_fh.write(f"[RUN] {' '.join(sum_cmd)}\n")
+            ret = subprocess.run(sum_cmd, stdout=log_fh, stderr=subprocess.STDOUT)
+            if ret.returncode != 0:
+                return session, False, f'summarizer failed (exit={ret.returncode})'
+        else:
+            log_fh.write("[SKIP] Summarizer skipped due to --no-summary flag\n")
 
-        # Viewer (strict)
+        # Viewer (with --no-summary if requested)
         try:
             det_path = select_detector(session)
         except Exception as e:
@@ -89,6 +92,8 @@ def run_session(session: Path, workers: int = 2) -> Tuple[Path, bool, str]:
             '--detector', str(det_path),
             '--out', str(out_html),
         ]
+        if no_summary:
+            view_cmd.append('--no-summary')
         log_fh.write(f"[RUN] {' '.join(view_cmd)}\n")
         ret2 = subprocess.run(view_cmd, stdout=log_fh, stderr=subprocess.STDOUT)
         if ret2.returncode != 0:
@@ -106,6 +111,7 @@ def main() -> None:
     ap.add_argument('--root', type=str, default=str(Path('Results_checked') / 'test'), help='Root directory to scan')
     ap.add_argument('--concurrency', type=int, default=4, help='Max concurrent sessions (default 4)')
     ap.add_argument('--workers', type=int, default=2, help='Summarizer workers per session (default 2)')
+    ap.add_argument('--no-summary', action='store_true', help='Skip summarizer and run viewer without summaries')
     args = ap.parse_args()
 
     root = Path(args.root).expanduser().resolve()
@@ -131,7 +137,7 @@ def main() -> None:
     failures: List[Tuple[Path, str]] = []
 
     def task_fn(sess: Path) -> Tuple[Path, bool, str]:
-        return run_session(sess, workers=args.workers)
+        return run_session(sess, workers=args.workers, no_summary=args.no_summary)
 
     try:
         with ThreadPoolExecutor(max_workers=max(1, int(args.concurrency))) as ex:

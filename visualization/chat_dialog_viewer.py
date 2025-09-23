@@ -766,6 +766,7 @@ def main() -> None:
     parser.add_argument("--run", required=True, help="Path to the run directory containing result.json")
     parser.add_argument("--detector", required=True, help="Path to the detector JSON to align with (e.g., detector_*.json)")
     parser.add_argument("--out", required=False, help="Output HTML path (default: <run>/log_view.html)")
+    parser.add_argument("--no-summary", action="store_true", help="Skip summary.json requirement and generate viewer without summaries")
 
     args = parser.parse_args()
     run_dir = Path(args.run).expanduser().resolve()
@@ -775,32 +776,36 @@ def main() -> None:
 
     result_path = run_dir / RESULT_FILENAME
     rounds = parse_result_rounds(result_path)
-    # Load summaries if available
-    # Strict mode: summary.json is mandatory and must cover all rounds with required fields
-    sum_path = run_dir / 'summary.json'
-    if not sum_path.exists():
-        raise SystemExit("summary.json not found in run directory (strict mode)")
-    try:
-        summaries = json.loads(sum_path.read_text(encoding='utf-8'))
-    except Exception as e:
-        raise SystemExit(f"Failed to load summary.json: {e}")
-    if not isinstance(summaries, dict):
-        raise SystemExit("summary.json must be a JSON object mapping global_round -> summary dict")
-    try:
-        summaries = {int(k): v for k, v in summaries.items()}
-    except Exception:
-        raise SystemExit("summary.json keys must be integers (global_round)")
-    required_sum_fields = ('llm_summary', 'manager_feedback_summary', 'manager_eval_summary')
-    missing_rounds = [rv.global_round for rv in rounds if rv.global_round not in summaries]
-    if missing_rounds:
-        raise SystemExit(f"summary.json missing summaries for rounds: {missing_rounds}")
-    for rv in rounds:
-        s = summaries[rv.global_round]
-        if not isinstance(s, dict):
-            raise SystemExit(f"summary for round {rv.global_round} must be an object")
-        for k in required_sum_fields:
-            if k not in s or not isinstance(s[k], str) or not s[k].strip():
-                raise SystemExit(f"summary.json missing '{k}' for round {rv.global_round}")
+
+    # Load summaries based on --no-summary flag
+    summaries = None
+    if not args.no_summary:
+        # Strict mode: summary.json is mandatory and must cover all rounds with required fields
+        sum_path = run_dir / 'summary.json'
+        if not sum_path.exists():
+            raise SystemExit("summary.json not found in run directory (strict mode). Use --no-summary to skip.")
+        try:
+            summaries = json.loads(sum_path.read_text(encoding='utf-8'))
+        except Exception as e:
+            raise SystemExit(f"Failed to load summary.json: {e}")
+        if not isinstance(summaries, dict):
+            raise SystemExit("summary.json must be a JSON object mapping global_round -> summary dict")
+        try:
+            summaries = {int(k): v for k, v in summaries.items()}
+        except Exception:
+            raise SystemExit("summary.json keys must be integers (global_round)")
+        required_sum_fields = ('llm_summary', 'manager_feedback_summary', 'manager_eval_summary')
+        missing_rounds = [rv.global_round for rv in rounds if rv.global_round not in summaries]
+        if missing_rounds:
+            raise SystemExit(f"summary.json missing summaries for rounds: {missing_rounds}")
+        for rv in rounds:
+            s = summaries[rv.global_round]
+            if not isinstance(s, dict):
+                raise SystemExit(f"summary for round {rv.global_round} must be an object")
+            for k in required_sum_fields:
+                if k not in s or not isinstance(s[k], str) or not s[k].strip():
+                    raise SystemExit(f"summary.json missing '{k}' for round {rv.global_round}")
+
     detector_map: Optional[Dict[int, Dict[str, Any]]] = parse_detector(detector_path)
 
     out_path = (

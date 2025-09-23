@@ -20,13 +20,25 @@ from utils.config_handler import ConfigHandler
 
 class ExperimentAnalyzer:
     """Analyzer for DeceptioN experiment results"""
-    
+
     def __init__(self, results_path: str):
         """Initialize analyzer with results directory path"""
         self.results_path = Path(results_path)
         self.results_data = None
         self.state_evolution = []
         self.detector_data = None
+
+    def _get_pressure_level_color(self, pressure_level: str) -> str:
+        """Get color for pressure level visualization using different intensities"""
+        pressure_colors = {
+            'CRITICAL': '#FF0000',  # 深红色 - 最高压力
+            'HIGH': '#FF6666',      # 中等红色 - 高压力
+            'MEDIUM': '#FFCCCC',    # 浅红色 - 中等压力
+            'LOW': '#E6F3FF',       # 很浅的蓝色 - 低压力
+            '-': '#F8F9FA',         # 浅灰色 - 无压力
+            'NO_EVENT': '#F8F9FA'   # 浅灰色 - 无事件
+        }
+        return pressure_colors.get(pressure_level, '#F8F9FA')
         
     def load_results(self) -> None:
         """Load experiment results from JSON file"""
@@ -85,34 +97,41 @@ class ExperimentAnalyzer:
         """Extract state evolution from experiment results"""
         evolution = []
         global_round = 0
-        
+
         # Access tasks array from experiment
         tasks = self.results_data['experiment']['tasks']
-        
+
         for task_idx, task_data in enumerate(tasks):
             task_info = task_data['task']
             task_num = task_info['task_sequence_num']
             task_title = task_info['title']
-            
+
+            # Extract event information for pressure level
+            event_info = task_data.get('event', {})
+            pressure_level = event_info.get('pressure_level', '-')
+            event_name = event_info.get('name', 'NO_EVENT')
+
             # Process rounds array
             rounds = task_data['rounds']
             for round_idx, round_data in enumerate(rounds):
                 global_round += 1
-                
+
                 # Get state from manager evaluation
                 manager_eval = round_data['manager_evaluation']
                 current_state = manager_eval['state_updates']['new_state']
-                
+
                 evolution.append({
                     'global_round': global_round,
                     'task_num': task_num,
                     'round_num': round_data['round'],
                     'task_title': task_title,
+                    'pressure_level': pressure_level,
+                    'event_name': event_name,
                     'trust_level': current_state['trust_level'],
                     'work_satisfaction': current_state['work_satisfaction'],
                     'relational_comfort': current_state['relational_comfort']
                 })
-                
+
         self.state_evolution = evolution
         return evolution
         
@@ -127,21 +146,25 @@ class ExperimentAnalyzer:
         work_satisfactions = [item['work_satisfaction'] for item in self.state_evolution]
         relational_comforts = [item['relational_comfort'] for item in self.state_evolution]
         
-        # Calculate task ranges
+        # Calculate task ranges and pressure levels
         task_ranges = {}  # task_num -> [start_round, end_round]
+        task_pressure_levels = {}  # task_num -> pressure_level
         for item in self.state_evolution:
             tnum = item['task_num']
             rnd  = item['global_round']
+            pressure_level = item['pressure_level']
+
             if tnum not in task_ranges:
                 task_ranges[tnum] = [rnd, rnd]   # start = end = 第一次出现
+                task_pressure_levels[tnum] = pressure_level
             else:
                 task_ranges[tnum][1] = rnd       # 持续更新为最后一次出现
         
         # Check if we have detector data
         if not self.detector_data or len(self.detector_data) == 0:
             print("No detector data found - generating single state evolution plot")
-            self._plot_single_state_evolution(rounds, trust_levels, work_satisfactions, 
-                                             relational_comforts, task_ranges, save_path)
+            self._plot_single_state_evolution(rounds, trust_levels, work_satisfactions,
+                                             relational_comforts, task_ranges, task_pressure_levels, save_path)
             return
         
         # Generate separate plots for each detector round
@@ -158,8 +181,8 @@ class ExperimentAnalyzer:
             fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12), height_ratios=[2, 1])
             
             # Plot manager state evolution (same for all detector rounds)
-            self._plot_manager_states(ax1, rounds, trust_levels, work_satisfactions, 
-                                    relational_comforts, task_ranges)
+            self._plot_manager_states(ax1, rounds, trust_levels, work_satisfactions,
+                                    relational_comforts, task_ranges, task_pressure_levels)
             
             # Plot detector results for this specific round
             self._plot_detector_results(ax2, rounds, task_ranges, detector_data, detector_timestamp)
@@ -184,13 +207,13 @@ class ExperimentAnalyzer:
             # Close figure to free memory
             plt.close(fig)
     
-    def _plot_single_state_evolution(self, rounds, trust_levels, work_satisfactions, 
-                                   relational_comforts, task_ranges, save_path):
+    def _plot_single_state_evolution(self, rounds, trust_levels, work_satisfactions,
+                                   relational_comforts, task_ranges, task_pressure_levels, save_path):
         """Plot state evolution without detector data"""
         fig, ax1 = plt.subplots(1, 1, figsize=(12, 8))
-        
-        self._plot_manager_states(ax1, rounds, trust_levels, work_satisfactions, 
-                                relational_comforts, task_ranges)
+
+        self._plot_manager_states(ax1, rounds, trust_levels, work_satisfactions,
+                                relational_comforts, task_ranges, task_pressure_levels)
         
         plt.tight_layout()
         
@@ -205,46 +228,68 @@ class ExperimentAnalyzer:
             
         plt.close(fig)
     
-    def _plot_manager_states(self, ax, rounds, trust_levels, work_satisfactions, 
-                           relational_comforts, task_ranges):
+    def _plot_manager_states(self, ax, rounds, trust_levels, work_satisfactions,
+                           relational_comforts, task_ranges, task_pressure_levels):
         """Plot manager state evolution on given axis"""
         # Plot three lines
         ax.plot(rounds, trust_levels, 'b-', label='Trust Level', linewidth=2, marker='o', markersize=4)
         ax.plot(rounds, work_satisfactions, 'r-', label='Work Satisfaction', linewidth=2, marker='s', markersize=4)
         ax.plot(rounds, relational_comforts, 'g-', label='Relational Comfort', linewidth=2, marker='^', markersize=4)
-        
+
         # Customize subplot
         ax.set_xlabel('Global Round', fontsize=12)
         ax.set_ylabel('State Value', fontsize=12)
-        ax.set_title('Manager State Evolution Over Time', fontsize=14, fontweight='bold')
+        ax.set_title('Manager State Evolution Over Time (with Pressure Level Colors)', fontsize=14, fontweight='bold')
         ax.grid(True, alpha=0.3)
         ax.axhline(y=0, color='k', linestyle='--', alpha=0.5)
-        
+
         # Add task completion threshold for work satisfaction - NO FALLBACK!
         threshold = self._load_threshold_from_config()  # MUST succeed, no None check
-        ax.axhline(y=threshold, color='orange', linestyle='-.', alpha=0.7, 
+        ax.axhline(y=threshold, color='orange', linestyle='-.', alpha=0.7,
                    label=f'Task Completion Threshold ({threshold})')
-        
+
         # Add legend after all lines are plotted
         ax.legend(fontsize=11)
-        
-        # Add task ranges visualization
+
+        # Add task ranges visualization with pressure level colors
         ymin, ymax = ax.get_ylim()
         for tnum in sorted(task_ranges.keys()):
             start_r, end_r = task_ranges[tnum]
             left  = start_r - 0.5
             right = end_r   + 0.5
 
-            # 任务区间底纹
-            ax.axvspan(left, right, color='lightgrey', alpha=0.08, zorder=0)
+            # 获取该任务的压力等级颜色
+            pressure_level = task_pressure_levels.get(tnum, '-')
+            pressure_color = self._get_pressure_level_color(pressure_level)
+
+            # 任务区间底纹 - 使用压力等级颜色
+            ax.axvspan(left, right, color=pressure_color, alpha=0.6, zorder=0)
 
             # 右侧边界线（任务分隔）
             ax.axvline(x=right, color='gray', linestyle=':', alpha=0.7, zorder=1)
 
-            # 任务标签（放在底部靠内）
+            # 任务标签（放在底部靠内），包含压力等级信息
             mid = (left + right) / 2.0
-            ax.text(mid, ymin + 0.05*(ymax - ymin), f'T{tnum}',
-                     ha='center', va='bottom', fontsize=9, alpha=0.9)
+            task_label = f'T{tnum}'
+            if pressure_level not in ['-', 'NO_EVENT']:
+                task_label += f'\n{pressure_level}'
+            ax.text(mid, ymin + 0.05*(ymax - ymin), task_label,
+                     ha='center', va='bottom', fontsize=8, alpha=0.9)
+
+        # 添加压力等级图例
+        from matplotlib.patches import Patch
+        pressure_legend = [
+            Patch(facecolor='#FF0000', alpha=0.6, label='CRITICAL'),
+            Patch(facecolor='#FF6666', alpha=0.6, label='HIGH'),
+            Patch(facecolor='#FFCCCC', alpha=0.6, label='MEDIUM'),
+            Patch(facecolor='#E6F3FF', alpha=0.6, label='LOW'),
+            Patch(facecolor='#F8F9FA', alpha=0.6, label='NO EVENT')
+        ]
+
+        # 创建第二个图例用于压力等级
+        pressure_legend_ax = ax.legend(handles=pressure_legend, title='Pressure Level',
+                                      loc='upper right', bbox_to_anchor=(1.0, 0.85), fontsize=9)
+        ax.add_artist(pressure_legend_ax)
 
         # 把坐标轴范围设到半格对齐
         N = rounds[-1]  # 最大 global_round

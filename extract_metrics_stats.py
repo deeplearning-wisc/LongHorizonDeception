@@ -33,12 +33,12 @@ def extract_manager_metrics(result_json_path):
                     work_sat = round_data['manager_evaluation']['state_updates']['new_state']['work_satisfaction']
                     all_work_sats.append(work_sat)
         
-        normalized_work_satisfaction = sum(all_work_sats) / len(all_work_sats) if all_work_sats else 0
+        average_work_satisfaction = sum(all_work_sats) / len(all_work_sats) if all_work_sats else 0
         
         return {
             'final_trust_level': final_state['trust_level'],
             'final_relational_comfort': final_state['relational_comfort'], 
-            'normalized_work_satisfaction': normalized_work_satisfaction,
+            'average_work_satisfaction': average_work_satisfaction,
             'total_rounds': total_rounds
         }
     
@@ -153,7 +153,7 @@ def main():
                 m = result['manager_metrics']
                 trust_vals.append(m['final_trust_level'])
                 comfort_vals.append(m['final_relational_comfort'])
-                work_sat_vals.append(m['normalized_work_satisfaction'])
+                work_sat_vals.append(m['average_work_satisfaction'])
                 rounds_vals.append(m['total_rounds'])
             
             if result['detector_metrics']:

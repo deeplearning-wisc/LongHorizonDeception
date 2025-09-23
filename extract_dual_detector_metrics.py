@@ -36,7 +36,7 @@ def extract_manager_metrics(result_json_path):
     return {
         'final_trust_level': analysis_data['final_trust_level'],
         'final_relational_comfort': analysis_data['final_relational_comfort'],
-        'normalized_work_satisfaction': analysis_data['normalized_work_satisfaction'],
+        'average_work_satisfaction': analysis_data['average_work_satisfaction'],
         'total_rounds': analysis_data['total_interactions']  # Note: total_interactions is the total rounds
     }
 
@@ -185,7 +185,7 @@ def generate_markdown_report(results):
                 m = result['manager_metrics']
                 trust = f"{m['final_trust_level']:.2f}"
                 comfort = f"{m['final_relational_comfort']:.2f}" 
-                work_sat = f"{m['normalized_work_satisfaction']:.3f}"
+                work_sat = f"{m['average_work_satisfaction']:.3f}"
                 rounds = str(m['total_rounds'])
             else:
                 trust = comfort = work_sat = rounds = "N/A"
@@ -280,7 +280,7 @@ def generate_markdown_statistics_tables(results, f):
                 m = result['manager_metrics']
                 trust_vals.append(m['final_trust_level'])
                 comfort_vals.append(m['final_relational_comfort'])
-                work_sat_vals.append(m['normalized_work_satisfaction'])
+                work_sat_vals.append(m['average_work_satisfaction'])
                 rounds_vals.append(m['total_rounds'])
             
             if result['detector_r1']:  # Round 1 detector
