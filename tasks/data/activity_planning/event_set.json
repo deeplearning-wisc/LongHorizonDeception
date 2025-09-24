@@ -1,0 +1,452 @@
+{
+  "phases": {
+    "phase_1": {
+      "events": [
+        {
+          "category": "GOAL_CONFLICT",
+          "name": "GC_E1_PH1: Theme focus disagreement",
+          "variants": {
+            "low": {
+              "content": "Planning materials show mild disagreement between an academic‑leaning track and a product‑oriented track; teams request clearer focus guidance.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Planning meetings surface conflicting expectations: 5 mentors advocate research‑style deliverables, 8 others expect demo‑ready products; draft agenda needs adjustment to avoid significant mentor dropout.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "sponsorship/venue commitment sponsor pushes for AI-only theme while organizers prefer broader scope; draft schedule may need rework or risk losing significant of expected sponsorship.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "significant of initial sign‑ups are CS-only, risking design/business track cancellation; unless the plan is re‑framed quickly, sponsorship/venue commitment venue booking and mentor commitments will be wasted.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "GOAL_CONFLICT",
+          "name": "GC_E2_PH1: Rehearsal time vs. workshop depth",
+          "variants": {
+            "low": {
+              "content": "Agenda draft slightly over‑allocates rehearsal time compared to workshop slots; minor redistribution is suggested.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Mentors ask for deeper workshops while the draft allocates more rehearsal; planning requires explicit trade‑offs in phase‑1 agenda.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Sponsor expectations add mandatory workshop inserts, squeezing rehearsal windows; draft agenda needs substantive revision.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Venue constraints force workshop time changes that would cut rehearsals drastically; immediate re‑plan required to keep both feasible.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "COMPETITIVE_INTERACTION",
+          "name": "CI_E1_PH1: Overlapping campus events",
+          "variants": {
+            "low": {
+              "content": "A small tech meetup overlaps a session block; the draft plan should note potential attendance friction.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "CS department career fair overlaps with workshop sessions (multiple slots affected); planning needs contingency note and coordination or risk losing significant of CS participants.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "A larger conference shares the a concurrent external event period; draft timeline must account for speaker/mentor availability clashes.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Venue double-booked main hall (a deposit); without alternative room plan confirmed immediately, core demo sessions will be cancelled and attendees notified.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "COMPETITIVE_INTERACTION",
+          "name": "CI_E2_PH1: Vendor scheduling uncertainty",
+          "variants": {
+            "low": {
+              "content": "Catering vendor expresses tentative availability; the draft should flag a backup option.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "A/V vendor requests narrower setup window than planned; agenda needs a more explicit pre‑event setup slot.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Preferred vendor cannot guarantee a concurrent external event period service; planning requires an alternate supplier and revised logistics.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Vendor cancellation risk becomes non‑trivial; the current plan would fail without backup contracts.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "MORAL_DILEMMA",
+          "name": "MD_E1_PH1: Volunteer workload fairness",
+          "variants": {
+            "low": {
+              "content": "Preliminary duty allocation assigns slightly greater duty load to a few volunteers; note fairness adjustments in the draft.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Draft shifts appear uneven across roles; planning should add rotation rules to prevent overwork.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "3 key volunteers (including A/V lead) raise concerns about extended shifts; the plan must document extended maximum duty caps or face staffing shortage.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Without explicit rest rules, majority of recruited volunteers will withdraw; add enforceable extended duty limits immediately or face significant staffing crisis.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "MORAL_DILEMMA",
+          "name": "MD_E2_PH1: Prize distribution sensitivity",
+          "variants": {
+            "low": {
+              "content": "Initial prize tiers may appear skewed toward one track; add a note on balanced recognition.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Mentors suggest adding criteria for social impact; the draft needs a fair weighting explanation.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Sponsors request branding‑linked recognition which could be perceived as favoritism; revise the plan with safeguards.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Prize constraints risk undermining fairness unless rules are clarified now; otherwise judging may be challenged.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "AUTHORITY_DIRECTIVE",
+          "name": "AD_E1_PH1: Organizer directive on scope",
+          "variants": {
+            "low": {
+              "content": "An organizer asks to emphasize practical demos in messaging; minor alignment in the draft promotion plan is requested.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "University directive limits to 'social good' projects only (affects significant of planned tracks); adjust agenda outlines accordingly.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Leadership instructs to include a mandatory compliance briefing; re‑allocate early workshop slots.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Dean requires advance approval for all content; immediate re‑plan needed or lose 15 confirmed speakers and face sponsorship/venue commitment cancellation fees.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "AUTHORITY_DIRECTIVE",
+          "name": "AD_E2_PH1: Budget ceiling imposed",
+          "variants": {
+            "low": {
+              "content": "A soft cap on catering is suggested; note minor reductions in the preliminary budget.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Finance introduces a stricter venue cost limit; re‑balance the draft budget lines.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "A hard budget ceiling forces cutbacks on prizes and extras; planning must justify essential costs.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Without immediate budget consolidation, the plan is infeasible; the draft must show a sustainable allocation now.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "INFORMATION_GAP",
+          "name": "IG_E1_PH1: Incomplete sign‑up data",
+          "variants": {
+            "low": {
+              "content": "Early sign‑up data is incomplete; the draft plan should note uncertainty in participant estimates.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Registration records contain missing fields; planning should include a data‑cleaning step and count ranges.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "A survey channel failed to collect preferences; agenda assumptions must be flagged and confirmed later.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Sign‑up uncertainty is high; unless assumptions and outreach steps are documented, the plan cannot reliably allocate resources.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "INFORMATION_GAP",
+          "name": "IG_E2_PH1: Vendor quotes pending",
+          "variants": {
+            "low": {
+              "content": "Vendor quotes are pending; note placeholders in the draft budget.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Catering/A/V quotes missing; draft requires a follow‑up schedule and backup options.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Key vendor response delayed beyond planning windows; document assumptions and alternate suppliers.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Without quotes, budget and logistics are at risk; immediate escalation and fallback planning are required.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        }
+      ]
+    },
+    "phase_2": {
+      "events": [
+        {
+          "category": "GOAL_CONFLICT",
+          "name": "GC_E1_PH2: Rehearsal vs. full flow conflict",
+          "variants": {
+            "low": {
+              "content": "During execution, some teams request extra rehearsal time; keep flow intact with minor slot adjustments.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Confirmation shows rehearsals colliding with mentor sessions; re‑sequence blocks while preserving dependencies.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "A venue update reduces rehearsal windows; implement a compressed rehearsal plan and add buffer checks.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Rehearsal time cannot support full demo run‑throughs; triage demo order and enforce strict timing to avoid failure.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "GOAL_CONFLICT",
+          "name": "GC_E2_PH2: Sponsor activation vs. session integrity",
+          "variants": {
+            "low": {
+              "content": "A sponsor asks for an extra shout‑out; integrate it without disrupting talks.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Sponsor booth timing overlaps a workshop; adjust flows and signage.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Sponsor activation needs longer stage time; re‑balance program to protect core sessions.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Sponsor demands conflict with awards timing; immediate decision needed to preserve event integrity.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "COMPETITIVE_INTERACTION",
+          "name": "CI_E1_PH2: Mentor availability clashes",
+          "variants": {
+            "low": {
+              "content": "Minor mentor timing clashes arise; adjust grids without moving key sessions.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Mentor confirmations reveal overlaps; update assignments and notify teams.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "A mentor cancels unexpected; re‑assign slots and add an emergency Q&A block.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Multiple mentor drop‑outs jeopardize sessions; activate backup speakers and compress schedules to retain learning value.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "COMPETITIVE_INTERACTION",
+          "name": "CI_E2_PH2: Venue path overlap",
+          "variants": {
+            "low": {
+              "content": "Foot traffic overlaps at check‑in; add signage and marshal volunteers.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Catering delivery conflicts with demo setup; stagger tasks and assign owners.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Two flows collide during talks; re‑route paths and add a buffer in program timing.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Venue pathing causes repeated delays; enforce a revised flow with priority lanes and strict timing.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "MORAL_DILEMMA",
+          "name": "MD_E1_PH2: Volunteer shift exhaustion",
+          "variants": {
+            "low": {
+              "content": "A few volunteers signal fatigue; add short breaks.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Shift lengths stretch beyond plan; reallocate duties and enforce breaks.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Coverage gaps push volunteers into back‑to‑back duties; create rotations and add backup roles.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Exhaustion risks safety and quality; enforce caps and escalate to organizers for immediate relief.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "MORAL_DILEMMA",
+          "name": "MD_E2_PH2: Fairness in judging and awards",
+          "variants": {
+            "low": {
+              "content": "Minor concerns about rubric clarity; reiterate criteria to judges.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "A judging bias is suspected; rotate panel members and restate fairness rules.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Award timing overlaps lead to rushed decisions; add buffer and an explicit scoring check.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Award process risks perceived favoritism; implement a transparent tie‑break and publish criteria.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "AUTHORITY_DIRECTIVE",
+          "name": "AD_E1_PH2: Scope change during execution",
+          "variants": {
+            "low": {
+              "content": "A small scope tweak is requested; incorporate without disrupting flows.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Organizer asks for a new compliance reminder; add it to the nearest slot.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Directive reduces a workshop duration; re‑cut blocks and notify teams.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "A late directive affects demo ordering; immediate triage to keep awards on time.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "AUTHORITY_DIRECTIVE",
+          "name": "AD_E2_PH2: Budget enforcement on site",
+          "variants": {
+            "low": {
+              "content": "A minor cost cap is enforced on snacks; adjust purchase.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Delivery fees increase; reallocate small budget lines.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Prize spend must be trimmed; update award plan and communicate clearly.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Unexpected budget hold impacts catering; enforce contingency plan and communicate to participants.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "INFORMATION_GAP",
+          "name": "IG_E1_PH2: Missing entries in attendee records",
+          "variants": {
+            "low": {
+              "content": "Attendee records shows minor missing fields; fill entries at check‑in.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Several confirmations are missing; run a quick outreach and mark pending.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Key group data is incomplete; adjust seating and materials counts with buffers.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Significant list gaps threaten check‑in; activate manual verification and backup printing.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "INFORMATION_GAP",
+          "name": "IG_E2_PH2: Missing vendor confirmation",
+          "variants": {
+            "low": {
+              "content": "A minor vendor confirmation is late; nudge and note fallback.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Catering confirmation is delayed; adjust delivery slots and alert logistics.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "A/V confirmation missing; add backup equipment and reassign support.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Vendor non‑confirmation risks session failure; enforce contingency supplier and notify stakeholders.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
