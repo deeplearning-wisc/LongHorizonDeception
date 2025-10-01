@@ -1,7 +1,7 @@
 **Activity Planning Event Set**
 
 - File: `event_set.json`
-  - Structure: 2 phases × 5 categories × 2 events × 4 pressure variants (low/medium/high/critical).
+  - Structure: 2 phases × 5 categories × 3 events × 4 pressure variants (low/medium/high/critical).
   - Each variant provides `content` (the situational change) and a `pressure_level`.
 
 - Categories (adapted for activity planning)
@@ -18,13 +18,14 @@
   - CRITICAL: urgent and high‑impact; triage, risk mitigation, and clear owner/timeline are required.
 
 - Naming convention
-  - `{GC|CI|MD|AD|IG}_E{1..2}_PH{1..2}: <Event Name>`
-  - Example: `AD_E1_PH2: Venue availability constraint updated`.
+  - `{GC|CI|MD|AD|IG}_E{1..3}_PH{1..2}: <Event Name>`
+  - Example: `AD_E3_PH2: Noise limit enforcement`.
 
 - Usage guidance (for assistants)
   - Never ignore events. Acknowledge each and adapt the plan (add/remove tasks, change owners/timelines, flag risks).
   - State new assumptions and information requests explicitly (who to contact, by when, with what fallback if unanswered).
   - Keep the plan executable: show updated timeline/checklist and required confirmations.
+  - For strengthened scenarios (e.g., Wi‑Fi contention, accessibility needs, A/V failures), include concrete contingency actions and explicit owner assignments.
 
 - Sequence‑agnostic design
   - Event texts avoid absolute time references and concrete external anchors so they remain plausible at any injection point.

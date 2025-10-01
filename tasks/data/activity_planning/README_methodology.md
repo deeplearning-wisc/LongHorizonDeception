@@ -9,9 +9,8 @@ Task Stream Design
 - Fixed order: 14 tasks across two phases.
   - Phase 1 — Laying the Groundwork: draft/plan/propose artifacts.
   - Phase 2 — Bringing the Plan to Life: finalize/confirm/execute artifacts.
-- Dependencies: Each task lists upstream dependencies to enforce temporal coherence.
-- Acceptance criteria: Per‑task criteria define minimum deliverable completeness, traceability, and actionability.
-- Attached files: Lightweight briefs anchor outputs (e.g., agenda_template.txt) to improve realism and evaluability.
+- Continuity: Tasks build naturally on earlier outputs (no explicit numbered references) to keep narrative flow human‑like.
+- Structured deliverables: Prompts request tables/JSON or concise write‑ups and emphasize citing attached internal files (e.g., agenda_template.txt) for realism and evaluability.
 
 Event System Design
 - File: event_set.json (phases → events → variants).
@@ -43,4 +42,3 @@ Reproducibility
 Known Limitations
 - Numbers remain baselines; deeper cost modeling may require domain data.
 - Event narratives are handcrafted; dynamic rewrites can be added at runtime if needed.
-

@@ -4,18 +4,20 @@
   - A lightweight benchmark for planning routine activities, schedules, and small projects.
   - Focuses on prioritization, sequencing, constraints (time/budget/people), and clear, executable next steps.
 
-- Files
+ - Files
   - `tasks.json`: 2 phases, total_tasks = 14 (Phase 1: tasks 1–7; Phase 2: tasks 8–14).
   - Each task has: `task_sequence_num`, `title`, `base_prompt`, and `files` (each with `filename`, `content`).
+  - Strengthened attachments: tasks now include CSV/JSON templates (e.g., capacity models, vendor catalogs, rubrics, checklists) to raise difficulty and require structured deliverables.
 
 - Phase intent (suggested)
   - Phase 1 — Planning foundations: clarify goals, stakeholders, resources, and constraints; draft initial plan(s).
   - Phase 2 — Execution and review: translate plans into timelines/checklists, anticipate risks, add monitoring and iteration loops.
 
-- Output expectations (for assistants)
+ - Output expectations (for assistants)
   - Produce actionable, specific plans (who/what/when/how) using relative sequencing labels rather than exact times.
   - If assumptions are needed, state them explicitly and keep them minimal.
   - When multiple paths exist, provide 2–3 options with trade‑offs; then recommend one.
+  - Structured deliverables: many prompts now request tables or JSON sections referencing attached templates (CSV/JSON). Cite filenames and relevant rows/fields in your outputs.
 
 - Examples of “activity planning” tasks (illustrative)
   - Weekly agenda with hard constraints (fixed meetings, limited time cap, two key deliverables).
@@ -23,9 +25,10 @@
   - Personal learning plan (balanced theory/practice, checkpoints, rubric for self‑review).
   - Household move checklist (timeline, responsibilities, costs, risk mitigation, confirmation calls).
 
-- Notes
-  - The current dataset ships with placeholder titles/prompts/files to keep the structure clear. You can swap in real tasks by editing the `title`, `base_prompt`, and `files[*].content` fields without changing the schema.
-  - Keep tasks concise and concrete so responses can be evaluated for prioritization quality, feasibility, and clarity.
+ - Notes
+  - The dataset includes strengthened prompts and attachments to match the difficulty and quality of the startup_consulting set while staying in the activity planning domain.
+  - You can swap in domain‑specific content by editing `title`, `base_prompt`, and `files[*].content` without changing the schema.
+  - Keep tasks concise and concrete so responses can be evaluated for prioritization quality, feasibility, clarity, and traceability to internal files.
 
 **Task Stream (Fixed Order)**
 

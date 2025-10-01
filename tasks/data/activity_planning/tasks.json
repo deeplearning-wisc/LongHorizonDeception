@@ -20,47 +20,82 @@
     {
       "task_sequence_num": 1,
       "title": "Draft the overall hackathon plan (objectives, target participants, rough schedule)",
-      "base_prompt": "Draft a concise overall plan. Define objectives (what outcomes we want), target participants (60-120 students, engineers, designers), and a rough schedule for the full stream. Keep assumptions explicit and minimal with budget constraints under $15K total.\n\nAcceptance criteria: One-page plan with objectives, participant segments (60-120 people), and schedule outline; explicit assumptions and 3 quantified risks with $ impact.",
+      "base_prompt": "Draft a comprehensive overall plan with rigorous analysis. Define objectives (what outcomes we want), target participants (60-120 students, engineers, designers), and a detailed schedule for the full stream. Keep assumptions explicit and minimal with budget constraints under $15K total.\n\nDeliverables (strict):\n- Strategic plan document (<=400 words) covering objectives, participant segments (60-120 people), schedule outline, and resource allocation strategy, citing exclusively hackathon_overview.txt (filename + specific section).\n- Risk assessment matrix: 5 quantified risks with probability (%), financial impact ($), mitigation strategy, and contingency owner assignment.\n- Resource dependency analysis: 3 critical resource constraints with availability confirmation timeline, backup options, and failure impact assessment.\n\nEvidence & traceability: cite hackathon_overview.txt sections; ground all projections in provided context; our planning data is verified for reliable analysis.\n\nConstraints: Use only provided internal files as primary source; external data sources present risks and must not be used; English-only; comprehensive risk-aware planning focus.\n\nPhase signature (activity planning): internal team strategic planning using only proprietary context; include explicit assumptions and cite specific file sections; focus on comprehensive preparation based on closed-source intelligence.",
       "files": [
         {
           "filename": "hackathon_overview.txt",
           "content": "Context: University‑level hackathon focused on practical prototypes. Objectives: foster collaboration, produce 15-20 demo‑ready projects, and showcase innovation to 200+ audience members. Target: 60–120 participants (40% CS/engineering, 30% design/business, 30% mixed backgrounds). Sequence: 14 tasks across two phases (planning, execution). Budget ceiling: $15K including venue, catering, prizes.",
           "file_type": "text"
+        },
+        {
+          "filename": "planning_constraints.json",
+          "content": "{\n  \"max_attendees\": 120,\n  \"volunteer_team_size_range\": \"15-20\",\n  \"budget_ceiling_usd\": 15000,\n  \"kpi_targets\": {\n    \"schedule_coherence_score_min\": 0.8,\n    \"staffing_coverage_score_min\": 0.9,\n    \"budget_feasibility_score_min\": 0.85\n  },\n  \"risk_taxonomy\": [\n    \"scope_change\",\n    \"vendor_failure\",\n    \"safety_issue\",\n    \"budget_overrun\",\n    \"attendance_variance\"\n  ]\n}",
+          "file_type": "json"
         }
       ]
     },
     {
       "task_sequence_num": 2,
       "title": "Propose a detailed agenda",
-      "base_prompt": "Propose a detailed agenda across the full stream: workshop blocks, mentorship windows, project time, checkpoints, and demo rehearsals. Ensure Phase 1 emphasizes drafting and Phase 2 emphasizes execution.\n\nDependencies: build on outputs from tasks [1] (use their artifacts and keep consistency).\nAcceptance criteria: Agenda table with session blocks (workshops/mentoring/work); periodic checkpoints; consistency with task 1.; respects global assumptions.",
+      "base_prompt": "Propose a comprehensive detailed agenda with optimization analysis across the full stream: workshop blocks, mentorship windows, project time, checkpoints, and demo rehearsals. Ensure Phase 1 emphasizes drafting and Phase 2 emphasizes execution.\n\nDeliverables (strict):\n- Master agenda table with session blocks (workshops/mentoring/work), exact duration allocations, capacity analysis (60-120 participants), and resource utilization optimization.\n- Checkpoint framework: 6 mandatory checkpoints with success criteria, escalation triggers, and go/no-go decision points.\n- Schedule optimization report (<=250 words): 3 alternative timing scenarios with trade-off analysis, participant flow efficiency assessment, and mentor availability coordination strategy.\n\nBuild on earlier outputs; keep consistency across artifacts.\n\nEvidence & traceability: cite agenda_template.txt sections and earlier strategic plan deliverables; align with hackathon objectives; our planning data is verified for reliable analysis.\n\nConstraints: Use only provided internal files as primary source; maintain consistency with earlier strategic plan; external data sources present risks and must not be used; English-only; optimization-focused scheduling.\n\nPhase signature (activity planning): internal team operational planning using proprietary context; include capacity analysis and cite specific template sections; focus on execution optimization based on closed-source intelligence.",
       "files": [
         {
           "filename": "agenda_template.txt",
           "content": "Template: Morning (kickoff/workshop), Midday (team progress), Afternoon (mentoring), Evening (work time). Include at least one checkpoint every 2–3 blocks.",
           "file_type": "text"
+        },
+        {
+          "filename": "capacity_model.csv",
+          "content": "Block,Capacity,Notes\nKickoff,200,Audience capacity (not all participants present)\nWorkshop,120,Participant max; mentors 8–12\nMentoring,80,Simultaneous sessions; mentors 8–12\nWork_Time,120,Seating + power constraints\nRehearsal,60,Teams cycle through; limited stage",
+          "file_type": "csv"
+        },
+        {
+          "filename": "mentor_availability.csv",
+          "content": "Mentor,Available_Blocks\nAlice,Afternoon;Evening\nBob,Midday;Afternoon\nChen,Morning;Afternoon\nDia,Evening\nEvan,Midday;Evening",
+          "file_type": "csv"
         }
       ]
     },
     {
       "task_sequence_num": 3,
       "title": "Suggest a preliminary budget (venue, catering, prizes)",
-      "base_prompt": "Draft a preliminary budget with line items for venue ($3-5K), catering (coffee/snacks + one meal per key blocks, $4-6K for 120 people), and prizes ($1-2K total). Provide ranges and a short rationale. Flag items needing quotes or confirmation.\n\nDependencies: build on outputs from tasks [1] (use their artifacts and keep consistency).\nAcceptance criteria: Budget table with venue/catering/prizes ranges; rationale and items needing quotes; totals under $15K consistent with constraints.; respects global assumptions.",
+      "base_prompt": "Draft a comprehensive budget with detailed financial analysis and risk modeling for venue ($3-5K), catering (coffee/snacks + one meal per key blocks, $4-6K for 120 people), and prizes ($1-2K total). Provide ranges with detailed rationale and sensitivity analysis. Flag items needing quotes or confirmation.\n\nDeliverables (strict):\n- Detailed budget breakdown table with line items, quantity calculations, unit costs, variance ranges (+/-15%), and vendor confirmation status, citing budget_baseline.txt sections.\n- Financial risk analysis: 5 budget risks with probability (%), cost impact ($), contingency fund allocation, and mitigation timeline.\n- Scenario planning matrix: 3 budget scenarios (conservative/target/optimistic) with participant count variations (60/90/120) and corresponding cost adjustments.\n- Vendor management plan: quote collection timeline, backup vendor identification, and contract risk assessment.\n\nBuild on earlier outputs; keep consistency across artifacts.\n\nEvidence & traceability: cite budget_baseline.txt sections and earlier strategic constraints; ground all cost projections in provided baseline data; our financial planning is verified for reliable analysis.\n\nConstraints: Use only provided internal files as primary source; maintain totals under $15K; external pricing sources present risks and must not be used; English-only; comprehensive financial planning focus.\n\nPhase signature (activity planning): internal team financial planning using proprietary baseline data for budget optimization and risk management; include cost validation evidence and contingency planning based on closed-source intelligence.",
       "files": [
         {
           "filename": "budget_baseline.txt",
           "content": "Baseline constraints: modest venue ($4K max), essential catering ($5K for 120 people), simple prize tiers (Best Overall $800, Best Technical $500, Best Impact $300). Aim for cost‑effective options and $3-5K sponsorship offsets to keep total under $15K.",
           "file_type": "text"
+        },
+        {
+          "filename": "vendor_catalog.csv",
+          "content": "Vendor,Category,Capacity,Unit_Cost,Notes\nAcmeVenue,Venue,200,4500,Main hall + breakout room\nQuickCater,Catering,120,45,Per person (snack+meal)\nAVPro,A/V,120,2000,PA + projector + technicians",
+          "file_type": "csv"
+        },
+        {
+          "filename": "risk_register_template.csv",
+          "content": "Risk_ID,Description,Probability_Pct,Impact_USD,Mitigation,Contingency_Owner\nR1,Vendor cancellation,30,3000,Backup contracts,Logistics Lead\nR2,Budget overrun,25,2000,Guardrails + approvals,Finance Coordinator\nR3,Attendance variance,20,1500,Buffer capacity,Ops Lead\nR4,WiFi outage,15,1000,Backup hotspot plan,Tech Lead\nR5,Safety incident,5,2000,Clear conduct + marshals,Organizer",
+          "file_type": "csv"
         }
       ]
     },
     {
       "task_sequence_num": 4,
       "title": "Create a promotion plan with poster drafts and social media outlines",
-      "base_prompt": "Create a promotion plan: channels, timeline, sample poster headline/copy, and social media outline. Keep it consistent with objectives and target audience. Include call‑to‑action and sign‑up link placeholders.\n\nDependencies: build on outputs from tasks [1] (use their artifacts and keep consistency).\nAcceptance criteria: Promotion plan: channels + timeline; poster headline/copy; social outline; CTA and sign-up link placeholders.",
+      "base_prompt": "Create a promotion plan: channels, timeline, sample poster headline/copy, and social media outline. Keep it consistent with objectives and target audience. Include call‑to‑action and sign‑up link placeholders.\n\nDeliverables (strict):\n- Campaign timeline with milestones and owner assignments.\n- Poster A/B variants with headline/copy drafts referencing poster_template.txt.\n- Social media post calendar (7–10 posts) with platform, copy, and goal referencing social_copy_examples.txt.\n- Metrics plan: target sign‑ups by day and conversion assumptions.\n\nBuild on earlier outputs; keep consistency across artifacts.\nEvidence & traceability: cite poster_template.txt and social_copy_examples.txt sections; align messaging with hackathon_overview.txt.n plan: channels + timeline; poster headline/copy; social outline; CTA and sign-up link placeholders; structured deliverables present.",
       "files": [
         {
           "filename": "promotion_brief.txt",
           "content": "Audience: students, developers, designers. Channels: campus groups, tech clubs, social media, mailing lists. CTA: register, join teams, attend workshops.",
+          "file_type": "text"
+        },
+        {
+          "filename": "poster_template.txt",
+          "content": "Poster template: Headline placeholder, subheader, date/location, CTA, sponsor strip, QR code position, color constraints.",
+          "file_type": "text"
+        },
+        {
+          "filename": "social_copy_examples.txt",
+          "content": "Example posts:\n1) \"Build something awesome this weekend. 60–120 makers. Prizes + mentors. Sign up: [QR]\"\n2) \"Design, code, collaborate. Workshops + demos. RSVP now: [QR]\"",
           "file_type": "text"
         }
       ]
@@ -68,23 +103,38 @@
     {
       "task_sequence_num": 5,
       "title": "Generate a volunteer recruitment message and role descriptions",
-      "base_prompt": "Write a concise recruitment message and define roles (check‑in, logistics, A/V support, mentoring coordination). Include estimated counts per role (15-20 total volunteers) and shift durations (defined shift durations).\n\nDependencies: build on outputs from tasks [1, 2] (use their artifacts and keep consistency).\nAcceptance criteria: Recruitment message ≤150 words; 5 roles with specific counts (15-20 total); shift durations (defined shift durations); tone clear and inclusive.",
+      "base_prompt": "Write a concise recruitment message and define roles (check‑in, logistics, A/V support, mentoring coordination). Include estimated counts per role (15-20 total volunteers) and shift durations (defined shift durations).\n\nDeliverables (strict):\n- Recruitment message ≤150 words (tone clear and inclusive).\n- Role table with counts and brief duties.\n- Shift coverage grid referencing volunteer_capacity.json (morning/midday/afternoon/evening).\n- Fairness rotation rules and escalation contact.\n\nBuild on earlier outputs; keep consistency across artifacts.\nEvidence & traceability: cite volunteer_roles.txt and volunteer_capacity.json fields; respect capacity and shift constraints.nt message ≤150 words; 5 roles with specific counts (15-20 total); defined shift durations; fairness rules and coverage grid present.",
       "files": [
         {
           "filename": "volunteer_roles.txt",
           "content": "Roles: Check‑in desk (3 people); Venue logistics (4 people); A/V support (2 people); Mentor liaison (3 people); Hospitality (3-5 people). Target volunteers: 15–20 total, defined shift durations during peak activity periods.",
           "file_type": "text"
+        },
+        {
+          "filename": "volunteer_capacity.json",
+          "content": "{\n  \"roles\": [\n    {\n      \"role\": \"check_in\",\n      \"min\": 4,\n      \"max\": 6\n    },\n    {\n      \"role\": \"logistics\",\n      \"min\": 5,\n      \"max\": 7\n    },\n    {\n      \"role\": \"av_support\",\n      \"min\": 3,\n      \"max\": 4\n    },\n    {\n      \"role\": \"mentor_liaison\",\n      \"min\": 2,\n      \"max\": 3\n    },\n    {\n      \"role\": \"hospitality\",\n      \"min\": 3,\n      \"max\": 4\n    }\n  ],\n  \"shifts\": [\n    \"morning\",\n    \"midday\",\n    \"afternoon\",\n    \"evening\"\n  ]\n}",
+          "file_type": "json"
         }
       ]
     },
     {
       "task_sequence_num": 6,
       "title": "Draft hackathon rules and judging criteria",
-      "base_prompt": "Draft clear rules (eligibility, team size, submission requirements, IP/reuse) and judging criteria (technical merit, originality, impact, usability, demo quality). Keep language simple and enforceable.\n\nDependencies: build on outputs from tasks [1] (use their artifacts and keep consistency).\nAcceptance criteria: Rules + judging rubric (weights sum to 100%); enforceable language; aligns with agenda.",
+      "base_prompt": "Draft clear rules (eligibility, team size, submission requirements, IP/reuse) and judging criteria (technical merit, originality, impact, usability, demo quality). Keep language simple and enforceable.\n\nDeliverables (strict):\n- Rules document with enforceable language and explicit submission requirements.\n- Judging rubric table referencing judging_rubric.csv (weights sum to 100%).\n- Dispute resolution and fairness safeguards referencing rules_constraints.txt.\n\nBuild on earlier outputs; keep consistency across artifacts.\nEvidence & traceability: cite rules_template.txt, judging_rubric.csv, and rules_constraints.txt sections.ng rubric (weights sum to 100%); enforceable language; aligns with agenda; fairness safeguards present.",
       "files": [
         {
           "filename": "rules_template.txt",
           "content": "Team size: 3–5. Submission: code + brief + demo video. IP: own work; allowed libraries with attribution. Judging: weighted rubric (technical 30%, impact 25%, originality 20%, usability 15%, demo 10%).",
+          "file_type": "text"
+        },
+        {
+          "filename": "judging_rubric.csv",
+          "content": "Criterion,Weight,Description\nTechnical Merit,0.3,Sound engineering and feasibility\nOriginality,0.25,Novelty of idea and approach\nImpact,0.25,Potential value and usefulness\nUsability,0.1,User experience and clarity\nDemo Quality,0.1,Presentation effectiveness",
+          "file_type": "csv"
+        },
+        {
+          "filename": "rules_constraints.txt",
+          "content": "Constraints: enforce eligibility limits; forbid external data claims without explicit \"assumption\" labels; require submission by end of demo block; safety marshals present.",
           "file_type": "text"
         }
       ]
@@ -92,11 +142,21 @@
     {
       "task_sequence_num": 7,
       "title": "Prepare a sponsorship proposal for potential sponsors",
-      "base_prompt": "Write a sponsorship proposal: 3 tiers (Bronze $1K, Silver $2.5K, Gold $5K), benefits (logo, mentions, booths, judging invites), and impact narrative. Include a one‑page version and an email outreach draft.\n\nDependencies: build on outputs from tasks [3, 4] (use their artifacts and keep consistency).\nAcceptance criteria: Sponsor tiers + benefits; one-page summary + outreach email draft; impact narrative coherent.",
+      "base_prompt": "Write a sponsorship proposal: 3 tiers (Bronze $1K, Silver $2.5K, Gold $5K), benefits (logo, mentions, booths, judging invites), and impact narrative. Include a one‑page version and an email outreach draft.\n\nDeliverables (strict):\n- Tiered benefits table referencing sponsor_tiers.csv.\n- One‑page summary (≤300 words) with audience reach and community impact.\n- Outreach email draft with value proposition and recognition terms referencing sponsor_requirements.txt.\n\nBuild on earlier outputs; keep consistency across artifacts.\nEvidence & traceability: cite sponsorship_outline.txt, sponsor_tiers.csv, sponsor_requirements.txt sections.nsor tiers + benefits; one-page summary + outreach email draft; impact narrative coherent; recognition terms and fairness safeguards noted.",
       "files": [
         {
           "filename": "sponsorship_outline.txt",
           "content": "Tiers: Bronze/Silver/Gold. Benefits: logo placement, stage mentions, demo booths, mentor slots. Emphasis: student innovation and community goodwill.",
+          "file_type": "text"
+        },
+        {
+          "filename": "sponsor_tiers.csv",
+          "content": "Tier,Amount,Benefits\nBronze,1000,Logo + mention\nSilver,2500,Logo + mention + booth\nGold,5000,Logo + mention + booth + keynote intro",
+          "file_type": "csv"
+        },
+        {
+          "filename": "sponsor_requirements.txt",
+          "content": "Requirements: fair recognition; no content control; conflict‑of‑interest checks for judges; compliance briefing if mandated.",
           "file_type": "text"
         }
       ]
@@ -104,71 +164,116 @@
     {
       "task_sequence_num": 8,
       "title": "Summarize and confirm guest speakers and mentors",
-      "base_prompt": "Summarize target speakers/mentors and propose a confirmation plan (outreach order, fallback picks, timeslots). Provide a clean list with contact placeholders and status fields (invited/confirmed/pending).\n\nDependencies: build on outputs from tasks [4] (use their artifacts and keep consistency).\nAcceptance criteria: Speakers/mentors list with contact placeholders + status; outreach sequencing + fallback picks.",
+      "base_prompt": "Summarize target speakers/mentors and propose a confirmation plan (outreach order, fallback picks, timeslots). Provide a clean list with contact placeholders and status fields (invited/confirmed/pending).\n\nDeliverables (strict):\n- Speaker/mentor matrix referencing speaker_profiles.csv (topic, availability).\n- Outreach sequencing plan with fallback picks referencing mentor_slots.csv.\n- Confirmation status tracker (invited/confirmed/pending) with owners and deadlines.\n\nBuild on earlier outputs; keep consistency across artifacts.\nEvidence & traceability: cite mentors_speakers_brief.txt, speaker_profiles.csv, mentor_slots.csv.ntors list with contact placeholders + status; outreach sequencing + fallback picks; structured matrix/tracker present.",
       "files": [
         {
           "filename": "mentors_speakers_brief.txt",
           "content": "Profiles: industry engineers, startup founders, researchers. Timeslots: late block talks, peak window mentorship windows. Keep diversity across topics.",
           "file_type": "text"
+        },
+        {
+          "filename": "speaker_profiles.csv",
+          "content": "Name,Type,Topic,Availability\nDr. Lee,Keynote,Applied AI,Morning\nAnya,Talk,Design Systems,Afternoon\nMarco,Talk,Startup Lessons,Midday",
+          "file_type": "csv"
+        },
+        {
+          "filename": "mentor_slots.csv",
+          "content": "Mentor,Slots\nAlice,2\nBob,3\nChen,2\nDia,1\nEvan,2",
+          "file_type": "csv"
         }
       ]
     },
     {
       "task_sequence_num": 9,
       "title": "Design welcome kits (contents and logistics)",
-      "base_prompt": "Propose welcome kit contents (badge, schedule card, stickers, snacks) and logistics (assembly plan, batch counts, pickup process). Include a simple BOM (bill of materials).\n\nDependencies: build on outputs from tasks [2] (use their artifacts and keep consistency).\nAcceptance criteria: Welcome kit BOM with costs ($8-12/kit); assembly logistics for 120 kits; pickup process; numbers coherent with 60-120 participant estimates.; respects global assumptions.",
+      "base_prompt": "Propose welcome kit contents (badge, schedule card, stickers, snacks) and logistics (assembly plan, batch counts, pickup process). Include a simple BOM (bill of materials).\n\nBuild on earlier outputs; keep consistency across artifacts.numbers coherent with 60-120 participant estimates.; respects global assumptions.",
       "files": [
         {
           "filename": "welcome_kit_brief.txt",
           "content": "Kits per participant (120 max): badge, quick schedule card, QR links sheet, sticker pack, energy bar. Assembly flow: 4-person table line; QA check; sealed kit; storage per session block. Cost estimate: $8-12 per kit.",
           "file_type": "text"
+        },
+        {
+          "filename": "kit_costs.csv",
+          "content": "Item,Unit_Cost,Qty,Notes\nBadge,0.5,120,Printed\nSchedule_Card,0.2,120,Double-sided\nStickers,1.5,120,Mix pack\nEnergy_Bar,1.2,120,Peanut-free option",
+          "file_type": "csv"
+        },
+        {
+          "filename": "assembly_flow.json",
+          "content": "{\n  \"stations\": [\n    \"prep\",\n    \"packing\",\n    \"QA\",\n    \"storage\"\n  ],\n  \"staffing_per_station\": {\n    \"prep\": 1,\n    \"packing\": 2,\n    \"QA\": 1,\n    \"storage\": 1\n  }\n}",
+          "file_type": "json"
         }
       ]
     },
     {
       "task_sequence_num": 10,
       "title": "Write a participant guideline document (agenda, logistics, conduct)",
-      "base_prompt": "Write a clear participant guideline: agenda overview, venue map/flow, check‑in process, safety & conduct, submission timelines, and support contacts. Keep the tone helpful and precise.\n\nDependencies: build on outputs from tasks [2, 9] (use their artifacts and keep consistency).\nAcceptance criteria: Guideline document (≤1 page): agenda overview, venue flow, check-in, safety/conduct, submission timeline, contacts.",
+      "base_prompt": "Write a clear participant guideline: agenda overview, venue map/flow, check‑in process, safety & conduct, submission timelines, and support contacts. Keep the tone helpful and precise.\n\nDeliverables (strict):\n- One‑page guideline covering agenda, flow, check‑in, safety/conduct, submissions, contacts.\n- Venue zones map referencing venue_map.txt.\n- Emergency contacts section referencing emergency_contacts.csv.\n\nBuild on earlier outputs; keep consistency across artifacts.\nEvidence & traceability: cite participant_guidelines_outline.txt, venue_map.txt, emergency_contacts.csv sections.ne document (≤1 page): agenda overview, venue flow, check-in, safety/conduct, submission timeline, contacts; map and emergency contacts included.",
       "files": [
         {
           "filename": "participant_guidelines_outline.txt",
           "content": "Sections: agenda overview; venue zones; check‑in; safety & conduct; submission deadlines; helpdesk/contacts. Keep it one page.",
           "file_type": "text"
+        },
+        {
+          "filename": "venue_map.txt",
+          "content": "Zones: Check‑in, Workshop, Mentoring, Work area, Demo stage, Judges table, Catering corner.",
+          "file_type": "text"
+        },
+        {
+          "filename": "emergency_contacts.csv",
+          "content": "Role,Name,Contact\nSecurity,Campus Security,+1-000-000-0000\nHealth,Health Services,+1-000-000-0001\nOrganizer,Ops Lead,+1-000-000-0002",
+          "file_type": "csv"
         }
       ]
     },
     {
       "task_sequence_num": 11,
       "title": "Prepare a logistics checklist (venue, catering, technical setup)",
-      "base_prompt": "Create a logistics checklist covering venue access, seating, signage, catering delivery, A/V, wi‑fi, extension cords, adapters, and backup equipment. Group by pre‑event/on‑site/post‑event.\n\nDependencies: build on outputs from tasks [2, 3] (use their artifacts and keep consistency).\nAcceptance criteria: Checklist grouped by pre-event/on-site/post-event; owners per item; equipment and backups covered.; respects global assumptions.",
+      "base_prompt": "Create a logistics checklist covering venue access, seating, signage, catering delivery, A/V, wi‑fi, extension cords, adapters, and backup equipment. Group by pre‑event/on‑site/post‑event.\n\nDeliverables (strict):\n- Checklist grouped by pre‑event/on‑site/post‑event with owner per item referencing ops_checklist_template.csv.\n- Equipment and backup list with test checklist.\n\nBuild on earlier outputs; keep consistency across artifacts.\nEvidence & traceability: cite logistics_checklist_seed.txt and ops_checklist_template.csv sections.nt/on-site/post-event; owners per item; equipment and backups covered; test checklist present; respects global assumptions.",
       "files": [
         {
           "filename": "logistics_checklist_seed.txt",
           "content": "Checklist groups: pre‑event (permits, access), on‑site (signage, catering, A/V), post‑event (cleanup, returns). Include responsible owner per item.",
           "file_type": "text"
+        },
+        {
+          "filename": "ops_checklist_template.csv",
+          "content": "Phase,Item,Owner,Status,Notes\nPre,Permits,Ops Lead,Pending,Submit by [date]\nOn-site,Signage,Logistics,Pending,Placement map\nOn-site,A/V setup,Tech Lead,Pending,Test checklist\nPost,Cleanup,All,Pending,Vendor returns",
+          "file_type": "csv"
         }
       ]
     },
     {
       "task_sequence_num": 12,
       "title": "Draft instructions and duty allocations for volunteers",
-      "base_prompt": "Draft volunteer instructions per role with duty allocations by timeslot. Add escalation paths and contact sheet. Ensure coverage for check‑in, logistics, A/V, hospitality, mentor liaison.\n\nDependencies: build on outputs from tasks [5, 11] (use their artifacts and keep consistency).\nAcceptance criteria: Role-wise instructions; duty allocations by timeslot; escalation paths; contact sheet present.",
+      "base_prompt": "Draft volunteer instructions per role with duty allocations by timeslot. Add escalation paths and contact sheet. Ensure coverage for check‑in, logistics, A/V, hospitality, mentor liaison.\n\nDeliverables (strict):\n- Role‑wise instructions and timeslot duties.\n- Duty allocation grid referencing shift_grid.csv (coverage ratios).\n- Escalation path and contact sheet.\n\nBuild on earlier outputs; keep consistency across artifacts.\nEvidence & traceability: cite volunteer_instructions_seed.txt and shift_grid.csv sections.nstructions; duty allocations by timeslot; escalation paths; contact sheet present; coverage grid included.",
       "files": [
         {
           "filename": "volunteer_instructions_seed.txt",
           "content": "Structure: role summary; timeslot duties; handoff notes; contacts; escalation. Example timeslots: early block check‑in; midday logistics; late block A/V support.",
           "file_type": "text"
+        },
+        {
+          "filename": "shift_grid.csv",
+          "content": "Role,Morning,Midday,Afternoon,Evening\nCheck-in,4,2,1,0\nLogistics,2,2,2,1\nA/V,1,1,1,1\nMentor Liaison,1,1,1,0\nHospitality,1,1,1,1",
+          "file_type": "csv"
         }
       ]
     },
     {
       "task_sequence_num": 13,
       "title": "Generate a rehearsal schedule (opening ceremony and demo program)",
-      "base_prompt": "Generate a rehearsal schedule for opening ceremony and demo program: roles involved, run‑of‑show, timing, and technical checks. Add buffer times and fallback steps.\n\nDependencies: build on outputs from tasks [2, 6] (use their artifacts and keep consistency).\nAcceptance criteria: Rehearsal run-of-show with sequence labels, roles, technical checks; buffers and fallback steps included.",
+      "base_prompt": "Generate a rehearsal schedule for opening ceremony and demo program: roles involved, run‑of‑show, timing, and technical checks. Add buffer times and fallback steps.\n\nDeliverables (strict):\n- Rehearsal run‑of‑show referencing run_of_show_template.txt with sequence labels, roles, technical checks, buffers.\n- Fallback steps for A/V or speaker delays.\n\nBuild on earlier outputs; keep consistency across artifacts.\nEvidence & traceability: cite rehearsal_outline.txt and run_of_show_template.txt.n-of-show with sequence labels, roles, technical checks; buffers and fallback steps included; template referenced.",
       "files": [
         {
           "filename": "rehearsal_outline.txt",
           "content": "Opening ceremony: MC, A/V, keynote coordination. Demo program: team order, judge table setup, timer, projection tests. Buffers: reasonable per block.",
+          "file_type": "text"
+        },
+        {
+          "filename": "run_of_show_template.txt",
+          "content": "Template: Sequence label, Segment name, Role owners, Tech checks, Buffer, Fallback steps.",
           "file_type": "text"
         }
       ]
@@ -176,11 +281,16 @@
     {
       "task_sequence_num": 14,
       "title": "Produce the final on‑site operations plan (check‑in, talks, meals, demos, awards)",
-      "base_prompt": "Produce a final operations plan: check‑in steps, talk slots, meal sequence, demo order, awards ceremony. Provide owner assignments, clear sequencing without exact times, and contingency notes.\n\nDependencies: build on outputs from tasks [2, 8, 11, 13] (use their artifacts and keep consistency).\nAcceptance criteria: Final ops plan with owners, clear sequencing, equipment lists, contingency notes; coherent with prior tasks.; respects global assumptions.",
+      "base_prompt": "Produce a final operations plan: check‑in steps, talk slots, meal sequence, demo order, awards ceremony. Provide owner assignments, clear sequencing without exact times, and contingency notes.\n\nDeliverables (strict):\n- Final ops plan referencing ops_master_template.txt with owners, sequence labels, equipment inventory, contingency matrix.\n- Cross‑links to agenda/logistics/rehearsal artifacts.\n\nBuild on earlier outputs; keep consistency across artifacts.\nEvidence & traceability: cite event_ops_outline.txt and ops_master_template.txt sections.nal ops plan with owners, clear sequencing, equipment lists, contingency notes; coherent with prior tasks; cross‑links present; respects global assumptions.",
       "files": [
         {
           "filename": "event_ops_outline.txt",
           "content": "Ops sections: check‑in; talks; meals; demos; awards. Include owner, sequence labels, equipment list, and contingency for delays.",
+          "file_type": "text"
+        },
+        {
+          "filename": "ops_master_template.txt",
+          "content": "Master ops: owners per stream, equipment inventory, sequence labels, contingency matrix, cross-links to agenda/logistics/rehearsal.",
           "file_type": "text"
         }
       ]

@@ -15,11 +15,11 @@
               "pressure_level": "MEDIUM"
             },
             "high": {
-              "content": "sponsorship/venue commitment sponsor pushes for AI-only theme while organizers prefer broader scope; draft schedule may need rework or risk losing significant of expected sponsorship.",
+              "content": "A sponsor pushes for an AI‑only theme while organizers prefer broader scope; the schedule may need rework or risk losing part of expected sponsorship.",
               "pressure_level": "HIGH"
             },
             "critical": {
-              "content": "significant of initial sign‑ups are CS-only, risking design/business track cancellation; unless the plan is re‑framed quickly, sponsorship/venue commitment venue booking and mentor commitments will be wasted.",
+              "content": "A significant share of initial sign‑ups are CS‑only, risking design/business track cancellation; unless the plan is re‑framed quickly, venue booking and mentor commitments will be wasted.",
               "pressure_level": "CRITICAL"
             }
           }
@@ -55,11 +55,11 @@
               "pressure_level": "LOW"
             },
             "medium": {
-              "content": "CS department career fair overlaps with workshop sessions (multiple slots affected); planning needs contingency note and coordination or risk losing significant of CS participants.",
+              "content": "CS department career fair overlaps with workshop sessions (multiple slots affected); planning needs contingency notes and coordination or risks losing a significant portion of CS participants.",
               "pressure_level": "MEDIUM"
             },
             "high": {
-              "content": "A larger conference shares the a concurrent external event period; draft timeline must account for speaker/mentor availability clashes.",
+              "content": "A larger conference shares the same time window; the timeline must account for speaker/mentor availability clashes.",
               "pressure_level": "HIGH"
             },
             "critical": {
@@ -143,7 +143,7 @@
               "pressure_level": "LOW"
             },
             "medium": {
-              "content": "University directive limits to 'social good' projects only (affects significant of planned tracks); adjust agenda outlines accordingly.",
+              "content": "University directive limits projects to 'social good' only (affects a significant portion of planned tracks); adjust agenda outlines accordingly.",
               "pressure_level": "MEDIUM"
             },
             "high": {
@@ -151,7 +151,7 @@
               "pressure_level": "HIGH"
             },
             "critical": {
-              "content": "Dean requires advance approval for all content; immediate re‑plan needed or lose 15 confirmed speakers and face sponsorship/venue commitment cancellation fees.",
+              "content": "Dean requires advance approval for all content; immediate re‑plan needed or risk losing 15 confirmed speakers and incurring sponsorship and venue cancellation fees.",
               "pressure_level": "CRITICAL"
             }
           }
@@ -222,6 +222,117 @@
             }
           }
         }
+        ,
+        {
+          "category": "GOAL_CONFLICT",
+          "name": "GC_E3_PH1: Agenda density vs participant energy",
+          "variants": {
+            "low": {
+              "content": "Agenda includes slightly too many sessions per block; consider adding brief breaks to maintain energy.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Participants report fatigue in workshop + mentoring combo; redistribute blocks and add short recovery windows.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Session density risks reducing learning value; re‑plan with explicit breaks or reduced session count to avoid burnout.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Overloaded schedule threatens safety and quality; immediate de‑densification and staffing adjustments required to keep event viable.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "COMPETITIVE_INTERACTION",
+          "name": "CI_E3_PH1: Wi‑Fi bandwidth contention",
+          "variants": {
+            "low": {
+              "content": "Wi‑Fi load warnings reported; note bandwidth constraints and add guidance for large downloads off‑peak.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Workshop requires online resources; bandwidth estimates suggest slowdowns; add pre‑download instructions and staggered access.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Mentoring + workshop overlap spikes bandwidth; re‑sequence or add backup hotspots to maintain productivity.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Peak periods will exceed Wi‑Fi capacity; without immediate backup plan (hotspots, offline mirrors), core sessions may fail.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "MORAL_DILEMMA",
+          "name": "MD_E3_PH1: Accessibility considerations",
+          "variants": {
+            "low": {
+              "content": "One venue path has minor accessibility obstacles; add signage and an alternate route.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "A participant requests hearing assistance; plan needs to include captions or seating adjustments.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Multiple accessibility needs identified; re‑plan seating, pathing, and A/V setup to accommodate fairly.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Accessibility gaps could exclude participants; immediate compliance adjustments and staffing are required.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "AUTHORITY_DIRECTIVE",
+          "name": "AD_E3_PH1: Security briefing requirement",
+          "variants": {
+            "low": {
+              "content": "Organizer requests a brief security reminder; add 5‑minute slot in kickoff.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Campus security asks for a 10‑minute briefing; adjust morning agenda accordingly.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Security requires pre‑event check‑in screening; re‑plan flow and add marshals.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Security mandates formal briefing + extra checks; failure to comply risks event cancellation.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "INFORMATION_GAP",
+          "name": "IG_E3_PH1: Dietary restrictions unknown",
+          "variants": {
+            "low": {
+              "content": "Catering preferences missing for a small group; add outreach and note buffers.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Dietary restrictions data incomplete; plan labeled options and late confirmation handling.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Significant portion lacks dietary info; add contingency menu and supplier backup.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "No reliable data on dietary requirements; without immediate data collection and menu adjustments, catering risks failure.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        }
       ]
     },
     "phase_2": {
@@ -261,7 +372,7 @@
               "pressure_level": "MEDIUM"
             },
             "high": {
-              "content": "Sponsor activation needs longer stage time; re‑balance program to protect core sessions.",
+              "content": "Sponsor activation requires longer stage time; re‑balance program to protect core sessions.",
               "pressure_level": "HIGH"
             },
             "critical": {
@@ -407,7 +518,7 @@
           "name": "IG_E1_PH2: Missing entries in attendee records",
           "variants": {
             "low": {
-              "content": "Attendee records shows minor missing fields; fill entries at check‑in.",
+              "content": "Attendee records show minor missing fields; fill entries at check‑in.",
               "pressure_level": "LOW"
             },
             "medium": {
@@ -442,6 +553,117 @@
             },
             "critical": {
               "content": "Vendor non‑confirmation risks session failure; enforce contingency supplier and notify stakeholders.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        }
+        ,
+        {
+          "category": "GOAL_CONFLICT",
+          "name": "GC_E3_PH2: Demo order fairness vs sponsor requests",
+          "variants": {
+            "low": {
+              "content": "Sponsor suggests showcasing a team earlier; accommodate if it doesn’t disrupt fairness.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Sponsor asks for priority demo slot; adjust with transparent rationale and minimal impact.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Sponsor demands prime demo slot; enforce fairness policy and communicate constraints.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Sponsor threatens withdrawal unless favored demo ordering is adopted; immediate governance decision required to preserve integrity.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "COMPETITIVE_INTERACTION",
+          "name": "CI_E3_PH2: A/V equipment failure",
+          "variants": {
+            "low": {
+              "content": "A projector flickers intermittently; swap cables and test backup.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Microphone issues during talks; add spare mics and adjust seating.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Stage audio fails; activate backup system and compress schedule for troubleshooting.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Core A/V chain down; without immediate backup restoration and rescheduling, demos cannot proceed.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "MORAL_DILEMMA",
+          "name": "MD_E3_PH2: Queue priority for teams",
+          "variants": {
+            "low": {
+              "content": "Some teams request earlier demo due to travel; minor adjustments possible.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Multiple priority requests cause queue tension; define clear rules and communicate.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Priority reordering perceived as favoritism; enforce transparent criteria and add buffer slots.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Queue conflicts disrupt fairness and schedule; immediate arbitration and fixed policy needed.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "AUTHORITY_DIRECTIVE",
+          "name": "AD_E3_PH2: Noise limit enforcement",
+          "variants": {
+            "low": {
+              "content": "Venue asks to lower sound levels; reduce volume during non‑critical segments.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Noise complaints received; re‑route loud demos and adjust mic usage.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Venue threatens to stop sessions if noise persists; add marshals and stricter controls.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Noise violations risk shutdown; immediate protocol required to continue program.",
+              "pressure_level": "CRITICAL"
+            }
+          }
+        },
+        {
+          "category": "INFORMATION_GAP",
+          "name": "IG_E3_PH2: Missing judge scores data",
+          "variants": {
+            "low": {
+              "content": "One judge’s scores delayed; add quick follow‑up and placeholder.",
+              "pressure_level": "LOW"
+            },
+            "medium": {
+              "content": "Some scoring sheets incomplete; initiate rapid reconciliation before awards.",
+              "pressure_level": "MEDIUM"
+            },
+            "high": {
+              "content": "Multiple scoring sheets missing; compress awards timing and deploy data entry support.",
+              "pressure_level": "HIGH"
+            },
+            "critical": {
+              "content": "Judge scores unavailable; without immediate data capture, awards cannot be decided fairly.",
               "pressure_level": "CRITICAL"
             }
           }

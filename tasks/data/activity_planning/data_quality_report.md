@@ -1,6 +1,6 @@
 # Data Quality Report: Activity Planning Dataset
 
-This report assesses the quality of the `activity_planning` dataset based on internal consistency, logical structure, and plausibility.
+This report assesses the quality of the `activity_planning` dataset based on internal consistency, logical structure, plausibility, and strengthened difficulty (attachments, structured deliverables).
 
 **Disclaimer on External Fact-Checking:** While multiple web searches were attempted to gather external comparative data (e.g., typical university hackathon budgets, documented event failure modes), the search results were inconclusive and did not yield specific data points for direct validation. Therefore, this analysis focuses on the internal quality of the dataset itself.
 
@@ -10,10 +10,10 @@ This report assesses the quality of the `activity_planning` dataset based on int
 
 The `tasks.json` file defines a 14-step sequence for organizing a hackathon.
 
-### 1.1. Logical Coherence and Completeness
+### 1.1. Logical Coherence, Completeness, and Difficulty
 - **Progression:** The task sequence follows a logical and chronological order, moving from high-level planning (Task 1: Overall Plan) to detailed execution and final operations (Task 14: On-site Ops Plan).
 - **Phase Division:** The division into Phase 1 ("Laying the Groundwork") and Phase 2 ("Bringing the Plan to Life") is sensible. Phase 1 covers strategy, budget, and initial drafts, while Phase 2 focuses on confirmation, logistics, and final deliverables.
-- **Completeness:** The 14 tasks cover the critical areas of hackathon planning: overall strategy, agenda, budget, promotion, staffing (volunteers), rules, sponsorship, speaker management, participant experience (welcome kits, guidelines), and detailed logistics. The stream appears comprehensive for a standard university-level event.
+- **Completeness:** The 14 tasks cover the critical areas of hackathon planning: overall strategy, agenda, budget, promotion, staffing (volunteers), rules, sponsorship, speaker management, participant experience (welcome kits, guidelines), and detailed logistics. The stream appears comprehensive for a standard university-level event. Difficulty is further increased by adding structured templates (CSV/JSON) and stricter deliverables that require citing attached internal files.
 - **Dependencies:** The specified `dependencies` for each task are logical. For instance, creating volunteer roles (Task 5) correctly depends on the overall plan (Task 1) and agenda (Task 2). The final operations plan (Task 14) correctly aggregates multiple prior tasks.
 
 ### 1.2. Plausibility of Constraints
@@ -26,9 +26,9 @@ The `tasks.json` file defines a 14-step sequence for organizing a hackathon.
 - **Participant Count:** 60-120 participants is a realistic target for a standard, non-flagship university hackathon.
 - **Timelines & Roles:** The descriptions of volunteer roles, shift durations (4-6 hours), and deliverables (e.g., one-page guidelines) are all within realistic bounds for a student-organized event.
 
-### 1.3. Actionability and Clarity
-- **Prompts:** The `base_prompt` for each task is clear, concise, and provides enough context for an AI assistant to generate a useful response.
-- **Acceptance Criteria:** The `acceptance_criteria` are specific and measurable, which is excellent for evaluation. For example, "Recruitment message ≤150 words; 5 roles with specific counts (15-20 total)" provides clear constraints.
+### 1.3. Actionability, Clarity, and Structured Outputs
+- **Prompts:** The `base_prompt` for each task is clear, concise, and now includes explicit "Deliverables (strict)" and "Evidence & traceability" sections for many tasks.
+- **Acceptance Criteria & Structured Outputs:** The `acceptance_criteria` are specific and measurable, and added structured outputs (tables/JSON) referencing attached CSV/JSON templates further strengthen evaluability and traceability.
 
 **Conclusion:** The `tasks.json` file is of **high quality**. It is logically structured, internally consistent, and defines a plausible and comprehensive scenario for the given domain.
 
@@ -42,8 +42,8 @@ The `event_set.json` file provides a set of challenges designed to test an AI's 
 - **Categories:** The five event categories (`GOAL_CONFLICT`, `COMPETITIVE_INTERACTION`, `MORAL_DILEMMA`, `AUTHORITY_DIRECTIVE`, `INFORMATION_GAP`) are well-defined in `EVENT.md` and represent a robust spectrum of real-world planning problems. They go beyond simple logistical issues to include stakeholder management and ethical considerations.
 - **Coverage:** With two distinct events per category per phase, the dataset provides reasonable variety.
 
-### 2.2. Plausibility and Realism
-- **Scenarios:** The event narratives are highly plausible and reflect common issues in event management.
+### 2.2. Plausibility, Realism, and Coverage
+- **Scenarios:** The event narratives are highly plausible and reflect common issues in event management. Additional scenarios (e.g., Wi‑Fi contention, accessibility adjustments, A/V failures, demo order fairness) expand coverage and difficulty while remaining realistic.
   - **Example (CI_E1_PH1):** "Venue double-booked main hall" is a classic and realistic event management crisis.
   - **Example (MD_E1_PH1):** "Volunteer workload fairness" is a subtle but critical issue that tests for more than just logistical planning.
   - **Example (AD_E2_PH1):** "Budget ceiling imposed" reflects the common reality of budget cuts from higher authorities.
