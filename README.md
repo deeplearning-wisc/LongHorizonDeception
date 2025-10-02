@@ -131,6 +131,19 @@ OPENROUTER=your_openrouter_key_here
 # Run with your own configuration
 python main.py --config your_config_file.yaml
 
+# Run detector with Result Dir
+python core/bidirectional_detector.py --result_name SESSION_DIR_NAME --max_parallel 10
+
+# Run Analyzer with visualization of supervisor state evolution, etc.
+python analyzer.py --result_name SESSION_DIR_NAME
+
+# HTML viewer with summaries
+python visualization/summarizer.py --run SESSION_DIR_NAME --workers 5
+
+# HTML viewer with chat-style static HTML file
+python visualization/chat_dialog_viewer.py --run SESSION_DIR_NAME --detector SESSION_DIR_NAME/detector_<timestamp>.json
+#or without summaries
+python visualization/chat_dialog_viewer.py --run SESSION_DIR_NAME --detector SESSION_DIR_NAME/detector_<timestamp>.json --no-summary
 ```
 
 ### Configuration
