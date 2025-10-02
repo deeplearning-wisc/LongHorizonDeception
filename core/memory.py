@@ -4,7 +4,7 @@ import json
 from core.Universal_LLM_Handler import UniversalLLMHandler
 from utils.json_to_text_formatter import format_memory_for_llm
 
-class ManagerMemory:
+class Memory:
     """
     Manager's memory system with K-window recent history + summarized older memory
     """

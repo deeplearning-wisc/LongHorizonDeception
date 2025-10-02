@@ -2,7 +2,7 @@ from typing import Dict, Any
 from tasks.task import Task
 from core.Universal_LLM_Handler import UniversalLLMHandler
 
-class LLM:
+class Performer:
     """
     Simple LLM class - wraps Universal_LLM_Handler
     """

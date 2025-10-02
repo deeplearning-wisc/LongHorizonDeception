@@ -14,8 +14,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils.config_handler import load_config
 from tasks.task import TaskLoader, TaskStream
 from tasks.event import EventSystem
-from core.LLM import LLM
-from core.manager import Manager
+from core.performer import Performer
+from core.supervisor import Supervisor
 from utils.result_saver import ResultSaver
 
 # Constants
@@ -206,7 +206,7 @@ def run_llm_manager_interaction_rounds(task_event_stream: Dict, config: Dict, co
     if 'llm_system_prompt' not in config:
         raise ValueError("Missing required configuration: 'llm_system_prompt'")
     system_prompt = config['llm_system_prompt']
-    llm = LLM(_llm_api_config, system_prompt)
+    llm = Performer(_llm_api_config, system_prompt)
     
     # Initialize Manager
     if 'manager_initial_state' not in config:
@@ -241,7 +241,7 @@ def run_llm_manager_interaction_rounds(task_event_stream: Dict, config: Dict, co
         raise ValueError("Missing required configuration: 'max_rounds_per_task'")
     max_rounds_per_task = config['max_rounds_per_task']
     
-    manager = Manager(
+    manager = Supervisor(
         _manager_api_config, evaluation_prompt, feedback_prompt, memory_prompt,
         system_prompt, initial_state, task_completion_threshold, memory_k_window, 
         max_rounds_per_task

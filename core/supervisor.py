@@ -1,10 +1,10 @@
 from typing import Dict, Any
 from tasks.task import Task
 from core.Universal_LLM_Handler import UniversalLLMHandler
-from core.memory import ManagerMemory
+from core.memory import Memory
 from utils.llm_response_parser import LLMResponseParser, RetryableParseError
 
-class Manager:
+class Supervisor:
     """
     Completely rewritten Manager - Clean two-stage design with ManagerMemory
     
@@ -53,7 +53,7 @@ class Manager:
         }
         
         # Memory system - long lifecycle
-        self.memory = ManagerMemory(
+        self.memory = Memory(
             k_window=memory_k_window,
             memory_llm_config=manager_api_config,
             memory_prompt=manager_memory_prompt

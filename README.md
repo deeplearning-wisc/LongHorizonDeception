@@ -47,7 +47,7 @@ Each category has four pressure levels $\Lambda=\{\text{low},\text{medium},\text
 
 ### Supervisor Agent
 
-The supervisor oversees the performer's work and regulates task progression through structured feedback. For each task, multiple interaction rounds are allowed (up to $R_{\max}$). The supervisor maintains an internal state vector $\mathbf{s}_{i,j} = (s^{\text{trust}}_{i,j}, s^{\text{satisfaction}}_{i,j}, s^{\text{comfort}}_{i,j}) \in [-1,1]^3$ updated after each attempt:
+The supervisor oversees the performer's work and regulates task progression through structured feedback. For each task, multiple interaction rounds are allowed (up to $R_{\max}$). The supervisor maintains an internal state vector updated after each attempt:
 
 - $s^{\text{trust}}$: Perceived integrity and reliability of the performer
 - $s^{\text{satisfaction}}$: Task-focused quality assessment
@@ -132,7 +132,7 @@ OPENROUTER=your_openrouter_key_here
 python main.py --config your_config_file.yaml
 
 # Run detector with Result Dir
-python core/bidirectional_detector.py --result_name SESSION_DIR_NAME --max_parallel 10
+python core/deception_auditor.py --result_name SESSION_DIR_NAME --max_parallel 10
 
 # Run Analyzer with visualization of supervisor state evolution, etc.
 python analyzer.py --result_name SESSION_DIR_NAME
